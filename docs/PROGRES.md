@@ -52,7 +52,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Registrasi siswa mandiri + checkbox izin + kontak darurat (dari Fase 0, tetap berlaku)
 - [x] Uji end-to-end: invite → aktivasi web → `tutors.status='aktif'` (Playwright + SQL)
 - [ ] **Email otomatis** undangan via Resend — **ditunda**. Keputusan: admin salin link & kirim manual (WhatsApp). Kode `invite-tutor` sudah siap kirim email; tinggal selesaikan DNS domain `kelasxtra.my.id` di Cloudflare lalu set `RESEND_API_KEY` (sudah diset, tapi domain belum Verified).
-- [ ] Katalog publik tutor: VIEW tanpa kolom bank (dibuat sebelum Fase 2)
+- [x] Katalog publik tutor: VIEW `public.tutor_catalog` (tanpa kolom bank/token) + cabut policy `tutors: baca tutor aktif` (migrasi `...00010_tutor_catalog_view`, 16 Okt 2026)
 
 ## Fase 2 — Katalog & Booking Privat (🟡)
 
@@ -61,6 +61,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] RPC `set_price` (ubah harga + versi lama jadi riwayat + tulis `audit_logs`)
 - [x] Dashboard modul **Price Matrix** (edit harga inline + tampilkan riwayat)
 - [x] Dashboard modul **Voucher** (CRUD, aktif/nonaktif, kuota)
+- [x] VIEW `public.tutor_catalog` — katalog publik tutor tanpa kolom bank (bypass RLS disengaja; linter `security_definer_view` = known/intentional)
 - [ ] Edge Function `create-snap` (buat booking pending + Midtrans Snap; butuh Midtrans Sandbox keys)
 - [ ] Edge Function `midtrans-webhook` (idempoten by `order_id`; verifikasi signature SHA512)
 - [ ] Mobile siswa: katalog (filter mapel/jenjang/mode/harga), profil tutor, pilih slot → ringkasan → voucher → Snap → status

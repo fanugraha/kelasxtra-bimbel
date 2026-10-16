@@ -12,6 +12,8 @@ import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
 import '../katalog/katalog_providers.dart';
 import '../katalog/katalog_repository.dart';
+import '../paket/paket_providers.dart';
+import '../paket/paket_repository.dart';
 import 'booking_providers.dart';
 import 'snap_screen.dart';
 
@@ -36,6 +38,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   String? _appliedCode;
   int _discount = 0;
   String? _voucherError;
+  bool _useQuota = false;
   var _checkingVoucher = false;
   var _submitting = false;
   String? _error;
@@ -52,6 +55,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _appliedCode = null;
     _discount = 0;
     _voucherError = null;
+    _useQuota = false;
   }
 
   @override
@@ -84,6 +88,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ? const <int>[]
         : _startTimes(_slot!, _duration);
     final addressRequired = _mode == 'offline';
+    final packages =
+        ref.watch(activePackagesForTutorProvider(widget.tutorId)).asData?.value ??
+            const <PackageItem>[];
+    PackageItem? matchPackage;
+    if (_subject != null && _mode != null) {
+      for (final p in packages) {
+        if (p.subjectId == _subject!.subjectId &&
+            p.jenjang == _subject!.jenjang &&
+            p.durationMinutes == _duration &&
+            p.mode == _mode &&
+            p.sisaSesi > 0) {
+          matchPackage = p;
+          break;
+        }
+      }
+    }
     final complete = _subject != null &&
         _mode != null &&
         _slot != null &&
@@ -235,47 +255,69 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
         ],
 
-        const SizedBox(height: AppSpacing.xl),
-        _SectionLabel('Kode voucher (opsional)'),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _voucher,
-                enabled: _appliedCode == null,
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(hintText: 'Contoh: HEMAT10'),
+        if (matchPackage != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _SectionLabel('Pembayaran'),
+          Wrap(
+            spacing: AppSpacing.sm,
+            children: [
+              ChoiceChip(
+                label: Text('Pakai kuota paket (sisa ${matchPackage.sisaSesi})'),
+                selected: _useQuota,
+                onSelected: (_) => setState(() => _useQuota = true),
+              ),
+              ChoiceChip(
+                label: const Text('Bayar per sesi'),
+                selected: !_useQuota,
+                onSelected: (_) => setState(() => _useQuota = false),
+              ),
+            ],
+          ),
+        ],
+
+        if (!_useQuota) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _SectionLabel('Kode voucher (opsional)'),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _voucher,
+                  enabled: _appliedCode == null,
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(hintText: 'Contoh: HEMAT10'),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              AppButton(
+                label: _appliedCode != null ? 'Batal' : 'Pakai',
+                expand: false,
+                variant: AppButtonVariant.secondary,
+                loading: _checkingVoucher,
+                onPressed: (_subject == null || _mode == null)
+                    ? null
+                    : (_appliedCode != null ? _clearVoucher : _applyVoucher),
+              ),
+            ],
+          ),
+          if (_voucherError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                _voucherError!,
+                style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            AppButton(
-              label: _appliedCode != null ? 'Batal' : 'Pakai',
-              expand: false,
-              variant: AppButtonVariant.secondary,
-              loading: _checkingVoucher,
-              onPressed: (_subject == null || _mode == null)
-                  ? null
-                  : (_appliedCode != null ? _clearVoucher : _applyVoucher),
+          if (_appliedCode != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                'Voucher ${_appliedCode!} dipakai — hemat ${AppFormat.rupiah(_discount)}',
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
+              ),
             ),
-          ],
-        ),
-        if (_voucherError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Text(
-              _voucherError!,
-              style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
-            ),
-          ),
-        if (_appliedCode != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Text(
-              'Voucher ${_appliedCode!} dipakai — hemat ${AppFormat.rupiah(_discount)}',
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
-            ),
-          ),
+        ],
 
         const SizedBox(height: AppSpacing.xl),
         _PriceCard(
@@ -283,20 +325,25 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           mode: _mode,
           duration: _duration,
           discount: _discount,
+          useQuota: _useQuota,
         ),
 
         AppErrorText(_error),
 
         const SizedBox(height: AppSpacing.lg),
         AppButton(
-          label: 'Lanjut ke pembayaran',
-          icon: Icons.lock_outline_rounded,
+          label: _useQuota ? 'Pesan dengan kuota paket' : 'Lanjut ke pembayaran',
+          icon: _useQuota
+              ? Icons.card_membership_rounded
+              : Icons.lock_outline_rounded,
           loading: _submitting,
           onPressed: complete ? () => _submit(detail) : null,
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Slot ditahan 30 menit saat kamu lanjut ke pembayaran.',
+          _useQuota
+              ? 'Satu kuota paket akan dipakai. Tak ada pembayaran tambahan.'
+              : 'Slot ditahan 30 menit saat kamu lanjut ke pembayaran.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall,
         ),
@@ -317,6 +364,39 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         _startMinutes! ~/ 60,
         _startMinutes! % 60,
       );
+      final address = _mode == 'offline' ? _address.text.trim() : null;
+
+      if (_useQuota) {
+        final packages =
+            await ref.read(paketRepositoryProvider).fetchActiveForTutor(widget.tutorId);
+        PackageItem? match;
+        for (final p in packages) {
+          if (p.subjectId == _subject!.subjectId &&
+              p.jenjang == _subject!.jenjang &&
+              p.durationMinutes == _duration &&
+              p.mode == _mode &&
+              p.sisaSesi > 0) {
+            match = p;
+            break;
+          }
+        }
+        if (match == null) throw Exception('Paket tidak lagi tersedia');
+        await ref.read(paketRepositoryProvider).bookWithPackage(
+              packageId: match.id,
+              scheduledAt: scheduledAt,
+              address: address,
+            );
+        if (!mounted) return;
+        ref.invalidate(myBookingsProvider);
+        ref.invalidate(myPackagesProvider);
+        ref.invalidate(activePackagesForTutorProvider(widget.tutorId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi dipesan dengan kuota paket.')),
+        );
+        Navigator.of(context).pop(true);
+        return;
+      }
+
       final result = await ref.read(bookingRepositoryProvider).createSnap(
             tutorId: widget.tutorId,
             subjectId: _subject!.subjectId,
@@ -324,7 +404,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             durationMinutes: _duration,
             mode: _mode!,
             scheduledAt: scheduledAt,
-            address: _mode == 'offline' ? _address.text.trim() : null,
+            address: address,
             voucherCode: _appliedCode,
           );
       if (!mounted) return;
@@ -443,12 +523,14 @@ class _PriceCard extends ConsumerWidget {
     required this.mode,
     required this.duration,
     this.discount = 0,
+    this.useQuota = false,
   });
 
   final TutorSubjectItem? subject;
   final String? mode;
   final int duration;
   final int discount;
+  final bool useQuota;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -458,6 +540,29 @@ class _PriceCard extends ConsumerWidget {
         child: Text(
           'Pilih mapel dan mode untuk melihat harga.',
           style: theme.textTheme.bodySmall,
+        ),
+      );
+    }
+    if (useQuota) {
+      return AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.card_membership_rounded, size: 18, color: AppColors.success),
+                const SizedBox(width: AppSpacing.xs),
+                Text('Ditanggung kuota paket', style: theme.textTheme.bodySmall),
+              ],
+            ),
+            const Divider(height: AppSpacing.xl),
+            Text('Total bayar', style: theme.textTheme.bodySmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              AppFormat.rupiah(0),
+              style: theme.textTheme.titleLarge?.copyWith(color: AppColors.primary),
+            ),
+          ],
         ),
       );
     }

@@ -11,6 +11,8 @@ import '../features/home/home_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
 import '../features/katalog/katalog_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
+import '../features/paket/beli_paket_screen.dart';
+import '../features/paket/paket_screen.dart';
 import '../features/placeholder/placeholder_screen.dart';
 import '../widgets/app_shell.dart';
 import 'nav_destinations.dart';
@@ -82,6 +84,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/booking/:id',
         builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(path: '/paket', builder: (c, s) => const PaketScreen()),
+      GoRoute(
+        path: '/paket/beli/:id',
+        builder: (c, s) => BeliPaketScreen(tutorId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
       GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),

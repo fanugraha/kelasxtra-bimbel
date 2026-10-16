@@ -2,24 +2,8 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/snap_result.dart';
 import '../../core/supabase_client.dart';
-
-/// Hasil pemanggilan Edge Function `create-snap`.
-class SnapResult {
-  const SnapResult({
-    required this.orderId,
-    required this.bookingId,
-    required this.redirectUrl,
-    required this.amount,
-    required this.reused,
-  });
-
-  final String orderId;
-  final String bookingId;
-  final String redirectUrl;
-  final int amount;
-  final bool reused;
-}
 
 /// Satu booking milik siswa (untuk tab Jadwal).
 class BookingItem {
@@ -124,7 +108,7 @@ class BookingRepository {
     }
     return SnapResult(
       orderId: data['order_id'] as String,
-      bookingId: data['booking_id'] as String,
+      bookingId: data['booking_id'] as String?,
       redirectUrl: data['redirect_url'] as String,
       amount: (data['amount'] as num).toInt(),
       reused: (data['reused'] ?? false) as bool,

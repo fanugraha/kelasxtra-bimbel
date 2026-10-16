@@ -13,7 +13,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 0 | Fondasi | ✅ |
 | 1 | Akun & Profil | 🟡 |
 | 2 | Katalog & Booking Privat + Pembayaran | 🟡 |
-| 3 | Paket Sesi | ⬜ |
+| 3 | Paket Sesi | 🟡 |
 | 4 | Kelas Grup | ⬜ |
 | 5 | Bank Soal + Analisis | ⬜ |
 | 6 | Absensi, Reschedule, Komplain, Pesan | ⬜ |
@@ -73,6 +73,17 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Voucher di checkout: validasi + kunci kuota race-safe (RPC), dilepas saat gagal (webhook)
 - [x] Filter katalog: mapel, jenjang, mode, rating (filter *harga* ditunda — tutor tak punya satu harga; harga tergantung jenjang/durasi/mode)
 - [ ] O7: harga final price matrix diisi pemilik lewat dashboard
+
+## Fase 3 — Paket Sesi (🟡)
+
+- [x] Migrasi `package_purchases` (+ `payments.package_purchase_id`, FK `bookings.package_purchase_id`)
+- [x] Aturan: 4/8/12 sesi → diskon 0/5/10%; terikat 1 tutor + mapel/jenjang/durasi/mode; 90 hari; kuota hangus
+- [x] RPC `consume_package_session` (atomik), `refund_package` (proporsional, admin), `expire_stale_packages` (+ cron)
+- [x] Edge `create-package-snap` (beli) + `book-with-package` (pakai kuota); webhook cabang paket
+- [x] Mobile: layar **Beli Paket** (dari profil tutor) + **Paket Saya** + opsi **pakai kuota** di booking
+- [ ] Dashboard: layar refund proporsional (RPC sudah ada)
+- [x] Uji backend: 8 sesi SMA 60 online → 646.000; aktif via webhook; pakai kuota → booking `confirmed` (bayar 0);
+      kuota habis & slot bentrok ditolak; refund proporsional 484.500
 
 ## Langkah berikutnya
 

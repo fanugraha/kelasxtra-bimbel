@@ -31,10 +31,24 @@ class TutorDetailScreen extends ConsumerWidget {
                   AppSpacing.lg,
                   AppSpacing.md,
                 ),
-                child: AppButton(
-                  label: 'Pesan Sesi',
-                  icon: Icons.event_available_rounded,
-                  onPressed: () => context.push('/booking/$tutorId'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        label: 'Beli Paket',
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () => context.push('/paket/beli/$tutorId'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        label: 'Pesan Sesi',
+                        icon: Icons.event_available_rounded,
+                        onPressed: () => context.push('/booking/$tutorId'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
         orElse: () => null,

@@ -68,9 +68,10 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Mobile siswa: pilih slot → ringkasan harga → Snap (WebView) → status di tab **Jadwal** (voucher menyusul)
 - [x] Slot lock 30 menit (`lock_expires_at`) + auto-expire via `pg_cron` (`expire_stale_bookings`, tiap 5 mnt)
 - [x] Prasyarat Midtrans Sandbox: secret terpasang, webhook URL diset; **uji end-to-end di HP** (bayar → webhook settlement → booking `confirmed`)
+- [x] Uji jalur webhook: gagal (deny/cancel→cancelled), expire, **duplikat → tidak dobel**, signature salah → 401
+- [x] Alamat terbuka pasca-bayar + bagi hasil (`tutor_share`/`platform_share`) tak bocor ke client — VIEW `bookings_visible` (definer)
 - [ ] Filter mode/harga/rating di katalog
 - [ ] Voucher di checkout (validasi server-side)
-- [ ] Alamat terbuka pasca-bayar (dipaksa di DB)
 - [ ] O7: harga final price matrix diisi pemilik lewat dashboard
 
 ## Langkah berikutnya

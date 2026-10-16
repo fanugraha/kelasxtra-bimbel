@@ -117,8 +117,10 @@ class BookingRepository {
   }
 
   Future<List<BookingItem>> fetchMyBookings() async {
+    // Baca dari VIEW `bookings_visible`: tanpa kolom bagi hasil, `address`
+    // hanya terbuka pasca-bayar, dan hanya baris milik sendiri.
     final rows = await supabase
-        .from('bookings')
+        .from('bookings_visible')
         .select('id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
             'scheduled_at, status, price')
         .order('scheduled_at', ascending: false);

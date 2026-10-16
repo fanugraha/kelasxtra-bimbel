@@ -36,12 +36,31 @@ celah timeout. Diuji di HP Android pemilik dengan Midtrans **sandbox asli**.
 
 - Webhook menimpa `payments.raw` sehingga `snap_token` hilang (efek: bayar ulang saat pending
   meregenerasi token Snap — tetap jalan). Bisa diperbaiki: gabung, bukan timpa.
-- Jalur booking gagal (deny/cancel) belum diuji dengan webhook asli.
 - Voucher & filter katalog lanjutan belum.
+
+## Uji jalur webhook (fungsi sementara `midtrans-simulate`, lalu dihapus)
+
+- Fungsi sementara menandatangani payload (SHA512 dgn server key) lalu POST ke webhook asli.
+- Hasil: `deny` → booking `cancelled` / payment `deny`; `expire` → `expired`/`expire`;
+  **duplikat → `unchanged:true`** (idempoten); settlement ulang → `unchanged:true`;
+  signature salah → **401**. Fungsi uji & data uji dihapus.
+
+## Privasi: kolom `bookings` (migrasi `...00013_bookings_visible_view`)
+
+- Masalah: RLS menyembunyikan **baris**, bukan **kolom**. Siswa/tutor bisa `select` barisnya
+  sendiri lalu baca `address` (sebelum bayar) dan `tutor_share`/`platform_share` (bagi hasil).
+- Solusi: VIEW `bookings_visible` (definer, disaring `auth.uid()`): tanpa kolom bagi hasil;
+  `address` hanya terbuka bila status **pasca-bayar** (bukan `pending_payment/cancelled/expired`).
+  `select` pada tabel `bookings` dicabut dari `anon`/`authenticated`. App baca dari view.
+- Kenapa definer, bukan `security_invoker`: begitu SELECT tabel dicabut, invoker view ikut
+  tak bisa membaca tabel dasar (sempat dicoba → gagal). Definisi definer + WHERE `auth.uid()`
+  memberi hasil sama; linter `security_definer_view` = disengaja (pola sama `tutor_catalog`).
+- Diuji dgn simulasi peran (`set local role authenticated` + `request.jwt.claims`):
+  pending → `address` null; confirmed → tampil; tutor tak terkait → 0 baris.
 
 ## Langkah berikutnya
 
-- Uji jalur gagal/duplikat webhook; voucher di checkout; filter mode/harga/rating.
+- Voucher di checkout; filter katalog (mode/harga/rating).
 - Isi harga final (O7) lewat dashboard.
 
 ## Tautan terkait

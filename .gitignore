@@ -1,0 +1,31 @@
+# Env & rahasia — JANGAN commit
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.local
+
+# Node
+node_modules/
+dist/
+*.log
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+**/ios/Pods/
+**/ios/.symlinks/
+*.iml
+
+# Supabase lokal
+supabase/.temp/
+supabase/.branches/
+
+# OS
+.DS_Store
+
+# Artefak uji browser (Playwright MCP)
+.playwright-mcp/

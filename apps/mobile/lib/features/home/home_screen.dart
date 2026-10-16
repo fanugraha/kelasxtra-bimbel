@@ -66,6 +66,11 @@ class HomeScreen extends ConsumerWidget {
                   label: 'Paket Saya',
                   onTap: () => context.go('/paket'),
                 ),
+                _QuickItem(
+                  icon: Icons.groups_rounded,
+                  label: 'Kelas Grup',
+                  onTap: () => context.go('/kelas-grup'),
+                ),
               ],
             )
           else
@@ -148,40 +153,56 @@ class _QuickGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: AppCard(
-              onTap: items[i].onTap,
-              padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.lg,
-                horizontal: AppSpacing.sm,
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor:
-                        theme.colorScheme.primary.withValues(alpha: 0.12),
-                    child: Icon(items[i].icon,
-                        color: theme.colorScheme.primary, size: 24),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    items[i].label,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
+    final rows = <Widget>[];
+    for (var i = 0; i < items.length; i += 2) {
+      final end = (i + 2 > items.length) ? items.length : i + 2;
+      final pair = items.sublist(i, end);
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _QuickCard(item: pair[0])),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: pair.length > 1 ? _QuickCard(item: pair[1]) : const SizedBox(),
             ),
+          ],
+        ),
+      );
+      if (end < items.length) rows.add(const SizedBox(height: AppSpacing.md));
+    }
+    return Column(children: rows);
+  }
+}
+
+class _QuickCard extends StatelessWidget {
+  const _QuickCard({required this.item});
+  final _QuickItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AppCard(
+      onTap: item.onTap,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.lg,
+        horizontal: AppSpacing.sm,
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+            child: Icon(item.icon, color: theme.colorScheme.primary, size: 24),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            item.label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
-      ],
+      ),
     );
   }
 }

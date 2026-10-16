@@ -95,8 +95,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Edge `create-group-seat-snap` + webhook cabang `group_seat`
 - [x] Uji: 8 sesi (Sel & Kam 16:00) → 570.000, tenggat 19 Okt 20:00 WIB; ambil kursi → `pending`;
       settlement → `active`; deny → kursi dilepas; kuota <3 → program `cancelled`; kuota ≥3 → `confirmed`
-- [ ] Dashboard: buat program kelas grup + pantau keterisian + refund kursi
-- [ ] Mobile siswa: daftar kelas grup, ambil kursi, bayar
+- [x] Dashboard: modul **Kelas Grup** (buat program + pantau keterisian + refund kursi) & **Ruangan**
+- [x] Mobile siswa: **Kelas Grup** (daftar program, lihat 8 pertemuan, ambil kursi → Snap)
 
 ## Langkah berikutnya
 

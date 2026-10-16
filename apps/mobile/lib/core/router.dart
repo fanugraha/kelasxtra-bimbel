@@ -9,6 +9,8 @@ import '../features/auth/register_screen.dart';
 import '../features/booking/booking_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
+import '../features/kelas_grup/kelas_grup_detail_screen.dart';
+import '../features/kelas_grup/kelas_grup_screen.dart';
 import '../features/katalog/katalog_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
 import '../features/paket/beli_paket_screen.dart';
@@ -89,6 +91,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/paket/beli/:id',
         builder: (c, s) => BeliPaketScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(path: '/kelas-grup', builder: (c, s) => const KelasGrupScreen()),
+      GoRoute(
+        path: '/kelas-grup/:id',
+        builder: (c, s) => KelasGrupDetailScreen(classId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
       GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),

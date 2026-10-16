@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Kredensial lokal untuk run-dev.sh (jangan di-commit)
+.dev.env

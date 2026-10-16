@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
 import 'katalog_providers.dart';
 import 'katalog_repository.dart';
@@ -37,27 +39,16 @@ class TutorDetailScreen extends ConsumerWidget {
               ),
         orElse: () => null,
       ),
-      body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(
-          icon: Icons.cloud_off_rounded,
-          title: 'Gagal memuat profil',
-          message: '$e',
-          action: FilledButton.icon(
-            onPressed: () => ref.invalidate(tutorDetailProvider(tutorId)),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Coba lagi'),
-          ),
-        ),
-        data: (d) {
-          if (d == null) {
-            return const EmptyState(
-              icon: Icons.person_off_rounded,
-              title: 'Tutor tidak ditemukan',
-            );
-          }
-          return _Content(detail: d);
-        },
+      body: AsyncView<TutorDetail?>(
+        value: detail,
+        errorTitle: 'Gagal memuat profil',
+        onRetry: () => ref.invalidate(tutorDetailProvider(tutorId)),
+        builder: (d) => d == null
+            ? const EmptyState(
+                icon: Icons.person_off_rounded,
+                title: 'Tutor tidak ditemukan',
+              )
+            : _Content(detail: d),
       ),
     );
   }
@@ -74,64 +65,69 @@ class _Content extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         Center(
           child: CircleAvatar(
             radius: 44,
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
             backgroundImage: (t.photoUrl != null && t.photoUrl!.isNotEmpty)
                 ? NetworkImage(t.photoUrl!)
                 : null,
             child: (t.photoUrl == null || t.photoUrl!.isEmpty)
-                ? Text(t.fullName.isEmpty ? '?' : t.fullName[0].toUpperCase(),
-                    style: const TextStyle(fontSize: 32))
+                ? Text(
+                    t.fullName.isEmpty ? '?' : t.fullName[0].toUpperCase(),
+                    style: theme.textTheme.displaySmall
+                        ?.copyWith(color: theme.colorScheme.primary),
+                  )
                 : null,
           ),
         ),
-        const SizedBox(height: 12),
-        Center(
-          child: Text(t.fullName, style: theme.textTheme.titleLarge),
-        ),
+        const SizedBox(height: AppSpacing.md),
+        Center(child: Text(t.fullName, style: theme.textTheme.titleLarge)),
         if (t.education != null && t.education!.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Center(child: Text(t.education!, style: theme.textTheme.bodyMedium)),
+          const SizedBox(height: AppSpacing.xs),
+          Center(child: Text(t.education!, style: theme.textTheme.bodySmall)),
         ],
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Center(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.star, size: 18, color: Colors.amber),
-              const SizedBox(width: 4),
-              Text(t.ratingAvg.toStringAsFixed(1)),
+              const Icon(Icons.star_rounded, size: 20, color: AppColors.star),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                t.ratingAvg.toStringAsFixed(1),
+                style: theme.textTheme.titleMedium,
+              ),
             ],
           ),
         ),
         if (t.bio != null && t.bio!.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text('Tentang', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 6),
-          Text(t.bio!),
+          const SizedBox(height: AppSpacing.xl),
+          _SectionTitle('Tentang'),
+          const SizedBox(height: AppSpacing.sm),
+          Text(t.bio!, style: theme.textTheme.bodyMedium),
         ],
-        const SizedBox(height: 20),
-        Text('Mapel & Jenjang', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xl),
+        _SectionTitle('Mapel & Jenjang'),
+        const SizedBox(height: AppSpacing.sm),
         if (detail.subjects.isEmpty)
-          const Text('Belum ada data mapel.')
+          Text('Belum ada data mapel.', style: theme.textTheme.bodySmall)
         else
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
               for (final s in detail.subjects)
                 Chip(label: Text('${s.subjectName} · ${s.jenjang}')),
             ],
           ),
-        const SizedBox(height: 20),
-        Text('Jadwal Ketersediaan', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xl),
+        _SectionTitle('Jadwal Ketersediaan'),
+        const SizedBox(height: AppSpacing.sm),
         if (detail.availability.isEmpty)
-          const Text('Belum ada jadwal.')
+          Text('Belum ada jadwal.', style: theme.textTheme.bodySmall)
         else
           Column(
             children: [
@@ -139,7 +135,7 @@ class _Content extends StatelessWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
-                    a.mode == 'online' ? Icons.videocam : Icons.place,
+                    a.mode == 'online' ? Icons.videocam_rounded : Icons.place_rounded,
                   ),
                   title: Text(a.dayName),
                   subtitle: Text(a.timeRange),
@@ -151,4 +147,13 @@ class _Content extends StatelessWidget {
       ],
     );
   }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: Theme.of(context).textTheme.titleMedium);
 }

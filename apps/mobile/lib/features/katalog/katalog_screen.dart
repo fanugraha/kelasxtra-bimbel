@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../core/constants.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/tutor_card.dart';
 import 'katalog_providers.dart';
+import 'katalog_repository.dart';
 
 class KatalogScreen extends ConsumerWidget {
   const KatalogScreen({super.key});
@@ -34,11 +37,10 @@ class KatalogScreen extends ConsumerWidget {
                   child: DropdownButtonFormField<String>(
                     initialValue: filter.jenjang ?? '',
                     decoration: const InputDecoration(labelText: 'Jenjang'),
-                    items: const [
-                      DropdownMenuItem(value: '', child: Text('Semua')),
-                      DropdownMenuItem(value: 'SD', child: Text('SD')),
-                      DropdownMenuItem(value: 'SMP', child: Text('SMP')),
-                      DropdownMenuItem(value: 'SMA', child: Text('SMA')),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('Semua')),
+                      for (final j in AppConstants.jenjang)
+                        DropdownMenuItem(value: j, child: Text(j)),
                     ],
                     onChanged: (v) => ref
                         .read(katalogFilterProvider.notifier)
@@ -69,19 +71,12 @@ class KatalogScreen extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: tutors.when(
-              loading: () => const _LoadingList(),
-              error: (e, _) => EmptyState(
-                icon: Icons.cloud_off_rounded,
-                title: 'Gagal memuat katalog',
-                message: '$e',
-                action: FilledButton.icon(
-                  onPressed: () => ref.invalidate(tutorListProvider),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Coba lagi'),
-                ),
-              ),
-              data: (list) => list.isEmpty
+            child: AsyncView<List<TutorCatalogItem>>(
+              value: tutors,
+              errorTitle: 'Gagal memuat katalog',
+              onRetry: () => ref.invalidate(tutorListProvider),
+              loading: const _LoadingList(),
+              builder: (list) => list.isEmpty
                   ? const EmptyState(
                       icon: Icons.search_off_rounded,
                       title: 'Belum ada tutor',

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
+import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_error_text.dart';
+import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
 import '../katalog/katalog_providers.dart';
 import '../katalog/katalog_repository.dart';
 import 'booking_providers.dart';
 import 'snap_screen.dart';
-
-const _durations = [60, 90, 120];
 
 class BookingScreen extends ConsumerStatefulWidget {
   const BookingScreen({super.key, required this.tutorId});
@@ -45,22 +47,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pesan Sesi')),
-      body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(
-          icon: Icons.cloud_off_rounded,
-          title: 'Gagal memuat data tutor',
-          message: '$e',
-        ),
-        data: (d) {
-          if (d == null) {
-            return const EmptyState(
-              icon: Icons.person_off_rounded,
-              title: 'Tutor tidak ditemukan',
-            );
-          }
-          return _buildForm(d);
-        },
+      body: AsyncView<TutorDetail?>(
+        value: detail,
+        errorTitle: 'Gagal memuat data tutor',
+        onRetry: () => ref.invalidate(tutorDetailProvider(widget.tutorId)),
+        builder: (d) => d == null
+            ? const EmptyState(
+                icon: Icons.person_off_rounded,
+                title: 'Tutor tidak ditemukan',
+              )
+            : _buildForm(d),
       ),
     );
   }
@@ -93,7 +89,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         Text(detail.tutor.fullName, style: theme.textTheme.titleLarge),
         const SizedBox(height: AppSpacing.xl),
 
-        _label('Mapel & Jenjang'),
+        _SectionLabel('Mapel & Jenjang'),
         if (subjects.isEmpty)
           const Text('Tutor belum mengatur mapel.')
         else
@@ -114,7 +110,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
 
         const SizedBox(height: AppSpacing.xl),
-        _label('Mode'),
+        _SectionLabel('Mode'),
         Wrap(
           spacing: AppSpacing.sm,
           children: [
@@ -131,11 +127,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ),
 
         const SizedBox(height: AppSpacing.xl),
-        _label('Durasi'),
+        _SectionLabel('Durasi'),
         Wrap(
           spacing: AppSpacing.sm,
           children: [
-            for (final d in _durations)
+            for (final d in AppConstants.durations)
               ChoiceChip(
                 label: Text('$d menit'),
                 selected: _duration == d,
@@ -148,7 +144,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ),
 
         const SizedBox(height: AppSpacing.xl),
-        _label('Jadwal ketersediaan'),
+        _SectionLabel('Jadwal ketersediaan'),
         if (slots.isEmpty)
           const Text('Tutor belum punya jadwal untuk mode ini.')
         else
@@ -171,14 +167,14 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
         if (_slot != null && dates.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          _label('Tanggal'),
+          _SectionLabel('Tanggal'),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
               for (final d in dates)
                 ChoiceChip(
-                  label: Text(_formatDate(d)),
+                  label: Text(AppFormat.dateShort(d)),
                   selected: _date == d,
                   onSelected: (_) => setState(() {
                     _date = d;
@@ -191,7 +187,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
         if (_date != null) ...[
           const SizedBox(height: AppSpacing.lg),
-          _label('Jam mulai'),
+          _SectionLabel('Jam mulai'),
           if (times.isEmpty)
             const Text('Durasi tidak muat di slot ini. Pilih durasi lebih pendek.')
           else
@@ -201,7 +197,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               children: [
                 for (final t in times)
                   ChoiceChip(
-                    label: Text(_hhmm(t)),
+                    label: Text(AppFormat.hhmm(t)),
                     selected: _startMinutes == t,
                     onSelected: (_) => setState(() => _startMinutes = t),
                   ),
@@ -211,7 +207,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
         if (addressRequired) ...[
           const SizedBox(height: AppSpacing.xl),
-          _label('Alamat belajar'),
+          _SectionLabel('Alamat belajar'),
           TextField(
             controller: _address,
             minLines: 2,
@@ -224,16 +220,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ],
 
         const SizedBox(height: AppSpacing.xl),
-        _PriceCard(
-          subject: _subject,
-          mode: _mode,
-          duration: _duration,
-        ),
+        _PriceCard(subject: _subject, mode: _mode, duration: _duration),
 
-        if (_error != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-        ],
+        AppErrorText(_error),
 
         const SizedBox(height: AppSpacing.lg),
         AppButton(
@@ -251,11 +240,6 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       ],
     );
   }
-
-  Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-      );
 
   Future<void> _submit(TutorDetail detail) async {
     setState(() {
@@ -312,45 +296,40 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return a.where((x) => x.mode == _mode).toList();
   }
 
+  /// Empat tanggal terdekat untuk hari tertentu (0 = Minggu … 6 = Sabtu).
   List<DateTime> _nextDates(int dayOfWeek, int count) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dartWeekday = dayOfWeek == 0 ? 7 : dayOfWeek;
-    var d = today.add(Duration(days: (dartWeekday - today.weekday + 7) % 7));
-    return [for (var i = 0; i < count; i++) d = d.add(Duration(days: i == 0 ? 0 : 7))];
+    final first = today.add(Duration(days: (dartWeekday - today.weekday + 7) % 7));
+    return [for (var i = 0; i < count; i++) first.add(Duration(days: i * 7))];
   }
 
+  /// Jam mulai yang muat durasi di dalam slot, dan belum lewat bila hari ini.
   List<int> _startTimes(TutorAvailabilityItem slot, int duration) {
-    final start = _toMinutes(slot.startTime);
-    final end = _toMinutes(slot.endTime);
-    final out = <int>[];
+    final start = AppFormat.minutesOfTime(slot.startTime);
+    final end = AppFormat.minutesOfTime(slot.endTime);
     final isToday = _date != null && _isSameDay(_date!, DateTime.now());
     final nowMinutes = DateTime.now().hour * 60 + DateTime.now().minute;
-    for (var m = start; m + duration <= end; m += 60) {
-      if (!isToday || m > nowMinutes) out.add(m);
-    }
-    return out;
+    return [
+      for (var m = start; m + duration <= end; m += 60)
+        if (!isToday || m > nowMinutes) m,
+    ];
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+}
 
-  static int _toMinutes(String t) {
-    final parts = t.split(':');
-    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
-  }
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
 
-  static String _hhmm(int minutes) =>
-      '${(minutes ~/ 60).toString().padLeft(2, '0')}:${(minutes % 60).toString().padLeft(2, '0')}';
-
-  static const _dayShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-  static const _monthShort = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-  ];
-
-  static String _formatDate(DateTime d) =>
-      '${_dayShort[d.weekday % 7]}, ${d.day} ${_monthShort[d.month - 1]}';
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+      );
 }
 
 class _PriceCard extends ConsumerWidget {
@@ -365,8 +344,10 @@ class _PriceCard extends ConsumerWidget {
     final theme = Theme.of(context);
     if (subject == null || mode == null) {
       return AppCard(
-        child: Text('Pilih mapel dan mode untuk melihat harga.',
-            style: theme.textTheme.bodySmall),
+        child: Text(
+          'Pilih mapel dan mode untuk melihat harga.',
+          style: theme.textTheme.bodySmall,
+        ),
       );
     }
     final price = ref.watch(priceProvider((
@@ -390,7 +371,7 @@ class _PriceCard extends ConsumerWidget {
                   Text('Total bayar', style: theme.textTheme.bodySmall),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    value == null ? 'Harga belum diset' : _rupiah(value),
+                    value == null ? 'Harga belum diset' : AppFormat.rupiah(value),
                     style: theme.textTheme.titleLarge
                         ?.copyWith(color: value == null ? null : AppColors.primary),
                   ),
@@ -402,15 +383,5 @@ class _PriceCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  static String _rupiah(int v) {
-    final s = v.toString();
-    final buf = StringBuffer('Rp');
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return buf.toString();
   }
 }

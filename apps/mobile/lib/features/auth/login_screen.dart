@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_flavor.dart';
 import '../../core/providers.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_error_text.dart';
 import 'auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -68,19 +70,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   obscureText: true,
                   decoration: const InputDecoration(labelText: 'Kata sandi'),
                 ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                ],
+                AppErrorText(_error),
                 const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 18, width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Masuk'),
-                ),
+                AppButton(label: 'Masuk', loading: _loading, onPressed: _submit),
                 if (flavor == AppFlavor.siswa) ...[
                   const SizedBox(height: 12),
                   TextButton(

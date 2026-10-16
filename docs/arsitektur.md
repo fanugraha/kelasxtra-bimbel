@@ -63,3 +63,34 @@ Aturan terkait:
 
 Satu codebase Flutter, dua entry point: `main_siswa.dart` & `main_tutor.dart`,
 diplih lewat `appFlavorProvider`. Lihat `apps/mobile/lib/core/`.
+
+## Struktur kode mobile
+
+Feature-first + repository tipis. **Tanpa** lapisan domain/usecase/entity terpisah —
+untuk proyek solo itu menambah kode tanpa manfaat; tambahkan hanya bila benar-benar perlu.
+
+```
+apps/mobile/lib/
+  core/                    infrastruktur bersama (dipakai semua fitur)
+    theme/                 warna, tipografi, spacing, ThemeData (light+dark)
+    format.dart            pemformatan uang / tanggal / jam (satu sumber)
+    constants.dart         nilai tetap lintas fitur (jenjang, durasi)
+    router.dart            rute + redirect auth + bottom-nav shell
+    nav_destinations.dart  tab bottom-nav per flavor
+    supabase_client.dart · env.dart · app_flavor.dart · providers.dart · bootstrap.dart
+  widgets/                 komponen UI pakai-ulang lintas fitur
+  features/<fitur>/        satu fitur = data + state + tampilan
+    <x>_repository.dart    satu-satunya yang bicara ke Supabase / Edge Function
+    <x>_providers.dart     state Riverpod
+    <x>_screen.dart        layar
+    widgets/               (bila perlu) komponen lokal fitur
+```
+
+Aturan yang dipakai:
+
+- **Layar tidak memanggil Supabase langsung** — selalu lewat `*_repository.dart`.
+- Widget dipakai **≥2 fitur** → pindah ke `widgets/`; hanya 1 fitur → taruh di fitur.
+- Format uang/tanggal/jam **selalu** lewat `AppFormat`; jarak & sudut lewat `AppSpacing` / `AppRadius`.
+- Keadaan async lewat `AsyncView` (memuat / gagal + "Coba lagi" / data) agar seragam.
+- Galat inline lewat `AppErrorText`; tombol lewat `AppButton` (punya state loading).
+

@@ -1,3 +1,4 @@
+import '../../core/format.dart';
 import '../../core/supabase_client.dart';
 
 /// Pilihan mapel untuk filter katalog.
@@ -64,12 +65,8 @@ class TutorAvailabilityItem {
   final String endTime;
   final String mode;
 
-  static const _days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-  String get dayName => _days[dayOfWeek % 7];
-  String get timeRange => '${_hhmm(startTime)}–${_hhmm(endTime)}';
-
-  static String _hhmm(String t) => t.length >= 5 ? t.substring(0, 5) : t;
+  String get dayName => AppFormat.longDayName(dayOfWeek);
+  String get timeRange => AppFormat.timeRange(startTime, endTime);
 }
 
 class TutorDetail {

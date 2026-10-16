@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_error_text.dart';
 import 'auth_providers.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -76,10 +79,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               DropdownButtonFormField<String>(
                 initialValue: _jenjang,
                 decoration: const InputDecoration(labelText: 'Jenjang'),
-                items: const [
-                  DropdownMenuItem(value: 'SD', child: Text('SD')),
-                  DropdownMenuItem(value: 'SMP', child: Text('SMP')),
-                  DropdownMenuItem(value: 'SMA', child: Text('SMA')),
+                items: [
+                  for (final j in AppConstants.jenjang)
+                    DropdownMenuItem(value: j, child: Text(j)),
                 ],
                 onChanged: (v) => setState(() => _jenjang = v!),
               ),
@@ -121,17 +123,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   style: TextStyle(fontSize: 13),
                 ),
               ),
-              if (_error != null)
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              AppErrorText(_error),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        height: 18, width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Daftar'),
-              ),
+              AppButton(label: 'Daftar', loading: _loading, onPressed: _submit),
               TextButton(
                 onPressed: () => context.go('/login'),
                 child: const Text('Sudah punya akun? Masuk'),

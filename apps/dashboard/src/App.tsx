@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import type { ComponentType } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { isSupabaseConfigured } from './lib/supabase'
 import { Layout } from './components/Layout'
@@ -9,7 +10,22 @@ import { Tutors } from './pages/Tutors'
 import { Activate } from './pages/Activate'
 import { Pricing } from './pages/Pricing'
 import { Vouchers } from './pages/Vouchers'
+import { Packages } from './pages/Packages'
 import { modules } from './modules/registry'
+import type { ModuleDef } from './modules/registry'
+
+// Modul yang sudah punya layar; sisanya memakai placeholder.
+const modulePages: Record<string, ComponentType> = {
+  tutors: Tutors,
+  pricing: Pricing,
+  vouchers: Vouchers,
+  packages: Packages,
+}
+
+function ModulePage({ module }: { module: ModuleDef }) {
+  const Page = modulePages[module.path]
+  return Page ? <Page /> : <ModulePlaceholder module={module} />
+}
 
 function ConfigWarning() {
   return (
@@ -33,16 +49,7 @@ function Shell() {
       <Route element={session ? <Layout /> : <Navigate to="/login" replace />}>
         <Route index element={<Overview />} />
         {modules.map((m) => (
-          <Route
-            key={m.path}
-            path={m.path}
-            element={
-              m.path === 'tutors' ? <Tutors />
-              : m.path === 'pricing' ? <Pricing />
-              : m.path === 'vouchers' ? <Vouchers />
-              : <ModulePlaceholder module={m} />
-            }
-          />
+          <Route key={m.path} path={m.path} element={<ModulePage module={m} />} />
         ))}
       </Route>
     </Routes>

@@ -81,7 +81,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] RPC `consume_package_session` (atomik), `refund_package` (proporsional, admin), `expire_stale_packages` (+ cron)
 - [x] Edge `create-package-snap` (beli) + `book-with-package` (pakai kuota); webhook cabang paket
 - [x] Mobile: layar **Beli Paket** (dari profil tutor) + **Paket Saya** + opsi **pakai kuota** di booking
-- [ ] Dashboard: layar refund proporsional (RPC sudah ada)
+- [x] Dashboard: modul **Paket Sesi** — daftar pembelian + tombol refund proporsional (menghitung & mencatat; dana manual via Midtrans)
 - [x] Uji backend: 8 sesi SMA 60 online → 646.000; aktif via webhook; pakai kuota → booking `confirmed` (bayar 0);
       kuota habis & slot bentrok ditolak; refund proporsional 484.500
 

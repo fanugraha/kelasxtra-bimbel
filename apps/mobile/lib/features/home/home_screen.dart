@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/supabase_client.dart';
@@ -32,6 +33,13 @@ class HomeScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(user?.email ?? '-'),
+            const SizedBox(height: 24),
+            if (flavor.label == 'Siswa')
+              FilledButton.icon(
+                onPressed: () => context.go('/katalog'),
+                icon: const Icon(Icons.search),
+                label: const Text('Cari Tutor'),
+              ),
             const SizedBox(height: 24),
             const Text('Fondasi Fase 0 aktif. Fitur menyusul per fase.'),
           ],

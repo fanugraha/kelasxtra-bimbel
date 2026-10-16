@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/katalog/katalog_screen.dart';
+import '../features/katalog/tutor_detail_screen.dart';
 import 'supabase_client.dart';
 
 class _RefreshStream extends ChangeNotifier {
@@ -39,6 +41,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', builder: (c, s) => const HomeScreen()),
+      GoRoute(path: '/katalog', builder: (c, s) => const KatalogScreen()),
+      GoRoute(
+        path: '/tutor/:id',
+        builder: (c, s) =>
+            TutorDetailScreen(tutorId: s.pathParameters['id']!),
+      ),
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
       GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),
     ],

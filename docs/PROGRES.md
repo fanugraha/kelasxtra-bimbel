@@ -64,7 +64,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] VIEW `public.tutor_catalog` — katalog publik tutor tanpa kolom bank (bypass RLS disengaja; linter `security_definer_view` = known/intentional)
 - [ ] Edge Function `create-snap` (buat booking pending + Midtrans Snap; butuh Midtrans Sandbox keys)
 - [ ] Edge Function `midtrans-webhook` (idempoten by `order_id`; verifikasi signature SHA512)
-- [ ] Mobile siswa: katalog (filter mapel/jenjang/mode/harga), profil tutor, pilih slot → ringkasan → voucher → Snap → status
+- [x] Mobile siswa: katalog (daftar dari VIEW `tutor_catalog`, filter mapel+jenjang, urut rating) + profil tutor (mapel/jenjang + jadwal ketersediaan)
+- [ ] Mobile siswa: filter mode/harga, pilih slot → ringkasan → voucher → Snap → status
 - [ ] Slot lock 30 menit (`lock_expires_at`); auto-accept; alamat terbuka pasca-bayar
 - [ ] Prasyarat: akun **Midtrans Sandbox** (Server Key, Client Key) → set secret Edge Function
 

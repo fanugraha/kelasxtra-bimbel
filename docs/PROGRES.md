@@ -62,12 +62,16 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Dashboard modul **Price Matrix** (edit harga inline + tampilkan riwayat)
 - [x] Dashboard modul **Voucher** (CRUD, aktif/nonaktif, kuota)
 - [x] VIEW `public.tutor_catalog` — katalog publik tutor tanpa kolom bank (bypass RLS disengaja; linter `security_definer_view` = known/intentional)
-- [ ] Edge Function `create-snap` (buat booking pending + Midtrans Snap; butuh Midtrans Sandbox keys)
-- [ ] Edge Function `midtrans-webhook` (idempoten by `order_id`; verifikasi signature SHA512)
+- [x] Edge Function `create-snap` (buat booking pending + Midtrans Snap)
+- [x] Edge Function `midtrans-webhook` (idempoten by `order_id`; verifikasi signature SHA512)
 - [x] Mobile siswa: katalog (daftar dari VIEW `tutor_catalog`, filter mapel+jenjang, urut rating) + profil tutor (mapel/jenjang + jadwal ketersediaan)
-- [ ] Mobile siswa: filter mode/harga, pilih slot → ringkasan → voucher → Snap → status
-- [ ] Slot lock 30 menit (`lock_expires_at`); auto-accept; alamat terbuka pasca-bayar
-- [ ] Prasyarat: akun **Midtrans Sandbox** (Server Key, Client Key) → set secret Edge Function
+- [x] Mobile siswa: pilih slot → ringkasan harga → Snap (WebView) → status di tab **Jadwal** (voucher menyusul)
+- [x] Slot lock 30 menit (`lock_expires_at`) + auto-expire via `pg_cron` (`expire_stale_bookings`, tiap 5 mnt)
+- [x] Prasyarat Midtrans Sandbox: secret terpasang, webhook URL diset; **uji end-to-end di HP** (bayar → webhook settlement → booking `confirmed`)
+- [ ] Filter mode/harga/rating di katalog
+- [ ] Voucher di checkout (validasi server-side)
+- [ ] Alamat terbuka pasca-bayar (dipaksa di DB)
+- [ ] O7: harga final price matrix diisi pemilik lewat dashboard
 
 ## Langkah berikutnya
 

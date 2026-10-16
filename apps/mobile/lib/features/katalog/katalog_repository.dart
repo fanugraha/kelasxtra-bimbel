@@ -40,7 +40,12 @@ class TutorCatalogItem {
 
 /// Mapel + jenjang yang diajar tutor.
 class TutorSubjectItem {
-  const TutorSubjectItem({required this.subjectName, required this.jenjang});
+  const TutorSubjectItem({
+    required this.subjectId,
+    required this.subjectName,
+    required this.jenjang,
+  });
+  final String subjectId;
   final String subjectName;
   final String jenjang;
 }
@@ -119,7 +124,7 @@ class KatalogRepository {
 
     final subjectRows = await supabase
         .from('tutor_subjects')
-        .select('jenjang, subjects(name)')
+        .select('subject_id, jenjang, subjects(name)')
         .eq('tutor_id', id);
     final availRows = await supabase
         .from('tutor_availability')
@@ -133,6 +138,7 @@ class KatalogRepository {
       subjects: [
         for (final r in subjectRows)
           TutorSubjectItem(
+            subjectId: (r['subject_id'] ?? '') as String,
             subjectName: ((r['subjects'] as Map?)?['name'] ?? '-') as String,
             jenjang: (r['jenjang'] ?? '-') as String,
           ),

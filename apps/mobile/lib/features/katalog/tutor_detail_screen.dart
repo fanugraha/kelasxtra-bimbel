@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/empty_state.dart';
 import 'katalog_providers.dart';
 import 'katalog_repository.dart';
 
@@ -15,12 +19,42 @@ class TutorDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil Tutor')),
+      bottomNavigationBar: detail.maybeWhen(
+        data: (d) => d == null
+            ? null
+            : SafeArea(
+                minimum: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: AppButton(
+                  label: 'Pesan Sesi',
+                  icon: Icons.event_available_rounded,
+                  onPressed: () => context.push('/booking/$tutorId'),
+                ),
+              ),
+        orElse: () => null,
+      ),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Gagal memuat profil.\n$e')),
+        error: (e, _) => EmptyState(
+          icon: Icons.cloud_off_rounded,
+          title: 'Gagal memuat profil',
+          message: '$e',
+          action: FilledButton.icon(
+            onPressed: () => ref.invalidate(tutorDetailProvider(tutorId)),
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Coba lagi'),
+          ),
+        ),
         data: (d) {
           if (d == null) {
-            return const Center(child: Text('Tutor tidak ditemukan.'));
+            return const EmptyState(
+              icon: Icons.person_off_rounded,
+              title: 'Tutor tidak ditemukan',
+            );
           }
           return _Content(detail: d);
         },
@@ -113,12 +147,7 @@ class _Content extends StatelessWidget {
                 ),
             ],
           ),
-        const SizedBox(height: 24),
-        const Text(
-          'Booking & pembayaran menyusul.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12),
-        ),
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }

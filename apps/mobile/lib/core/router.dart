@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/booking/booking_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/jadwal/jadwal_screen.dart';
 import '../features/katalog/katalog_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
 import '../features/placeholder/placeholder_screen.dart';
@@ -31,11 +33,7 @@ class _RefreshStream extends ChangeNotifier {
 Widget _screenFor(String path) => switch (path) {
       '/' => const HomeScreen(),
       '/katalog' => const KatalogScreen(),
-      '/jadwal' => const PlaceholderScreen(
-          title: 'Jadwal',
-          icon: Icons.calendar_month_rounded,
-          message: 'Jadwal sesimu akan tampil di sini.',
-        ),
+      '/jadwal' => const JadwalScreen(),
       '/profil' => const PlaceholderScreen(
           title: 'Profil',
           icon: Icons.person_rounded,
@@ -80,6 +78,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/tutor/:id',
         builder: (c, s) => TutorDetailScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/booking/:id',
+        builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
       GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),

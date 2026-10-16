@@ -423,3 +423,9 @@ verify_jwt = true
 [functions.activate-tutor]
 verify_jwt = false
 
+[functions.create-snap]
+verify_jwt = true
+
+[functions.midtrans-webhook]
+verify_jwt = false
+

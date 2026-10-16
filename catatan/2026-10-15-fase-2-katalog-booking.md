@@ -34,9 +34,25 @@ diselesaikan lebih dulu.
 
 ## Langkah berikutnya
 
-- Edge Function `create-snap` + `midtrans-webhook` (butuh Midtrans Sandbox keys).
-- Mobile siswa: katalog + booking + status.
-- Sebelum deploy: set secret Midtrans (`MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_SANDBOX`).
+- Mobile siswa: layar booking + status + panggil `create-snap`, buka Snap.
+- Isi data uji (tutor aktif + `tutor_subjects` + siswa) untuk uji end-to-end.
+
+## Progres 16 Okt — konek Midtrans (sudah)
+
+- Secret di cloud `xbsiapwmhfcdenyeufhl`: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`,
+  `MIDTRANS_IS_SANDBOX=true` (juga ada `RESEND_API_KEY`, `EMAIL_FROM`, `ACTIVATION_BASE_URL`).
+- Deploy: `create-snap` (verify_jwt default true) + `midtrans-webhook`
+  (`verify_jwt=false` via `config.toml`). Keduanya ACTIVE v1.
+- Notification URL Midtrans → `https://xbsiapwmhfcdenyeufhl.supabase.co/functions/v1/midtrans-webhook`.
+  Diuji: Midtrans kirim test notif, webhook balas 200, signature lolos.
+- **Server key diuji langsung ke Snap** (function sementara `midtrans-ping`, lalu dihapus):
+  HTTP 201 + `snap_token` asli → key sandbox valid, endpoint sandbox benar.
+- `payments` masih kosong (0 siswa/tutor aktif) → booking end-to-end belum diuji.
+
+## Alasan
+
+- Connection diuji tanpa mengotori DB prod: pakai function sementara yang hanya memanggil
+  Snap API dengan kredensial yang sudah di-set, bukan bikin user/tutor palsu.
 
 ## Tautan terkait
 

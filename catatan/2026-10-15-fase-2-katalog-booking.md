@@ -37,6 +37,15 @@ diselesaikan lebih dulu.
 - Mobile siswa: layar booking + status + panggil `create-snap`, buka Snap.
 - Isi data uji (tutor aktif + `tutor_subjects` + siswa) untuk uji end-to-end.
 
+## Filter katalog (16 Okt)
+
+- Filter tersedia: **mapel, jenjang, mode, rating**. Mapel/jenjang lewat `tutor_subjects`,
+  mode lewat `tutor_availability` (gabungan id di-intersect di client), rating di
+  `tutor_catalog.rating_avg`.
+- **Filter harga sengaja ditunda**: tutor tak punya satu harga — harga bergantung
+  jenjang × durasi × mode (`price_matrix`). Perlu diputus dulu bentuk filternya
+  (mis. rentang harga untuk kombinasi tertentu) sebelum dibuat.
+
 ## Progres 16 Okt — konek Midtrans (sudah)
 
 - Secret di cloud `xbsiapwmhfcdenyeufhl`: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`,

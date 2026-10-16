@@ -31,41 +31,81 @@ class KatalogScreen extends ConsumerWidget {
               AppSpacing.lg,
               AppSpacing.xs,
             ),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: filter.jenjang ?? '',
-                    decoration: const InputDecoration(labelText: 'Jenjang'),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('Semua')),
-                      for (final j in AppConstants.jenjang)
-                        DropdownMenuItem(value: j, child: Text(j)),
-                    ],
-                    onChanged: (v) => ref
-                        .read(katalogFilterProvider.notifier)
-                        .setJenjang((v == null || v.isEmpty) ? null : v),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: filter.subjectId ?? '',
-                    decoration: const InputDecoration(labelText: 'Mapel'),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('Semua')),
-                      ...subjects.maybeWhen(
-                        data: (list) => [
-                          for (final s in list)
-                            DropdownMenuItem(value: s.id, child: Text(s.name)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: filter.jenjang ?? '',
+                        decoration: const InputDecoration(labelText: 'Jenjang'),
+                        items: [
+                          const DropdownMenuItem(value: '', child: Text('Semua')),
+                          for (final j in AppConstants.jenjang)
+                            DropdownMenuItem(value: j, child: Text(j)),
                         ],
-                        orElse: () => const <DropdownMenuItem<String>>[],
+                        onChanged: (v) => ref
+                            .read(katalogFilterProvider.notifier)
+                            .setJenjang((v == null || v.isEmpty) ? null : v),
                       ),
-                    ],
-                    onChanged: (v) => ref
-                        .read(katalogFilterProvider.notifier)
-                        .setSubject((v == null || v.isEmpty) ? null : v),
-                  ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: filter.subjectId ?? '',
+                        decoration: const InputDecoration(labelText: 'Mapel'),
+                        items: [
+                          const DropdownMenuItem(value: '', child: Text('Semua')),
+                          ...subjects.maybeWhen(
+                            data: (list) => [
+                              for (final s in list)
+                                DropdownMenuItem(value: s.id, child: Text(s.name)),
+                            ],
+                            orElse: () => const <DropdownMenuItem<String>>[],
+                          ),
+                        ],
+                        onChanged: (v) => ref
+                            .read(katalogFilterProvider.notifier)
+                            .setSubject((v == null || v.isEmpty) ? null : v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: filter.mode ?? '',
+                        decoration: const InputDecoration(labelText: 'Mode'),
+                        items: const [
+                          DropdownMenuItem(value: '', child: Text('Semua')),
+                          DropdownMenuItem(value: 'online', child: Text('Online')),
+                          DropdownMenuItem(value: 'offline', child: Text('Offline')),
+                        ],
+                        onChanged: (v) => ref
+                            .read(katalogFilterProvider.notifier)
+                            .setMode((v == null || v.isEmpty) ? null : v),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: filter.minRating?.toString() ?? '',
+                        decoration: const InputDecoration(labelText: 'Rating'),
+                        items: const [
+                          DropdownMenuItem(value: '', child: Text('Semua')),
+                          DropdownMenuItem(value: '4.0', child: Text('4.0 ke atas')),
+                          DropdownMenuItem(value: '4.5', child: Text('4.5 ke atas')),
+                        ],
+                        onChanged: (v) => ref
+                            .read(katalogFilterProvider.notifier)
+                            .setMinRating(
+                              (v == null || v.isEmpty) ? null : double.tryParse(v),
+                            ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

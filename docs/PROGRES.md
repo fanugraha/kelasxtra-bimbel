@@ -71,7 +71,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Uji jalur webhook: gagal (deny/cancel→cancelled), expire, **duplikat → tidak dobel**, signature salah → 401
 - [x] Alamat terbuka pasca-bayar + bagi hasil (`tutor_share`/`platform_share`) tak bocor ke client — VIEW `bookings_visible` (definer)
 - [x] Voucher di checkout: validasi + kunci kuota race-safe (RPC), dilepas saat gagal (webhook)
-- [ ] Filter mode/harga/rating di katalog
+- [x] Filter katalog: mapel, jenjang, mode, rating (filter *harga* ditunda — tutor tak punya satu harga; harga tergantung jenjang/durasi/mode)
 - [ ] O7: harga final price matrix diisi pemilik lewat dashboard
 
 ## Langkah berikutnya

@@ -82,30 +82,41 @@ class TutorDetail {
 }
 
 class KatalogRepository {
-  /// Daftar tutor aktif. Filter mapel/jenjang lewat tabel `tutor_subjects`.
+  /// Daftar tutor aktif. Filter mapel/jenjang lewat `tutor_subjects`, mode lewat
+  /// `tutor_availability`, rating lewat kolom `rating_avg`.
   Future<List<TutorCatalogItem>> fetchTutors({
     String? subjectId,
     String? jenjang,
+    String? mode,
+    double? minRating,
   }) async {
+    Set<String>? ids;
+
     if (subjectId != null || jenjang != null) {
       var q = supabase.from('tutor_subjects').select('tutor_id');
       if (subjectId != null) q = q.eq('subject_id', subjectId);
       if (jenjang != null) q = q.eq('jenjang', jenjang);
       final rows = await q;
-      final ids = {for (final r in rows) r['tutor_id'] as String}.toList();
-      if (ids.isEmpty) return [];
-      final data = await supabase
-          .from('tutor_catalog')
-          .select()
-          .inFilter('id', ids)
-          .order('rating_avg', ascending: false);
-      return data.map(TutorCatalogItem.fromMap).toList();
+      ids = {for (final r in rows) r['tutor_id'] as String};
     }
 
-    final data = await supabase
-        .from('tutor_catalog')
-        .select()
-        .order('rating_avg', ascending: false);
+    if (mode != null) {
+      final rows = await supabase
+          .from('tutor_availability')
+          .select('tutor_id')
+          .eq('mode', mode)
+          .eq('active', true);
+      final modeIds = {for (final r in rows) r['tutor_id'] as String};
+      ids = ids == null ? modeIds : ids.intersection(modeIds);
+    }
+
+    if (ids != null && ids.isEmpty) return [];
+
+    var query = supabase.from('tutor_catalog').select();
+    if (ids != null) query = query.inFilter('id', ids.toList());
+    if (minRating != null) query = query.gte('rating_avg', minRating);
+
+    final data = await query.order('rating_avg', ascending: false);
     return data.map(TutorCatalogItem.fromMap).toList();
   }
 

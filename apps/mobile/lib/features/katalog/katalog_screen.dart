@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/tutor_card.dart';
 import 'katalog_providers.dart';
-import 'katalog_repository.dart';
 
 class KatalogScreen extends ConsumerWidget {
   const KatalogScreen({super.key});
@@ -19,7 +22,12 @@ class KatalogScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.xs,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -37,7 +45,7 @@ class KatalogScreen extends ConsumerWidget {
                         .setJenjang((v == null || v.isEmpty) ? null : v),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: filter.subjectId ?? '',
@@ -62,17 +70,45 @@ class KatalogScreen extends ConsumerWidget {
           ),
           Expanded(
             child: tutors.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Gagal memuat katalog.\n$e')),
+              loading: () => const _LoadingList(),
+              error: (e, _) => EmptyState(
+                icon: Icons.cloud_off_rounded,
+                title: 'Gagal memuat katalog',
+                message: '$e',
+                action: FilledButton.icon(
+                  onPressed: () => ref.invalidate(tutorListProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Coba lagi'),
+                ),
+              ),
               data: (list) => list.isEmpty
-                  ? const Center(
-                      child: Text('Belum ada tutor untuk filter ini.'))
+                  ? const EmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'Belum ada tutor',
+                      message: 'Coba ubah filter jenjang atau mapel.',
+                    )
                   : RefreshIndicator(
                       onRefresh: () async => ref.invalidate(tutorListProvider),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.sm,
+                          AppSpacing.lg,
+                          AppSpacing.xxl,
+                        ),
                         itemCount: list.length,
-                        itemBuilder: (c, i) => _TutorCard(tutor: list[i]),
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.md),
+                        itemBuilder: (c, i) {
+                          final t = list[i];
+                          return TutorCard(
+                            name: t.fullName,
+                            rating: t.ratingAvg,
+                            education: t.education,
+                            photoUrl: t.photoUrl,
+                            onTap: () => context.push('/tutor/${t.id}'),
+                          );
+                        },
                       ),
                     ),
             ),
@@ -83,46 +119,26 @@ class KatalogScreen extends ConsumerWidget {
   }
 }
 
-class _TutorCard extends StatelessWidget {
-  const _TutorCard({required this.tutor});
-
-  final TutorCatalogItem tutor;
+class _LoadingList extends StatelessWidget {
+  const _LoadingList();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          radius: 26,
-          backgroundImage:
-              (tutor.photoUrl != null && tutor.photoUrl!.isNotEmpty)
-                  ? NetworkImage(tutor.photoUrl!)
-                  : null,
-          child: (tutor.photoUrl == null || tutor.photoUrl!.isEmpty)
-              ? Text(tutor.fullName.isEmpty ? '?' : tutor.fullName[0].toUpperCase())
-              : null,
+    return Skeletonizer(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.xxl,
         ),
-        title: Text(tutor.fullName,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (tutor.education != null && tutor.education!.isNotEmpty)
-              Text(tutor.education!, maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.star, size: 16, color: Colors.amber),
-                const SizedBox(width: 4),
-                Text(tutor.ratingAvg.toStringAsFixed(1)),
-              ],
-            ),
-          ],
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+        itemBuilder: (c, i) => const TutorCard(
+          name: 'Nama Tutor Contoh',
+          rating: 4.8,
+          education: 'Universitas Contoh',
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/tutor/${tutor.id}'),
       ),
     );
   }

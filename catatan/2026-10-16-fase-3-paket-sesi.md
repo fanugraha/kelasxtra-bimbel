@@ -22,7 +22,9 @@ Bagian dari [[2026-10-15-konteks-proyek-kelasxtra-bimbel]].
 - **Webhook** cabang `payments.type='package'`: settlement → paket `active` + `expires_at`
   +90 hari; deny/cancel/expire → `cancelled`/`expired`; refund → `refunded`.
 - **Refund proporsional** (RPC `refund_package`, admin): `floor(price_total × sisa/total)`,
-  tulis `audit_logs`. UI dashboard menyusul.
+  tulis `audit_logs`. **Hanya menghitung & mencatat** — eksekusi uang tetap manual di dashboard
+  Midtrans (MVP tidak memindahkan dana otomatis; refund swalayan siswa juga tidak ada).
+  UI dashboard menyusul.
 - **Cron** `expire_stale_packages` tiap 15 menit (paket lewat masa berlaku → `expired`).
 - **Util Snap bersama** `supabase/functions/_shared/midtrans.ts` (dipakai `create-snap` &
   `create-package-snap`) — CLI bundling ikut menyertakan file `_shared` ✅.

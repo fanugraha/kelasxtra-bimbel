@@ -32,13 +32,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   DateTime? _date;
   int? _startMinutes;
   final _address = TextEditingController();
+  final _voucher = TextEditingController();
+  String? _appliedCode;
+  int _discount = 0;
+  String? _voucherError;
+  var _checkingVoucher = false;
   var _submitting = false;
   String? _error;
 
   @override
   void dispose() {
     _address.dispose();
+    _voucher.dispose();
     super.dispose();
+  }
+
+  /// Diskon berlaku untuk kombinasi mapel/mode/durasi tertentu; bila berubah, reset.
+  void _resetVoucher() {
+    _appliedCode = null;
+    _discount = 0;
+    _voucherError = null;
   }
 
   @override
@@ -104,6 +117,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   onSelected: (_) => setState(() {
                     _subject = s;
                     _resetSchedule();
+                    _resetVoucher();
                   }),
                 ),
             ],
@@ -121,6 +135,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 onSelected: (_) => setState(() {
                   _mode = m;
                   _resetSchedule();
+                  _resetVoucher();
                 }),
               ),
           ],
@@ -138,6 +153,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 onSelected: (_) => setState(() {
                   _duration = d;
                   _startMinutes = null;
+                  _resetVoucher();
                 }),
               ),
           ],
@@ -220,7 +236,54 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ],
 
         const SizedBox(height: AppSpacing.xl),
-        _PriceCard(subject: _subject, mode: _mode, duration: _duration),
+        _SectionLabel('Kode voucher (opsional)'),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _voucher,
+                enabled: _appliedCode == null,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(hintText: 'Contoh: HEMAT10'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AppButton(
+              label: _appliedCode != null ? 'Batal' : 'Pakai',
+              expand: false,
+              variant: AppButtonVariant.secondary,
+              loading: _checkingVoucher,
+              onPressed: (_subject == null || _mode == null)
+                  ? null
+                  : (_appliedCode != null ? _clearVoucher : _applyVoucher),
+            ),
+          ],
+        ),
+        if (_voucherError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              _voucherError!,
+              style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
+            ),
+          ),
+        if (_appliedCode != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              'Voucher ${_appliedCode!} dipakai — hemat ${AppFormat.rupiah(_discount)}',
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
+            ),
+          ),
+
+        const SizedBox(height: AppSpacing.xl),
+        _PriceCard(
+          subject: _subject,
+          mode: _mode,
+          duration: _duration,
+          discount: _discount,
+        ),
 
         AppErrorText(_error),
 
@@ -262,6 +325,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             mode: _mode!,
             scheduledAt: scheduledAt,
             address: _mode == 'offline' ? _address.text.trim() : null,
+            voucherCode: _appliedCode,
           );
       if (!mounted) return;
       await Navigator.of(context).push(
@@ -284,6 +348,47 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _slot = null;
     _date = null;
     _startMinutes = null;
+  }
+
+  Future<void> _applyVoucher() async {
+    final code = _voucher.text.trim();
+    if (code.isEmpty) return;
+    setState(() {
+      _checkingVoucher = true;
+      _voucherError = null;
+    });
+    try {
+      final price = await ref.read(priceProvider((
+        jenjang: _subject!.jenjang,
+        duration: _duration,
+        mode: _mode!,
+      )).future);
+      if (price == null) throw Exception('Harga belum diset');
+      final discount = await ref
+          .read(bookingRepositoryProvider)
+          .checkVoucher(code: code, price: price);
+      if (!mounted) return;
+      setState(() {
+        _appliedCode = code.toUpperCase();
+        _discount = discount;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _appliedCode = null;
+        _discount = 0;
+        _voucherError = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _checkingVoucher = false);
+    }
+  }
+
+  void _clearVoucher() {
+    setState(() {
+      _voucher.clear();
+      _resetVoucher();
+    });
   }
 
   List<String> _availableModes(List<TutorAvailabilityItem> availability) {
@@ -333,11 +438,17 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _PriceCard extends ConsumerWidget {
-  const _PriceCard({required this.subject, required this.mode, required this.duration});
+  const _PriceCard({
+    required this.subject,
+    required this.mode,
+    required this.duration,
+    this.discount = 0,
+  });
 
   final TutorSubjectItem? subject;
   final String? mode;
   final int duration;
+  final int discount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -362,25 +473,62 @@ class _PriceCard extends ConsumerWidget {
           child: Align(alignment: Alignment.centerLeft, child: LinearProgressIndicator()),
         ),
         error: (e, _) => Text('Gagal memuat harga.\n$e', style: theme.textTheme.bodySmall),
-        data: (value) => Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        data: (value) {
+          final total = value == null ? null : (value - discount).clamp(0, value);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (discount > 0 && value != null) ...[
+                Row(
+                  children: [
+                    Text('Harga normal', style: theme.textTheme.bodySmall),
+                    const Spacer(),
+                    Text(
+                      AppFormat.rupiah(value),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(decoration: TextDecoration.lineThrough),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  children: [
+                    Text('Diskon voucher',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: AppColors.success)),
+                    const Spacer(),
+                    Text(
+                      '-${AppFormat.rupiah(discount)}',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: AppColors.success),
+                    ),
+                  ],
+                ),
+                const Divider(height: AppSpacing.xl),
+              ],
+              Row(
                 children: [
-                  Text('Total bayar', style: theme.textTheme.bodySmall),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    value == null ? 'Harga belum diset' : AppFormat.rupiah(value),
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(color: value == null ? null : AppColors.primary),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total bayar', style: theme.textTheme.bodySmall),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          total == null ? 'Harga belum diset' : AppFormat.rupiah(total),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: total == null ? null : AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  Text('$duration menit', style: theme.textTheme.bodySmall),
                 ],
               ),
-            ),
-            Text('$duration menit', style: theme.textTheme.bodySmall),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }

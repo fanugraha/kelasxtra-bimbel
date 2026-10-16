@@ -97,5 +97,17 @@ Deno.serve(async (req) => {
       .in('status', fromStatuses)
   }
 
+  // Voucher: tandai terpakai saat berhasil, lepas kuota saat gagal/kedaluwarsa/refund.
+  if (payment.booking_id) {
+    if (paid) {
+      await admin.rpc('consume_voucher_for_booking', { p_booking_id: payment.booking_id })
+    } else if (
+      newStatus === 'deny' || newStatus === 'cancel' || newStatus === 'expire' ||
+      newStatus === 'refund' || newStatus === 'partial_refund'
+    ) {
+      await admin.rpc('release_voucher_for_booking', { p_booking_id: payment.booking_id })
+    }
+  }
+
   return json({ ok: true, order_id: orderId, status: newStatus })
 })

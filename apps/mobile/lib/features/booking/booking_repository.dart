@@ -81,6 +81,19 @@ class BookingRepository {
     return (row['price'] as num).toInt();
   }
 
+  /// Pratinjau diskon voucher (tanpa mengunci kuota). Melempar bila kode ditolak.
+  Future<int> checkVoucher({required String code, required int price}) async {
+    try {
+      final data = await supabase.rpc(
+        'check_voucher',
+        params: {'p_code': code, 'p_price': price},
+      );
+      return (data as num).toInt();
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    }
+  }
+
   /// Buat booking + transaksi Snap lewat Edge Function.
   Future<SnapResult> createSnap({
     required String tutorId,
@@ -90,6 +103,7 @@ class BookingRepository {
     required String mode,
     required DateTime scheduledAt,
     String? address,
+    String? voucherCode,
   }) async {
     final res = await supabase.functions.invoke(
       'create-snap',
@@ -101,6 +115,7 @@ class BookingRepository {
         'mode': mode,
         'scheduled_at': scheduledAt.toUtc().toIso8601String(),
         if (address != null && address.isNotEmpty) 'address': address,
+        if (voucherCode != null && voucherCode.isNotEmpty) 'voucher_code': voucherCode,
       },
     );
     final data = _decode(res);

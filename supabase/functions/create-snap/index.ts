@@ -14,6 +14,8 @@ const json = (body: unknown, status = 200) =>
 
 const LOCK_MINUTES = 30
 
+type Admin = ReturnType<typeof createClient>
+
 function snapBase() {
   return Deno.env.get('MIDTRANS_IS_SANDBOX') === 'true'
     ? 'https://app.sandbox.midtrans.com'
@@ -49,6 +51,27 @@ async function createSnap(
   return { token: data.token, redirect_url: data.redirect_url }
 }
 
+/// Kunci kuota voucher; mengembalikan diskon + id redemption (null bila kode kosong).
+async function reserveVoucher(
+  admin: Admin,
+  code: string,
+  studentId: string,
+  price: number,
+): Promise<{ voucherId: string; discount: number; redemptionId: string }> {
+  const { data, error } = await admin.rpc('reserve_voucher', {
+    p_code: code,
+    p_student: studentId,
+    p_price: price,
+  })
+  if (error) throw new Error(error.message)
+  const row = Array.isArray(data) ? data[0] : data
+  return {
+    voucherId: row.voucher_id as string,
+    discount: Number(row.discount),
+    redemptionId: row.redemption_id as string,
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
@@ -78,6 +101,7 @@ Deno.serve(async (req) => {
     mode?: string
     scheduled_at?: string
     address?: string
+    voucher_code?: string
   }
   try {
     body = await req.json()
@@ -128,7 +152,7 @@ Deno.serve(async (req) => {
   // Pakai ulang booking pending yang lock-nya masih hidup (idempoten: hindari slot dobel).
   const { data: existing } = await admin
     .from('bookings')
-    .select('id')
+    .select('id, discount')
     .eq('student_id', uid)
     .eq('tutor_id', tutorId)
     .eq('scheduled_at', scheduledIso)
@@ -139,6 +163,7 @@ Deno.serve(async (req) => {
   let bookingId: string
   let orderId: string
   let amount: number
+  let createdNow = false
 
   if (existing) {
     bookingId = existing.id
@@ -149,7 +174,7 @@ Deno.serve(async (req) => {
       .eq('status', 'pending')
       .maybeSingle()
     orderId = pay?.order_id ?? `BK-${bookingId}`
-    amount = pay?.amount ?? priceRow.price
+    amount = pay?.amount ?? priceRow.price - Number(existing.discount ?? 0)
     const cached = pay?.raw as { snap_token?: string; snap_redirect_url?: string } | null
     if (cached?.snap_redirect_url) {
       return json({
@@ -172,6 +197,21 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400)
     }
   } else {
+    // Kunci voucher (bila ada) sebelum membuat booking.
+    let voucherId: string | null = null
+    let discount = 0
+    let redemptionId: string | null = null
+    if (body.voucher_code && body.voucher_code.trim()) {
+      try {
+        const r = await reserveVoucher(admin, body.voucher_code.trim(), uid, priceRow.price)
+        voucherId = r.voucherId
+        discount = r.discount
+        redemptionId = r.redemptionId
+      } catch (e) {
+        return json({ error: (e as Error).message }, 400)
+      }
+    }
+
     const { data: booking, error: bErr } = await admin
       .from('bookings')
       .insert({
@@ -184,23 +224,39 @@ Deno.serve(async (req) => {
         type: 'privat',
         scheduled_at: scheduledIso,
         price: priceRow.price,
-        discount: 0,
+        discount,
+        voucher_id: voucherId,
         status: 'pending_payment',
         address: mode === 'offline' ? (body.address?.trim() || null) : null,
         lock_expires_at: new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString(),
       })
       .select('id')
       .single()
-    if (bErr || !booking) return json({ error: bErr?.message ?? 'Gagal membuat booking' }, 400)
+    if (bErr || !booking) {
+      if (redemptionId) {
+        await admin.rpc('release_voucher_redemption', { p_redemption_id: redemptionId })
+      }
+      return json({ error: bErr?.message ?? 'Gagal membuat booking' }, 400)
+    }
     bookingId = booking.id
     orderId = `BK-${bookingId}`
-    amount = priceRow.price
+    amount = priceRow.price - discount
+    createdNow = true
+
+    if (redemptionId) {
+      await admin.rpc('attach_voucher_redemption', {
+        p_redemption_id: redemptionId,
+        p_booking_id: bookingId,
+      })
+    }
+
     const { error: pErr } = await admin.from('payments').insert({
       order_id: orderId,
       type: 'booking',
       booking_id: bookingId,
       amount,
       status: 'pending',
+      voucher_id: voucherId,
     })
     if (pErr) return json({ error: pErr.message }, 400)
   }
@@ -218,6 +274,12 @@ Deno.serve(async (req) => {
       email: userData.user.email ?? undefined,
     })
   } catch (e) {
+    // Batalkan booking yang baru dibuat & lepas kunci voucher agar tidak nyangkut.
+    if (createdNow) {
+      await admin.rpc('release_voucher_for_booking', { p_booking_id: bookingId })
+      await admin.from('payments').delete().eq('order_id', orderId)
+      await admin.from('bookings').delete().eq('id', bookingId)
+    }
     return json({ error: (e as Error).message }, 502)
   }
 

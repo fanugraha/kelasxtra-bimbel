@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   // Idempoten by order_id.
   const { data: payment } = await admin
     .from('payments')
-    .select('id, status, booking_id')
+    .select('id, status, booking_id, package_purchase_id')
     .eq('order_id', orderId)
     .maybeSingle()
   if (!payment) return json({ ok: false, reason: 'order_id tidak dikenal' })
@@ -106,6 +106,42 @@ Deno.serve(async (req) => {
       newStatus === 'refund' || newStatus === 'partial_refund'
     ) {
       await admin.rpc('release_voucher_for_booking', { p_booking_id: payment.booking_id })
+    }
+  }
+
+  // Paket sesi: aktifkan (masa berlaku 90 hari) atau tandai gagal.
+  if (payment.package_purchase_id) {
+    if (paid) {
+      const now = new Date()
+      const expires = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+      await admin
+        .from('package_purchases')
+        .update({
+          status: 'active',
+          purchased_at: now.toISOString(),
+          expires_at: expires.toISOString(),
+          lock_expires_at: null,
+        })
+        .eq('id', payment.package_purchase_id)
+        .eq('status', 'pending_payment')
+    } else if (newStatus === 'deny' || newStatus === 'cancel') {
+      await admin
+        .from('package_purchases')
+        .update({ status: 'cancelled', lock_expires_at: null })
+        .eq('id', payment.package_purchase_id)
+        .eq('status', 'pending_payment')
+    } else if (newStatus === 'expire') {
+      await admin
+        .from('package_purchases')
+        .update({ status: 'expired', lock_expires_at: null })
+        .eq('id', payment.package_purchase_id)
+        .eq('status', 'pending_payment')
+    } else if (newStatus === 'refund' || newStatus === 'partial_refund') {
+      await admin
+        .from('package_purchases')
+        .update({ status: 'refunded' })
+        .eq('id', payment.package_purchase_id)
+        .eq('status', 'active')
     }
   }
 

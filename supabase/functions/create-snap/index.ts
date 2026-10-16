@@ -1,55 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...cors, 'Content-Type': 'application/json' },
-  })
-
-const LOCK_MINUTES = 30
+import { cors, createSnap, json, LOCK_MINUTES } from '../_shared/midtrans.ts'
 
 type Admin = ReturnType<typeof createClient>
-
-function snapBase() {
-  return Deno.env.get('MIDTRANS_IS_SANDBOX') === 'true'
-    ? 'https://app.sandbox.midtrans.com'
-    : 'https://app.midtrans.com'
-}
-
-async function createSnap(
-  orderId: string,
-  amount: number,
-  itemName: string,
-  customer: { first_name: string; email?: string },
-): Promise<{ token: string; redirect_url: string }> {
-  const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY')!
-  const res = await fetch(`${snapBase()}/snap/v1/transactions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Basic ${btoa(`${serverKey}:`)}`,
-    },
-    body: JSON.stringify({
-      transaction_details: { order_id: orderId, gross_amount: amount },
-      item_details: [{ id: orderId, price: amount, quantity: 1, name: itemName.slice(0, 50) }],
-      customer_details: customer,
-      expiry: { unit: 'minutes', duration: LOCK_MINUTES },
-    }),
-  })
-  const data = await res.json()
-  if (!res.ok) {
-    const msg = data?.error_messages?.join(', ') ?? 'Gagal membuat transaksi Midtrans'
-    throw new Error(msg)
-  }
-  return { token: data.token, redirect_url: data.redirect_url }
-}
 
 /// Kunci kuota voucher; mengembalikan diskon + id redemption (null bila kode kosong).
 async function reserveVoucher(

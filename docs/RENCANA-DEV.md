@@ -43,7 +43,7 @@ export SUPABASE_ACCESS_TOKEN=... GITHUB_PERSONAL_ACCESS_TOKEN=...
 
 | # | Keputusan | Status (brief v2.0) | Fase |
 |---|---|---|---|
-| O1 | Minimal peserta kelas grup | **Belum** — usul: tetap jalan, platform tutup selisih s/d setara 3 kursi | 4 |
+| O1 | Minimal peserta kelas grup | **Terjawab**: min **3** siswa, **tanpa subsidi**; bayar sekali per kursi; tenggat H-1 20:00 WIB; jika <3 program batal (pindah kelas/kredit dulu, lalu refund penuh). Cap 2 slot/minggu dibuang | 4 |
 | O2 | Kebijakan pembatalan | **Terjawab**: <24 jam 50%/kuota hangus; >24 jam penuh | 6 |
 | O3 | Siklus payout | **Terjawab**: bulanan, cut-off tgl 25 | 7 |
 | O4 | Pembulatan 75/25 | **Terjawab**: `floor` ke rupiah | 2 |
@@ -52,7 +52,7 @@ export SUPABASE_ACCESS_TOKEN=... GITHUB_PERSONAL_ACCESS_TOKEN=...
 | O7 | Harga final price matrix | **Belum** — seed masih placeholder | 2 |
 | O8 | Webhook/domain dashboard | **Belum** — perlu URL publik untuk callback | 2 |
 
-> O1, O7, O8 memblokir fase 2 & 4. Putuskan sebelum mulai fase itu.
+> O7, O8 memblokir fase 2 (O8 sudah diputus: webhook pakai URL Edge Function). Putuskan sebelum mulai fase itu.
 
 ## 4. Roadmap per fase
 

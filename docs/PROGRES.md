@@ -14,7 +14,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 1 | Akun & Profil | 🟡 |
 | 2 | Katalog & Booking Privat + Pembayaran | 🟡 |
 | 3 | Paket Sesi | 🟡 |
-| 4 | Kelas Grup | ⬜ |
+| 4 | Kelas Grup | 🟡 |
 | 5 | Bank Soal + Analisis | ⬜ |
 | 6 | Absensi, Reschedule, Komplain, Pesan | ⬜ |
 | 7 | Payroll Bulanan | ⬜ |
@@ -84,6 +84,19 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Dashboard: modul **Paket Sesi** — daftar pembelian + tombol refund proporsional (menghitung & mencatat; dana manual via Midtrans)
 - [x] Uji backend: 8 sesi SMA 60 online → 646.000; aktif via webhook; pakai kuota → booking `confirmed` (bayar 0);
       kuota habis & slot bentrok ditolak; refund proporsional 484.500
+
+## Fase 4 — Kelas Grup (🟡)
+
+- [x] **O1 diputus**: min **3** siswa, tanpa subsidi, bayar sekali per kursi, tenggat H-1 20:00 WIB,
+      <3 → program batal (pindah kelas/kredit dulu, refund penuh bila menolak). Cap 2 slot/minggu dibuang
+- [x] Migrasi `rooms`, `group_classes`, `group_sessions`, `group_seats` (+ `payments.group_seat_id`, view publik)
+- [x] RPC `admin_create_group_class` (buat program + susun pertemuan 2×/minggu), `reserve_group_seat` (atomik),
+      `activate/release_group_seat`, `refund_group_seat` (admin), `settle_group_classes` + `expire_stale_group_seats` (cron)
+- [x] Edge `create-group-seat-snap` + webhook cabang `group_seat`
+- [x] Uji: 8 sesi (Sel & Kam 16:00) → 570.000, tenggat 19 Okt 20:00 WIB; ambil kursi → `pending`;
+      settlement → `active`; deny → kursi dilepas; kuota <3 → program `cancelled`; kuota ≥3 → `confirmed`
+- [ ] Dashboard: buat program kelas grup + pantau keterisian + refund kursi
+- [ ] Mobile siswa: daftar kelas grup, ambil kursi, bayar
 
 ## Langkah berikutnya
 

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   // Idempoten by order_id.
   const { data: payment } = await admin
     .from('payments')
-    .select('id, status, booking_id, package_purchase_id')
+    .select('id, status, booking_id, package_purchase_id, group_seat_id')
     .eq('order_id', orderId)
     .maybeSingle()
   if (!payment) return json({ ok: false, reason: 'order_id tidak dikenal' })
@@ -142,6 +142,18 @@ Deno.serve(async (req) => {
         .update({ status: 'refunded' })
         .eq('id', payment.package_purchase_id)
         .eq('status', 'active')
+    }
+  }
+
+  // Kursi kelas grup: aktifkan saat berhasil, lepas saat gagal/kedaluwarsa.
+  if (payment.group_seat_id) {
+    if (paid) {
+      await admin.rpc('activate_group_seat', { p_seat_id: payment.group_seat_id })
+    } else if (
+      newStatus === 'deny' || newStatus === 'cancel' || newStatus === 'expire' ||
+      newStatus === 'refund' || newStatus === 'partial_refund'
+    ) {
+      await admin.rpc('release_group_seat', { p_seat_id: payment.group_seat_id })
     }
   }
 

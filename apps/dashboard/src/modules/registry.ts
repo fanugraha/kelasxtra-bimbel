@@ -16,5 +16,5 @@ export const modules: ModuleDef[] = [
   { path: 'finance', label: 'Keuangan', desc: 'Gross, potongan 25%, biaya gateway, payroll.', phase: 'Fase 7-8' },
   { path: 'vouchers', label: 'Voucher & Promo', desc: 'CRUD voucher, laporan pemakaian.', phase: 'Fase 8' },
   { path: 'disputes', label: 'Komplain', desc: 'Tiket komplain, mediasi, refund.', phase: 'Fase 6' },
-  { path: 'rooms', label: 'Ruangan', desc: 'Master ruangan offline, anti double-booking.', phase: 'Fase 8' },
+  { path: 'rooms', label: 'Ruangan', desc: 'Master ruangan offline, anti double-booking kelas grup.', phase: 'Fase 4' },
 ]

@@ -11,6 +11,8 @@ import { Activate } from './pages/Activate'
 import { Pricing } from './pages/Pricing'
 import { Vouchers } from './pages/Vouchers'
 import { Packages } from './pages/Packages'
+import { Rooms } from './pages/Rooms'
+import { GroupClasses } from './pages/GroupClasses'
 import { modules } from './modules/registry'
 import type { ModuleDef } from './modules/registry'
 
@@ -20,6 +22,8 @@ const modulePages: Record<string, ComponentType> = {
   pricing: Pricing,
   vouchers: Vouchers,
   packages: Packages,
+  rooms: Rooms,
+  'group-classes': GroupClasses,
 }
 
 function ModulePage({ module }: { module: ModuleDef }) {

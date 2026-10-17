@@ -109,7 +109,9 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Cron `refresh_subscription_statuses` (active → grace → expired)
 - [x] Uji: soal terkunci tidak bocor; 2/3 benar → akurasi 66.67%, 20-terakhir 2/3, tren null (<5);
       langganan nonaktif → `start_attempt` ditolak
-- [ ] CMS soal (dashboard): KaTeX + gambar, tag, draf→review→tayang, versioning
+- [x] CMS soal (dashboard): KaTeX + gambar, tag topik/jenjang, draf→review→tayang, versioning
+- [x] RPC `admin_save_question` (edit = versi baru), `admin_set_question_status`; view `questions_admin`
+      (security_invoker → siswa 0 baris, kunci jawaban tetap aman)
 - [ ] Mobile: langganan (bayar + status) + latihan per topik + pembahasan + skor + "Fokus Perbaikimu"
 - [ ] Tryout (timer opsional)
 

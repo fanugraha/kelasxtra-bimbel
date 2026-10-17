@@ -18,8 +18,8 @@ catatan          memori kerja (disalin otomatis ke vault saat sesi ditutup)
 
 ## Status
 
-Fase 0 (fondasi) — auth + RLS + skeleleton. Lihat [`docs/PROGRES.md`](docs/PROGRES.md)
-dan rencana pengembangan [`docs/RENCANA-DEV.md`](docs/RENCANA-DEV.md).
+Status per fase selalu diperbarui di [`docs/PROGRES.md`](docs/PROGRES.md);
+rencana pengembangan di [`docs/RENCANA-DEV.md`](docs/RENCANA-DEV.md).
 
 ## Prasyarat
 

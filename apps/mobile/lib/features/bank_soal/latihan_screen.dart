@@ -5,7 +5,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/math_text.dart';
 import 'bank_soal_providers.dart';
@@ -36,7 +35,6 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   final _answers = <String, String?>{};
   var _index = 0;
   var _submitting = false;
-  String? _error;
 
   @override
   void initState() {
@@ -165,10 +163,7 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   Future<void> _submit(
     ({String attemptId, List<PracticeQuestion> questions}) data,
   ) async {
-    setState(() {
-      _submitting = true;
-      _error = null;
-    });
+    setState(() => _submitting = true);
     try {
       final result = await ref.read(bankSoalRepositoryProvider).submitAttempt(
             attemptId: data.attemptId,
@@ -187,7 +182,9 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

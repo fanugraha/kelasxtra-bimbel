@@ -38,12 +38,16 @@ analisis. Brief menyebut "Midtrans recurring" (potong otomatis).
   berakhir yang berlaku); webhook cabang `subscription`. Uji: beli 29.000 → settlement →
   langganan aktif s/d +30 hari, tenggang +3.
 
-## BELUM SELESAI — berhenti di sini (17 Okt)
+## Status verifikasi (17 Okt, lanjutan)
 
-**Bagian 3 (mobile) sudah DITULIS tapi BELUM DIVERIFIKASI.** `flutter analyze` belum
-dijalankan (sesi dihentikan), jadi **mungkin masih ada error kompilasi**.
+**Bagian 3 (mobile) TERVERIFIKASI statis:** `flutter analyze` bersih (0 issue),
+`flutter test` 12/12 lulus. Dua temuan diperbaiki: import `async_view` tak terpakai di
+`latihan_screen.dart`, dan error submit yang tertelan (`_error` diset tapi tak pernah
+ditampilkan) — kini muncul lewat SnackBar.
 
-File (belum di-commit sebelum catatan ini):
+Belum: build APK + uji alur di HP, lalu commit.
+
+File (sudah di-commit WIP `adfface`):
 - `apps/mobile/lib/features/bank_soal/bank_soal_repository.dart` (plan, langganan, start/submit attempt, stats, signed image)
 - `apps/mobile/lib/features/bank_soal/bank_soal_providers.dart`
 - `apps/mobile/lib/features/bank_soal/bank_soal_screen.dart` (status langganan + CTA + topik + "Fokus Perbaikimu")
@@ -55,15 +59,13 @@ File (belum di-commit sebelum catatan ini):
 
 ## Langkah berikutnya (saat lanjut)
 
-1. `cd apps/mobile && flutter analyze` → perbaiki error (kemungkinan kecil: tipe/import).
-2. `flutter test` (harus tetap 12/12).
-3. `flutter build apk --release -t lib/main_siswa.dart --dart-define=…` lalu `adb install -r`
+1. `flutter build apk --release -t lib/main_siswa.dart --dart-define=…` lalu `adb install -r`
    (HP: `e68890180406`; APK juga ada di `build/app/outputs/flutter-apk/`).
-4. Uji alur di HP: **Bank Soal** → status langganan (siswa demo sudah aktif s/d 16 Des) →
+2. Uji alur di HP: **Bank Soal** → status langganan (siswa demo sudah aktif s/d 16 Des) →
    pilih topik *Trigonometri* → kerjakan → lihat hasil + pembahasan → cek analisa
    ("Fokus Perbaikimu") terbarui.
-5. Commit hasil 5c.
-6. Sisa Fase 5 (opsional): **tryout** (timer) & **auto-potong kartu**.
+3. Commit hasil 5c (termasuk perbaikan analyze).
+4. Sisa Fase 5 (opsional): **tryout** (timer) & **auto-potong kartu**.
 
 ## Jebakan yang sudah ditemukan
 

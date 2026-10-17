@@ -17,6 +17,8 @@ import { GroupClasses } from './pages/GroupClasses'
 import { QuestionCms } from './pages/QuestionCms'
 import { Disputes } from './pages/Disputes'
 import { Payroll } from './pages/Payroll'
+import { Monitoring } from './pages/Monitoring'
+import { Finance } from './pages/Finance'
 import { modules } from './modules/registry'
 import type { ModuleDef } from './modules/registry'
 
@@ -31,6 +33,8 @@ const modulePages: Record<string, ComponentType> = {
   'question-cms': QuestionCms,
   disputes: Disputes,
   payroll: Payroll,
+  monitoring: Monitoring,
+  finance: Finance,
 }
 
 function ModulePage({ module }: { module: ModuleDef }) {

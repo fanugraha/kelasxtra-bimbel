@@ -31,7 +31,10 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-const iso = (d: Date) => d.toISOString().slice(0, 10)
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`
 
 function defaultPeriod() {
   const now = new Date()

@@ -37,6 +37,7 @@ const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 
 export function Packages() {
   const [rows, setRows] = useState<PackageRow[]>([])
+  const [tutors, setTutors] = useState<{ id: string; full_name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -51,6 +52,12 @@ export function Packages() {
       )
       .order('created_at', { ascending: false })
     setRows((data as unknown as PackageRow[]) ?? [])
+    const { data: tutorRows } = await supabase
+      .from('tutors')
+      .select('id, full_name')
+      .eq('status', 'aktif')
+      .order('full_name')
+    setTutors((tutorRows as { id: string; full_name: string }[]) ?? [])
     setLoading(false)
   }
 
@@ -81,6 +88,37 @@ export function Packages() {
     setNotice(
       `Refund tercatat: ${rupiah(Number(data))}. Kembalikan dana secara manual via Midtrans.`,
     )
+    load()
+  }
+
+  async function onTransfer(p: PackageRow) {
+    const list = tutors.map((t, i) => `${i + 1}. ${t.full_name}`).join('\n')
+    const pick = prompt(
+      `Pindahkan paket ${p.students?.full_name ?? '-'} ke tutor mana?\n\n${list}\n\nKetik nomor:`,
+    )
+    if (!pick) return
+    const target = tutors[Number(pick) - 1]
+    if (!target) {
+      setNotice('Nomor tutor tidak valid.')
+      return
+    }
+    if (!confirm('Pastikan siswa sudah menyetujui pemindahan paket ini.')) return
+    const reason = prompt('Alasan pemindahan (masuk audit log):')
+    if (!reason) return
+    setBusy(p.id)
+    setNotice(null)
+    const { error } = await supabase.rpc('admin_transfer_package', {
+      p_package: p.id,
+      p_new_tutor: target.id,
+      p_consent: true,
+      p_reason: reason,
+    })
+    setBusy(null)
+    if (error) {
+      setNotice(`Gagal: ${error.message}`)
+      return
+    }
+    setNotice(`Paket dipindah ke ${target.full_name}. Booking lama tetap memakai tutor sebelumnya.`)
     load()
   }
 
@@ -143,6 +181,11 @@ export function Packages() {
                     </button>
                   ) : (
                     <span className="muted">—</span>
+                  )}
+                  {(p.status === 'active' || p.status === 'expired') && (
+                    <button disabled={busy === p.id} onClick={() => onTransfer(p)}>
+                      Pindah tutor
+                    </button>
                   )}
                 </td>
               </tr>

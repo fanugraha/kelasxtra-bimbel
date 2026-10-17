@@ -18,7 +18,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 5 | Bank Soal + Analisis | 🟡 |
 | 6 | Absensi, Reschedule, Komplain, Pesan | 🟡 |
 | 7 | Payroll Bulanan | ⬜ |
-| 8 | Dashboard Management & Operasional | ⬜ |
+| 8 | Dashboard Management & Operasional | 🟡 |
 | 9 | Notifikasi & Hardening | ⬜ |
 
 ## Fase 0 — Fondasi (✅)
@@ -153,10 +153,43 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
       (status `completed`, earnings 56.250/18.750 `belum_dibayar`); chat terkirim
 - [x] Tab **Jadwal** ditambahkan ke navigasi tutor + guard "Akun ini bukan tutor" di Beranda
 
+## Fase 7 — Payroll Bulanan (🟡)
+
+- [x] Skema: `payroll_periods`, `payouts`; `tutor_earnings.payout_id`, `session_at`, `source`
+      (booking/group), `group_session_id`, `paid_at`; snapshot rekening + `transfer_ref`
+- [x] RPC `admin_generate_payroll` (kunci periode, cut-off WIB, hanya earning `belum_dibayar`
+      yang belum punya payout), `admin_approve_payroll` (four-eyes), `admin_cancel_payroll`,
+      `admin_mark_payroll_paid` (+ audit log)
+- [x] Honor kelas grup: `ensure_group_earnings` + cron 15 mnt (75% × harga kursi × kursi aktif)
+- [x] Uji SQL: earning ditahan komplain tidak ikut rekap; honor grup 56.250 masuk payout;
+      approval admin lain + `TRF-TEST-001` → `sudah_dibayar`; approve pembuat sendiri ditolak
+- [x] Dashboard modul **Payroll** (rekap, approve, batal draft, tandai transfer, CSV)
+- [x] Mobile tutor: layar **Penghasilan** (slip baca-saja)
+- [x] Admin kedua: `finance@kelasxtra.id` (admin_role finance) untuk four-eyes
+- [ ] Uji UI payroll di browser + slip di HP
+
+## Fase 8 — Dashboard Management & Operasional (🟡)
+
+- [x] RPC `admin_metrics` (periode WIB): sesi, operasional, pengguna, revenue, performa tutor,
+      progres siswa (sesi selesai + latihan bank soal), honor tertahan
+- [x] RPC `admin_correct_booking` (koreksi status + alasan; audit log; tolak bila earning sudah
+      masuk payroll / sudah dibayar; earning hanya boleh lewat status completed)
+- [x] RPC `admin_transfer_package` (paket antar-tutor, wajib persetujuan siswa + alasan, audit log;
+      booking lama tetap snapshot tutor semula)
+- [x] Dashboard **Monitoring**: metrik, performa tutor, progres siswa, koreksi 10 sesi terbaru
+- [x] Dashboard **Keuangan**: gross settlement, biaya gateway, potongan platform, refund,
+      ledger honor, transaksi terbaru
+- [x] Laporan voucher: terpakai/dikunci + total diskon per kode
+- [x] Paket Sesi: tombol **Pindah tutor**
+- [x] Uji SQL (rollback): transfer paket + audit; koreksi ke completed membuat earning & audit;
+      koreksi turun dari completed ditolak (guard ledger)
+- [ ] Uji UI monitoring/keuangan/payroll di browser
+- [ ] Audit log viewer
+
 ## Langkah berikutnya
 
-1. Uji flavor tutor di HP (check-in → catatan → selesai) + uji komplain dashboard.
-2. Lengkapi UI kehadiran grup & isi titik lokasi (rooms/booking) untuk geofence.
-3. Fase 7 — payroll bulanan dari `tutor_earnings`.
+1. Uji UI modul Monitoring, Keuangan, Payroll, koreksi, pindah paket di browser.
+2. Uji slip Penghasilan di HP.
+3. Fase 9 — notifikasi (FCM) + hardening.
 4. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
 5. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.

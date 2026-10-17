@@ -23,8 +23,15 @@ const emptyForm = {
   expires_at: '',
 }
 
+interface VoucherReport {
+  used: number
+  locked: number
+  discount: number
+}
+
 export function Vouchers() {
   const [rows, setRows] = useState<Voucher[]>([])
+  const [report, setReport] = useState<Record<string, VoucherReport>>({})
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
@@ -36,6 +43,22 @@ export function Vouchers() {
       .select('id, code, discount_type, discount_value, min_purchase, quota, used, active, expires_at')
       .order('created_at', { ascending: false })
     setRows((data as Voucher[]) ?? [])
+
+    const [{ data: redemptions }, { data: usedBookings }] = await Promise.all([
+      supabase.from('voucher_redemptions').select('voucher_id, status'),
+      supabase.from('bookings').select('voucher_id, discount').not('voucher_id', 'is', null),
+    ])
+    const map: Record<string, VoucherReport> = {}
+    for (const r of (redemptions ?? []) as { voucher_id: string; status: string }[]) {
+      const entry = (map[r.voucher_id] ??= { used: 0, locked: 0, discount: 0 })
+      if (r.status === 'used') entry.used += 1
+      if (r.status === 'locked') entry.locked += 1
+    }
+    for (const b of (usedBookings ?? []) as { voucher_id: string; discount: number }[]) {
+      const entry = (map[b.voucher_id] ??= { used: 0, locked: 0, discount: 0 })
+      entry.discount += b.discount ?? 0
+    }
+    setReport(map)
     setLoading(false)
   }
 
@@ -137,6 +160,33 @@ export function Vouchers() {
           </tbody>
         </table>
       )}
+
+      <h2>Laporan pemakaian</h2>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Kode</th>
+            <th>Terpakai</th>
+            <th>Dikunci (belum bayar)</th>
+            <th>Total diskon</th>
+            <th>Kuota</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((v) => {
+            const r = report[v.id] ?? { used: 0, locked: 0, discount: 0 }
+            return (
+              <tr key={v.id}>
+                <td>{v.code}</td>
+                <td>{r.used}</td>
+                <td>{r.locked}</td>
+                <td>{`Rp${r.discount.toLocaleString('id-ID')}`}</td>
+                <td className="muted">{v.quota ?? 'Tanpa batas'}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </section>
   )
 }

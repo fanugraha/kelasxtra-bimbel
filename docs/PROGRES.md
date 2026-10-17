@@ -15,7 +15,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 2 | Katalog & Booking Privat + Pembayaran | 🟡 |
 | 3 | Paket Sesi | 🟡 |
 | 4 | Kelas Grup | 🟡 |
-| 5 | Bank Soal + Analisis | ⬜ |
+| 5 | Bank Soal + Analisis | 🟡 |
 | 6 | Absensi, Reschedule, Komplain, Pesan | ⬜ |
 | 7 | Payroll Bulanan | ⬜ |
 | 8 | Dashboard Management & Operasional | ⬜ |
@@ -97,6 +97,21 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
       settlement → `active`; deny → kursi dilepas; kuota <3 → program `cancelled`; kuota ≥3 → `confirmed`
 - [x] Dashboard: modul **Kelas Grup** (buat program + pantau keterisian + refund kursi) & **Ruangan**
 - [x] Mobile siswa: **Kelas Grup** (daftar program, lihat 8 pertemuan, ambil kursi → Snap)
+
+## Fase 5 — Bank Soal + Analisis (🟡)
+
+- [x] **Keputusan bayar langganan**: **C** — bulanan manual (Snap, semua metode) + tenggang 3 hari;
+      auto-potong (kartu) menyusul. Harga di tabel `subscription_plans` (Rp29.000/30 hari, tenggang 3)
+- [x] Skema: `subscription_plans`, `subscriptions`, `questions`, `question_versions`, `attempts`,
+      `attempt_answers`, `student_topic_stats` + RLS
+- [x] RPC `start_attempt` (soal **tanpa** kunci jawaban; gerbang langganan) & `submit_attempt`
+      (penilaian di server + update `student_topic_stats`: akurasi, 20-terakhir, tren)
+- [x] Cron `refresh_subscription_statuses` (active → grace → expired)
+- [x] Uji: soal terkunci tidak bocor; 2/3 benar → akurasi 66.67%, 20-terakhir 2/3, tren null (<5);
+      langganan nonaktif → `start_attempt` ditolak
+- [ ] CMS soal (dashboard): KaTeX + gambar, tag, draf→review→tayang, versioning
+- [ ] Mobile: langganan (bayar + status) + latihan per topik + pembahasan + skor + "Fokus Perbaikimu"
+- [ ] Tryout (timer opsional)
 
 ## Langkah berikutnya
 

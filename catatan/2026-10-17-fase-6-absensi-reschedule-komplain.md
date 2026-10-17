@@ -1,0 +1,48 @@
+# Fase 6 — Absensi, Reschedule, Komplain, Pesan
+
+## Konteks
+
+Melanjutkan Fase 5 yang teruji di HP. Fase 6 mencakup absensi (check-in tutor, kehadiran
+siswa, no-show), auto-complete H+1, reschedule, pembatalan/refund, komplain, ulasan,
+thread pesan per booking, dan ledger `tutor_earnings`.
+
+## Keputusan atau temuan
+
+- **Batas reschedule 2x per booking** (server-side, kolom `reschedule_count`).
+  Brief hanya minta counter; angka 2 dipilih agar tidak disalahgunakan.
+- **Auto-complete H+1** dihitung dari `scheduled_at + durasi + 1 hari` (bukan `updated_at`),
+  dan ditunda bila ada komplain `open`/`in_review`.
+- **Refund tidak memindahkan dana.** Semua refund (batal maupun komplain) hanya
+  dihitung & dicatat (`bookings.refund_amount`, `complaints.refund_nominal`);
+  pengembalian manual via dashboard Midtrans — konsisten dengan refund paket.
+- **Batal**: >24 jam → refund penuh (atau kuota paket kembali); ≤24 jam → 50% tunai
+  (kuota paket hangus).
+- **Geofence offline** butuh titik acuan. Ditambahkan `bookings.location_lat/lng`
+  (dan `rooms.lat/lng`), tetapi belum ada UI pengisian → check-in offline hanya
+  menyimpan koordinat tutor tanpa menolak jarak bila acuan null. Perlu dilengkapi.
+- **Penyaringan nomor telepon** di chat: regex `(\+?62|0)8...` diganti
+  `[nomor disembunyikan]` dan pesan ditandai `flagged` untuk admin.
+- **RLS jebakan penting**: policy tabel baru tidak boleh subquery langsung ke
+  `bookings` — SELECT tabel itu sudah dicabut dari client (migrasi 00013), sehingga
+  muncul "permission denied for table bookings". Solusi: helper `security definer`
+  (`booking_participant`, `booking_is_student`, `thread_participant`).
+- Uji backend pakai transaksi `begin … rollback` dengan `request.jwt.claims` agar
+  `auth.uid()` berperan sebagai siswa/tutor/admin — tidak mengotori data.
+
+## Alasan
+
+- Ledger `tutor_earnings` dibuat sekali per booking (`on conflict do nothing`) dan
+  hanya berubah status, sesuai aturan append-only.
+- Rating tutor dihitung ulang dari rata-rata ulasan setiap kali ulasan masuk.
+
+## Langkah berikutnya
+
+- Uji flavor tutor di HP: check-in → catatan sesi → selesai.
+- UI kehadiran grup (RPC `mark_group_attendance` sudah ada).
+- Isi titik lokasi ruangan/booking agar geofence 200 m benar-benar menolak.
+- Lanjut Fase 7 (payroll bulanan dari ledger).
+
+## Tautan terkait
+
+- [[2026-10-17-fase-5-bank-soal]]
+- [[2026-10-15-rencana-pengembangan]]

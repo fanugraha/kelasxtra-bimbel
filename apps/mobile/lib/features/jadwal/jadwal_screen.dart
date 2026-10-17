@@ -63,6 +63,7 @@ class _BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AppCard(
+      onTap: () => context.push('/sesi/${booking.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

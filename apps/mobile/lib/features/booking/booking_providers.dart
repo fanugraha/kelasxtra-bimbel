@@ -21,3 +21,13 @@ final priceProvider = FutureProvider.family<int?, PriceQuery>((ref, q) {
 final myBookingsProvider = FutureProvider<List<BookingItem>>((ref) {
   return ref.read(bookingRepositoryProvider).fetchMyBookings();
 });
+
+final bookingDetailProvider =
+    FutureProvider.family<BookingDetail, String>((ref, id) {
+  return ref.read(bookingRepositoryProvider).fetchBookingDetail(id);
+});
+
+final bookingMessagesProvider =
+    FutureProvider.family<List<ChatMessage>, String>((ref, id) {
+  return ref.read(bookingRepositoryProvider).fetchMessages(id);
+});

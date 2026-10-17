@@ -16,7 +16,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 3 | Paket Sesi | 🟡 |
 | 4 | Kelas Grup | 🟡 |
 | 5 | Bank Soal + Analisis | 🟡 |
-| 6 | Absensi, Reschedule, Komplain, Pesan | ⬜ |
+| 6 | Absensi, Reschedule, Komplain, Pesan | 🟡 |
 | 7 | Payroll Bulanan | ⬜ |
 | 8 | Dashboard Management & Operasional | ⬜ |
 | 9 | Notifikasi & Hardening | ⬜ |
@@ -124,9 +124,35 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Soal dummy: 5 soal/topik untuk 10 topik (`supabase/seed_questions.sql`, idempoten)
 - [ ] Auto-potong kartu (Midtrans recurring)
 
+## Fase 6 — Absensi, Reschedule, Komplain, Pesan (🟡)
+
+- [x] Skema: `booking_reschedules`, `session_notes`, `reviews`, `complaints`, `tutor_earnings`,
+      `booking_threads`, `thread_messages`, `group_attendance` + kolom absensi/refund/reschedule
+      di `bookings`, koordinat di `rooms`
+- [x] RPC absensi: `tutor_checkin` (jendela ±15 menit, geofence 200 m bila titik acuan ada),
+      `student_attend`, `mark_no_show`, `save_session_note`, `complete_booking`
+- [x] Cron `auto_complete_bookings` (tiap 15 menit): tutor tanpa check-in → `no_show_tutor`;
+      sesi berjalan tanpa komplain s/d H+1 → `completed`
+- [x] RPC `reschedule_booking` (atomik, maks 14 hari, maks 2x, tanpa ganti mode, cek bentrok + expiry paket)
+- [x] RPC `cancel_booking` (>24 jam refund penuh/kuota kembali; <24 jam 50%/kuota hangus; dana manual)
+- [x] RPC komplain `open_complaint` (H+3) & `resolve_complaint` (admin; refund dicatat, earnings ditahan/dilepas)
+- [x] RPC `submit_review` (1 per booking, H+3, update `tutors.rating_avg`)
+- [x] Thread pesan otomatis saat `confirmed`; RPC `send_booking_message` (nomor telepon disamarkan + flag)
+- [x] RPC kehadiran grup `mark_group_attendance`
+- [x] Uji SQL (transaksi rollback): check-in → hadir → catatan → selesai → earnings 75.000/25.000;
+      ulasan 5 → rating tutor 5.00; komplain → `disputed` + earnings `ditahan`; resolve refund 30.000;
+      reschedule +1 hari (counter 1); batal >24 jam refund 100.000; auto-complete H+1 + earnings
+- [x] Mobile: layar **Detail Sesi** (`/sesi/:id`) — aksi absensi/reschedule/batal/ulasan/komplain + chat
+- [x] Dashboard: modul **Komplain** (filter status, selesaikan/tolak + refund)
+- [x] Perbaikan RLS pasca-uji: policy Fase 6 tak boleh subquery `bookings` (pakai helper definer)
+- [ ] Kehadiran grup di UI tutor (RPC & tabel sudah ada)
+- [ ] Titik lokasi untuk geofence privat (kolom `bookings.location_lat/lng` belum diisi dari UI)
+- [ ] Uji alur di HP untuk flavor tutor (check-in, catatan, selesai)
+
 ## Langkah berikutnya
 
-1. Commit `supabase/seed_questions.sql` + `apps/mobile/build-apk.sh`.
-2. Mulai Fase 6 — absensi, reschedule, komplain, pesan.
-3. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
-4. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.
+1. Uji flavor tutor di HP (check-in → catatan → selesai) + uji komplain dashboard.
+2. Lengkapi UI kehadiran grup & isi titik lokasi (rooms/booking) untuk geofence.
+3. Fase 7 — payroll bulanan dari `tutor_earnings`.
+4. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
+5. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.

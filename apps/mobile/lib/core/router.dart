@@ -9,6 +9,7 @@ import '../features/auth/profil_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/bank_soal/bank_soal_screen.dart';
 import '../features/bank_soal/latihan_screen.dart';
+import '../features/booking/booking_detail_screen.dart';
 import '../features/booking/booking_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
@@ -84,6 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/booking/:id',
         builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/sesi/:id',
+        builder: (c, s) => BookingDetailScreen(bookingId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/paket', builder: (c, s) => const PaketScreen()),
       GoRoute(

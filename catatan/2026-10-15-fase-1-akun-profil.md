@@ -70,3 +70,10 @@ dipakai untuk migrasi, deploy Edge Function, dan uji.
 - [[2026-10-15-setup-fase-0-fondasi]]
 - [[2026-10-15-tooling-mcp-library]]
 - [[2026-10-15-keputusan-teknis-kelasxtra]]
+
+## Mobile Profil — selesai 17 Okt
+
+`/profil` tidak lagi placeholder: `ProfilScreen` menampilkan nama/email, data siswa
+(jenjang, sekolah, kontak darurat dari `students` via `fetchMyProfile()`), status langganan
+bank soal, dan tombol keluar. Tutor memakai layar sama; kartu data siswa/langganan hanya
+muncul untuk flavor siswa. Masih baca-saja (belum edit profil).

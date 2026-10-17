@@ -30,6 +30,13 @@ abstract final class AppFormat {
     return '$h:$m';
   }
 
+  /// 125 -> "02:05" (detik -> mm:ss).
+  static String clock(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   /// "16:00:00" -> 960 (menit sejak tengah malam).
   static int minutesOfTime(String time) {
     final parts = time.split(':');

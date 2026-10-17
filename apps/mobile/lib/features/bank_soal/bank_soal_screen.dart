@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
+import '../auth/auth_providers.dart';
 import '../booking/snap_screen.dart';
 import 'bank_soal_providers.dart';
 import 'bank_soal_repository.dart';
@@ -25,6 +26,8 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
   @override
   Widget build(BuildContext context) {
     final sub = ref.watch(mySubscriptionProvider);
+    final profile = ref.watch(myProfileProvider);
+    final bisa = sub.asData?.value?.bisaLatihan ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bank Soal')),
@@ -33,6 +36,7 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
           ref.invalidate(mySubscriptionProvider);
           ref.invalidate(myStatsProvider);
           ref.invalidate(topicsProvider);
+          ref.invalidate(myProfileProvider);
         },
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -51,6 +55,40 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
                 buying: _buying,
                 error: _error,
                 onBuy: _buy,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            AppCard(
+              onTap: bisa
+                  ? () => context.push(
+                        '/tryout',
+                        extra: {'jenjang': profile.asData?.value.jenjang},
+                      )
+                  : null,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    color: bisa ? AppColors.primary : Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tryout', style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          '20 soal · 20 menit · dinilai otomatis',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    bisa ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
+                    color: bisa ? AppColors.primary : Colors.grey,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.xl),

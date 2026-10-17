@@ -17,6 +17,9 @@ void main() {
     expect(AppFormat.minutesOfTime('09:00'), 540);
     expect(AppFormat.timeRange('16:00:00', '18:00:00'), '16:00–18:00');
     expect(AppFormat.shortTime('07:05:00'), '07:05');
+    expect(AppFormat.clock(0), '00:00');
+    expect(AppFormat.clock(125), '02:05');
+    expect(AppFormat.clock(1200), '20:00');
   });
 
   test('nama hari (0 = Minggu)', () {

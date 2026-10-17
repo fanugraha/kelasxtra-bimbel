@@ -47,6 +47,17 @@ ditampilkan) — kini muncul lewat SnackBar.
 
 Belum: build APK + uji alur di HP, lalu commit.
 
+## Tryout (3a) — selesai 17 Okt
+
+`LatihanScreen` kini punya `mode` + `durationMinutes`: timer 20 menit (format
+`AppFormat.clock`), auto-submit saat habis, auto-submit hanya sekali (`_submitting`),
+timer dibatalkan saat layar ditutup. Rute `/tryout`: 20 soal acak, **difilter jenjang siswa**
+(diambil dari `myProfileProvider`). CTA "Tryout" di layar Bank Soal (terkunci bila langganan
+nonaktif). Jawaban yang belum diisi tetap dikirim sebagai `null` → dihitung salah, masuk
+pembahasan. Statis: analyze 0 issue, test 12/12 (termasuk 3 assert `AppFormat.clock`).
+
+Sisa: auto-potong kartu (Midtrans recurring), build APK + uji HP.
+
 File (sudah di-commit WIP `adfface`):
 - `apps/mobile/lib/features/bank_soal/bank_soal_repository.dart` (plan, langganan, start/submit attempt, stats, signed image)
 - `apps/mobile/lib/features/bank_soal/bank_soal_providers.dart`

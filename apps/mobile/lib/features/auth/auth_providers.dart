@@ -6,6 +6,10 @@ import 'auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository());
 
+final myProfileProvider = FutureProvider<MyProfile>(
+  (ref) => ref.read(authRepositoryProvider).fetchMyProfile(),
+);
+
 /// Sesi auth berubah (login/logout). Dipakai router untuk redirect.
 final authStateProvider = StreamProvider<AuthState>(
   (ref) => supabase.auth.onAuthStateChange,

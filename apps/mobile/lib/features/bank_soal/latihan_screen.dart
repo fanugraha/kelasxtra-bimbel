@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_button.dart';
@@ -19,12 +22,16 @@ class LatihanScreen extends ConsumerStatefulWidget {
     required this.topicName,
     this.jenjang,
     this.count = 10,
+    this.mode = 'latihan',
+    this.durationMinutes = 20,
   });
 
-  final String topicId;
+  final String? topicId;
   final String topicName;
   final String? jenjang;
   final int count;
+  final String mode;
+  final int durationMinutes;
 
   @override
   ConsumerState<LatihanScreen> createState() => _LatihanScreenState();
@@ -32,19 +39,50 @@ class LatihanScreen extends ConsumerStatefulWidget {
 
 class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   late Future<({String attemptId, List<PracticeQuestion> questions})> _future;
+  ({String attemptId, List<PracticeQuestion> questions})? _data;
   final _answers = <String, String?>{};
   var _index = 0;
   var _submitting = false;
+  Timer? _timer;
+  var _remaining = 0;
 
   @override
   void initState() {
     super.initState();
     _future = _start();
+    _future.then((data) {
+      if (!mounted) return;
+      _data = data;
+      if (widget.mode == 'tryout') _startTimer();
+    }, onError: (_) {});
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    if (_timer != null) return;
+    _remaining = widget.durationMinutes * 60;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_remaining <= 1) {
+        _timer?.cancel();
+        _timer = null;
+        setState(() => _remaining = 0);
+        final data = _data;
+        if (data != null) _submit(data);
+      } else {
+        setState(() => _remaining--);
+      }
+    });
   }
 
   Future<({String attemptId, List<PracticeQuestion> questions})> _start() {
     return ref.read(bankSoalRepositoryProvider).startAttempt(
-          mode: 'latihan',
+          mode: widget.mode,
           topicId: widget.topicId,
           jenjang: widget.jenjang,
           count: widget.count,
@@ -54,7 +92,24 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.topicName)),
+      appBar: AppBar(
+        title: Text(widget.topicName),
+        actions: [
+          if (widget.mode == 'tryout' && _remaining > 0 && !_submitting)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.lg),
+              child: Center(
+                child: Text(
+                  AppFormat.clock(_remaining),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: _remaining <= 60 ? AppColors.danger : null,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: FutureBuilder(
         future: _future,
         builder: (context, snap) {
@@ -163,11 +218,14 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   Future<void> _submit(
     ({String attemptId, List<PracticeQuestion> questions}) data,
   ) async {
+    if (_submitting) return;
+    _timer?.cancel();
+    _timer = null;
     setState(() => _submitting = true);
     try {
       final result = await ref.read(bankSoalRepositoryProvider).submitAttempt(
             attemptId: data.attemptId,
-            answers: _answers,
+            answers: {for (final q in data.questions) q.id: _answers[q.id]},
           );
       await ref.read(bankSoalRepositoryProvider).fetchMyStats(); // hangatkan cache
       if (!mounted) return;
@@ -177,6 +235,7 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
           builder: (_) => HasilScreen(
             result: result,
             questions: {for (final q in data.questions) q.id: q},
+            title: widget.mode == 'tryout' ? 'Hasil Tryout' : 'Hasil Latihan',
           ),
         ),
       );

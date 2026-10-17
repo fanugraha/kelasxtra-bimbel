@@ -11,10 +11,12 @@ class HasilScreen extends StatelessWidget {
     super.key,
     required this.result,
     required this.questions,
+    this.title = 'Hasil Latihan',
   });
 
   final AttemptResult result;
   final Map<String, PracticeQuestion> questions;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class HasilScreen extends StatelessWidget {
     final pct = result.total == 0 ? 0 : (result.correct * 100 / result.total).round();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hasil Latihan')),
+      appBar: AppBar(title: Text(title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg,

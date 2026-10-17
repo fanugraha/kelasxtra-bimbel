@@ -53,6 +53,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Uji end-to-end: invite → aktivasi web → `tutors.status='aktif'` (Playwright + SQL)
 - [ ] **Email otomatis** undangan via Resend — **ditunda**. Keputusan: admin salin link & kirim manual (WhatsApp). Kode `invite-tutor` sudah siap kirim email; tinggal selesaikan DNS domain `kelasxtra.my.id` di Cloudflare lalu set `RESEND_API_KEY` (sudah diset, tapi domain belum Verified).
 - [x] Katalog publik tutor: VIEW `public.tutor_catalog` (tanpa kolom bank/token) + cabut policy `tutors: baca tutor aktif` (migrasi `...00010_tutor_catalog_view`, 16 Okt 2026)
+- [x] Mobile: layar **Profil** — data akun, jenjang/sekolah/kontak darurat (siswa), status langganan, keluar
+      (menggantikan `PlaceholderScreen`, 17 Okt 2026)
 
 ## Fase 2 — Katalog & Booking Privat (🟡)
 
@@ -117,7 +119,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Teruji: beli 29.000 → settlement → langganan +30 hari (tenggang +3)
 - [~] **Mobile bank soal: analyze bersih + test 12/12** — sisa build APK & uji alur di HP
       (lihat catatan `2026-10-17-fase-5-bank-soal.md`) — langganan, latihan per topik, pembahasan, skor
-- [ ] Tryout (timer opsional); auto-potong kartu
+- [x] Tryout: 20 soal acak, timer 20 menit, auto-submit saat waktu habis (17 Okt 2026)
+- [ ] Auto-potong kartu (Midtrans recurring)
 
 ## Langkah berikutnya
 

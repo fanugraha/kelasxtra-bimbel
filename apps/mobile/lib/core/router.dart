@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/login_screen.dart';
+import '../features/auth/profil_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/bank_soal/bank_soal_screen.dart';
 import '../features/bank_soal/latihan_screen.dart';
@@ -17,7 +18,6 @@ import '../features/katalog/katalog_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
 import '../features/paket/beli_paket_screen.dart';
 import '../features/paket/paket_screen.dart';
-import '../features/placeholder/placeholder_screen.dart';
 import '../widgets/app_shell.dart';
 import 'nav_destinations.dart';
 import 'providers.dart';
@@ -40,11 +40,7 @@ Widget _screenFor(String path) => switch (path) {
       '/' => const HomeScreen(),
       '/katalog' => const KatalogScreen(),
       '/jadwal' => const JadwalScreen(),
-      '/profil' => const PlaceholderScreen(
-          title: 'Profil',
-          icon: Icons.person_rounded,
-          message: 'Profil dan pengaturanmu akan tampil di sini.',
-        ),
+      '/profil' => const ProfilScreen(),
       _ => const HomeScreen(),
     };
 
@@ -100,6 +96,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (c, s) => KelasGrupDetailScreen(classId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/bank-soal', builder: (c, s) => const BankSoalScreen()),
+      GoRoute(
+        path: '/tryout',
+        builder: (c, s) {
+          final extra = (s.extra as Map?) ?? const {};
+          return LatihanScreen(
+            topicId: null,
+            topicName: 'Tryout',
+            jenjang: extra['jenjang'] as String?,
+            count: 20,
+            mode: 'tryout',
+            durationMinutes: 20,
+          );
+        },
+      ),
       GoRoute(
         path: '/latihan/:topicId',
         builder: (c, s) {

@@ -17,13 +17,14 @@ export function Rooms() {
   const [rows, setRows] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
+  const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
     const { data } = await supabase
       .from('rooms')
-      .select('id, name, address, active')
+      .select('id, name, address, active, lat, lng')
       .order('name')
     setRows((data as Room[]) ?? [])
     setLoading(false)
@@ -49,6 +50,8 @@ export function Rooms() {
       return
     }
     setForm(emptyForm)
+    setShowForm(false)
+    setNotice('Ruangan ditambahkan.')
     load()
   }
 
@@ -75,86 +78,166 @@ export function Rooms() {
 
   return (
     <section>
-      <h1>Ruangan</h1>
-      <p className="muted">
-        Ruangan offline (minggu ini fokus Jogja). Dipakai saat membuat program kelas grup;
-        sistem menolak jadwal yang bertabrakan di ruangan sama.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Operasional · Ruangan</p>
+          <h1 className="page-title">Ruangan</h1>
+          <p className="page-sub">
+            Titik lokasi dipakai untuk memastikan siswa absen di sekitar tempat les (radius 200 meter). Tanpa titik lokasi, jarak tidak diperiksa.
+          </p>
+        </div>
+        <div className="head-actions">
+          <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? 'Tutup formulir' : 'Tambah ruangan'}
+          </button>
+        </div>
+      </div>
 
-      <form className="tutor-form" onSubmit={onCreate}>
-        <input
-          placeholder="Nama ruangan"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          required
-        />
-        <input
-          placeholder="Alamat (opsional)"
-          value={form.address}
-          onChange={(e) => setForm({ ...form, address: e.target.value })}
-        />
-        <input
-          type="number"
-          step="any"
-          placeholder="Latitude (opsional)"
-          value={form.lat}
-          onChange={(e) => setForm({ ...form, lat: e.target.value })}
-        />
-        <input
-          type="number"
-          step="any"
-          placeholder="Longitude (opsional)"
-          value={form.lng}
-          onChange={(e) => setForm({ ...form, lng: e.target.value })}
-        />
-        <button type="submit" disabled={busy}>
-          {busy ? 'Menyimpan…' : 'Tambah ruangan'}
-        </button>
-      </form>
-
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Belum ada ruangan.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Nama</th>
-              <th>Alamat</th>
-              <th>Koordinat</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.name}</td>
-                <td className="muted">{r.address ?? '—'}</td>
-                <td className="muted">
-                  {r.lat != null && r.lng != null
-                    ? `${r.lat}, ${r.lng}`
-                    : '—'}{' '}
-                  <button onClick={() => editCoords(r)}>Ubah</button>
-                </td>
-                <td>
-                  <span className={`status status-${r.active ? 'aktif' : 'suspend'}`}>
-                    {r.active ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </td>
-                <td className="actions">
-                  <button onClick={() => toggleActive(r)}>
-                    {r.active ? 'Nonaktifkan' : 'Aktifkan'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {showForm && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-head">
+            <div>
+              <h2 className="card-title">Ruangan baru</h2>
+              <p className="card-sub">Titik lokasi opsional. Isi agar absensi offline diperiksa radiusnya.</p>
+            </div>
+          </div>
+          <form className="card-body" onSubmit={onCreate}>
+            <div className="form-grid">
+              <label className="field">
+                <span>Nama ruangan</span>
+                <input
+                  className="input"
+                  placeholder="Ruang Melati"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Alamat</span>
+                <input
+                  className="input"
+                  placeholder="Jl. Kaliurang Km 5, Sleman"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Latitude</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="any"
+                  placeholder="-7.7821"
+                  value={form.lat}
+                  onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Longitude</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="any"
+                  placeholder="110.3672"
+                  value={form.lng}
+                  onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="head-actions" style={{ marginTop: 14 }}>
+              <button className="btn btn-primary" type="submit" disabled={busy}>
+                {busy ? 'Menyimpan…' : 'Tambah ruangan'}
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
       )}
+
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="table-wrap">
+          <table className="data-table" style={{ minWidth: 760 }}>
+            <thead>
+              <tr>
+                <th>Ruangan</th>
+                <th>Alamat</th>
+                <th>Titik lokasi</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="empty-state">
+                      <strong>Memuat ruangan…</strong>
+                    </div>
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="empty-state">
+                      <strong>Belum ada ruangan</strong>
+                      <span>Tambahkan ruangan offline lewat tombol di kanan atas.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <span className="strong">{r.name}</span>
+                    </td>
+                    <td>{r.address ?? '—'}</td>
+                    <td className="num">
+                      {r.lat != null && r.lng != null ? `${r.lat}, ${r.lng}` : '—'}
+                    </td>
+                    <td>
+                      <span className={`badge ${r.active ? 'success' : 'neutral'}`}>
+                        {r.active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn btn-secondary btn-sm" onClick={() => editCoords(r)}>
+                          Atur lokasi
+                        </button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(r)}>
+                          {r.active ? 'Nonaktifkan' : 'Aktifkan'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-foot">
+          <div className="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <span>Ruangan tanpa titik lokasi tetap bisa dipakai, tetapi jarak absen tidak diperiksa.</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

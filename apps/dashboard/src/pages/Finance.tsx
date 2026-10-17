@@ -40,6 +40,29 @@ const iso = (d: Date) =>
     d.getDate(),
   ).padStart(2, '0')}`
 
+const PAYMENT_META: Record<string, { label: string; tone: string }> = {
+  settlement: { label: 'Berhasil', tone: 'success' },
+  capture: { label: 'Berhasil', tone: 'success' },
+  pending: { label: 'Menunggu', tone: 'warning' },
+  deny: { label: 'Ditolak', tone: 'danger' },
+  cancel: { label: 'Batal', tone: 'danger' },
+  expire: { label: 'Kedaluwarsa', tone: 'neutral' },
+  refund: { label: 'Dikembalikan', tone: 'neutral' },
+}
+
+const EARNING_META: Record<string, { label: string; tone: string }> = {
+  belum_dibayar: { label: 'Belum dibayar', tone: 'warning' },
+  ditahan: { label: 'Tertahan', tone: 'danger' },
+  sudah_dibayar: { label: 'Dibayar', tone: 'success' },
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  booking: 'Sesi privat',
+  package: 'Paket sesi',
+  group_seat: 'Kelas grup',
+  subscription: 'Langganan bank soal',
+}
+
 export function Finance() {
   const now = new Date()
   const [from, setFrom] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1)))
@@ -49,6 +72,7 @@ export function Finance() {
   const [earnings, setEarnings] = useState<EarningRow[]>([])
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
+  const [tab, setTab] = useState<'trx' | 'ledger'>('trx')
 
   async function load() {
     setLoading(true)
@@ -82,126 +106,192 @@ export function Finance() {
 
   return (
     <section>
-      <h1>Keuangan</h1>
-      <p className="muted">
-        Gross gateway, estimasi biaya gateway (dari webhook), potongan platform 25%,
-        refund tercatat, dan posisi honor tutor. Payroll ada di modul Payroll.
-      </p>
-
-      <div className="tutor-form">
-        <label>
-          Dari
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label>
-          Sampai
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <button onClick={load} disabled={loading}>
-          {loading ? 'Memuat…' : 'Terapkan'}
-        </button>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Bisnis · Keuangan</p>
+          <h1 className="page-title">Keuangan</h1>
+          <p className="page-sub">
+            Cocokkan pembayaran masuk, potongan aplikasi 25%, gaji tutor, dan pengembalian dana.
+          </p>
+        </div>
+        <div className="head-actions">
+          <label className="field">
+            <span className="hint">Dari</span>
+            <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="hint">Sampai</span>
+            <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </label>
+          <button className="btn btn-secondary" onClick={load} disabled={loading}>
+            {loading ? 'Memuat…' : 'Terapkan'}
+          </button>
+        </div>
       </div>
 
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {r && (
-        <div className="cards">
-          <div className="card">
-            <h3>Gross (settlement)</h3>
-            <p className="muted">{rupiah(r.gross)}</p>
-          </div>
-          <div className="card">
-            <h3>Biaya gateway</h3>
-            <p className="muted">{rupiah(r.gateway_fee)}</p>
-          </div>
-          <div className="card">
-            <h3>Potongan platform</h3>
-            <p className="muted">{rupiah(r.platform_share)}</p>
-          </div>
-          <div className="card">
-            <h3>Honor tutor</h3>
-            <p className="muted">
-              {rupiah(r.tutor_earnings)} · belum bayar {rupiah(r.tutor_unpaid)}
-            </p>
-          </div>
-          <div className="card">
-            <h3>Refund tercatat</h3>
-            <p className="muted">{rupiah(r.refunds)}</p>
-          </div>
+      {notice && (
+        <div className="note warn" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M12 3 2.5 20h19L12 3Z" />
+            <path d="M12 9v4.5M12 17h.01" />
+          </svg>
+          <span>{notice}</span>
         </div>
       )}
 
-      <h2>Transaksi terbaru</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Tipe</th>
-            <th>Nominal</th>
-            <th>Gateway</th>
-            <th>Status</th>
-            <th>Dibayar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="muted">
-                Belum ada transaksi.
-              </td>
-            </tr>
-          ) : (
-            payments.map((p) => (
-              <tr key={p.id}>
-                <td className="muted">{p.order_id}</td>
-                <td>{p.type}</td>
-                <td>{rupiah(p.amount)}</td>
-                <td className="muted">{rupiah(p.gateway_fee)}</td>
-                <td>{p.status}</td>
-                <td className="muted">
-                  {p.paid_at ? new Date(p.paid_at).toLocaleDateString('id-ID') : '—'}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className="stat-strip">
+        <div className="mini-stat">
+          <p className="mini-label">Pembayaran masuk</p>
+          <div className="mini-value">{r ? rupiah(r.gross) : '—'}</div>
+          <p className="mini-sub">{from} – {to}</p>
+        </div>
+        <div className="mini-stat">
+          <p className="mini-label">Biaya pembayaran</p>
+          <div className="mini-value">{r ? rupiah(r.gateway_fee) : '—'}</div>
+          <p className="mini-sub">dari webhook</p>
+        </div>
+        <div className="mini-stat">
+          <p className="mini-label">Potongan aplikasi</p>
+          <div className="mini-value">{r ? rupiah(r.platform_share) : '—'}</div>
+          <p className="mini-sub">25% dari pembayaran masuk</p>
+        </div>
+        <div className="mini-stat">
+          <p className="mini-label">Pengembalian dana</p>
+          <div className="mini-value" style={{ color: 'var(--danger)' }}>
+            {r ? rupiah(r.refunds) : '—'}
+          </div>
+          <p className="mini-sub">tercatat di sistem</p>
+        </div>
+      </div>
 
-      <h2>Ledger honor tutor</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Tanggal sesi</th>
-            <th>Tutor</th>
-            <th>Sumber</th>
-            <th>Honor tutor</th>
-            <th>Platform</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {earnings.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="muted">
-                Belum ada earning.
-              </td>
-            </tr>
-          ) : (
-            earnings.map((e) => (
-              <tr key={e.id}>
-                <td className="muted">
-                  {new Date(e.session_at).toLocaleDateString('id-ID')}
-                </td>
-                <td>{e.tutors?.full_name ?? '—'}</td>
-                <td>{e.source === 'group' ? 'Kelas grup' : 'Privat'}</td>
-                <td>{rupiah(e.amount_tutor)}</td>
-                <td className="muted">{rupiah(e.amount_platform)}</td>
-                <td>{e.status}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className="card">
+        <div className="toolbar">
+          <div className="segmented" role="group" aria-label="Jenis data">
+            <button aria-pressed={tab === 'trx'} onClick={() => setTab('trx')}>
+              Transaksi
+            </button>
+            <button aria-pressed={tab === 'ledger'} onClick={() => setTab('ledger')}>
+              Gaji tutor
+            </button>
+          </div>
+          <div className="spacer" />
+          <span className="sub" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            Zona waktu WIB
+          </span>
+        </div>
+
+        {tab === 'trx' ? (
+          <div className="table-wrap">
+            <table className="data-table" style={{ minWidth: 820 }}>
+              <thead>
+                <tr>
+                  <th>Pesanan</th>
+                  <th>Jenis</th>
+                  <th className="num">Jumlah</th>
+                  <th className="num">Biaya bayar</th>
+                  <th>Status</th>
+                  <th>Tanggal bayar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty-state">
+                        <strong>Belum ada transaksi</strong>
+                        <span>Pembayaran masuk akan tampil di sini.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  payments.map((p) => {
+                    const meta = PAYMENT_META[p.status] ?? { label: p.status, tone: 'neutral' }
+                    return (
+                      <tr key={p.id}>
+                        <td className="num">{p.order_id}</td>
+                        <td>{TYPE_LABEL[p.type] ?? p.type}</td>
+                        <td className="num">{rupiah(p.amount)}</td>
+                        <td className="num">{rupiah(p.gateway_fee ?? 0)}</td>
+                        <td><span className={`badge ${meta.tone}`}>{meta.label}</span></td>
+                        <td className="num">
+                          {p.paid_at
+                            ? new Intl.DateTimeFormat('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZone: 'Asia/Jakarta',
+                              }).format(new Date(p.paid_at))
+                            : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table" style={{ minWidth: 820 }}>
+              <thead>
+                <tr>
+                  <th>Tanggal sesi</th>
+                  <th>Tutor</th>
+                  <th>Sumber</th>
+                  <th className="num">Gaji tutor</th>
+                  <th className="num">Aplikasi</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {earnings.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty-state">
+                        <strong>Belum ada earning</strong>
+                        <span>Honor tutor muncul setelah sesi selesai.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  earnings.map((e) => {
+                    const meta = EARNING_META[e.status] ?? { label: e.status, tone: 'neutral' }
+                    return (
+                      <tr key={e.id}>
+                        <td className="num">
+                          {new Intl.DateTimeFormat('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZone: 'Asia/Jakarta',
+                          }).format(new Date(e.session_at))}
+                        </td>
+                        <td>{e.tutors?.full_name ?? '—'}</td>
+                        <td>{e.source === 'group' ? 'Kelas grup' : e.source === 'package' ? 'Paket' : 'Privat'}</td>
+                        <td className="num">{rupiah(e.amount_tutor)}</td>
+                        <td className="num">{rupiah(e.amount_platform)}</td>
+                        <td><span className={`badge ${meta.tone}`}>{meta.label}</span></td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="card-foot">
+          <div className="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <span>Honor tutor belum dibayar: {r ? rupiah(r.tutor_unpaid) : '—'} · sudah dibayar: {r ? rupiah(r.tutor_paid) : '—'}.</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

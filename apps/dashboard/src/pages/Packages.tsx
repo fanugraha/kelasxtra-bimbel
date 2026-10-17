@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 interface PackageRow {
@@ -17,23 +17,33 @@ interface PackageRow {
   subjects: { name: string } | null
 }
 
-const STATUS_CLASS: Record<string, string> = {
-  active: 'status-aktif',
-  pending_payment: 'status-diundang',
-  expired: 'status-suspend',
-  refunded: 'status-suspend',
-  cancelled: 'status-suspend',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  active: 'Aktif',
-  pending_payment: 'Menunggu bayar',
-  expired: 'Kedaluwarsa',
-  refunded: 'Direfund',
-  cancelled: 'Dibatalkan',
+const STATUS_META: Record<string, { label: string; tone: string }> = {
+  active: { label: 'Aktif', tone: 'success' },
+  pending_payment: { label: 'Menunggu bayar', tone: 'warning' },
+  expired: { label: 'Kedaluwarsa', tone: 'neutral' },
+  refunded: { label: 'Direfund', tone: 'neutral' },
+  cancelled: { label: 'Dibatalkan', tone: 'danger' },
 }
 
 const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
+const tanggal = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date(value))
+    : '—'
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .toUpperCase()
+}
 
 export function Packages() {
   const [rows, setRows] = useState<PackageRow[]>([])
@@ -41,13 +51,14 @@ export function Packages() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   async function load() {
     const { data } = await supabase
       .from('package_purchases')
       .select(
-        'id, jenjang, duration_minutes, mode, total_sesi, sesi_terpakai, '+ 
-          'price_total, discount_percent, status, expires_at, '+ 
+        'id, jenjang, duration_minutes, mode, total_sesi, sesi_terpakai, ' +
+          'price_total, discount_percent, status, expires_at, ' +
           'students(full_name), tutors(full_name), subjects(name)',
       )
       .order('created_at', { ascending: false })
@@ -122,77 +133,165 @@ export function Packages() {
     load()
   }
 
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return rows
+    return rows.filter((p) =>
+      [p.students?.full_name, p.tutors?.full_name, p.subjects?.name]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(term)),
+    )
+  }, [rows, search])
+
   return (
     <section>
-      <h1>Paket Sesi</h1>
-      <p className="muted">
-        Paket 4/8/12 sesi (diskon 0/5/10%), berlaku 90 hari, kuota hangus bila lewat.
-        Refund di sini hanya menghitung &amp; mencatat — dana dikembalikan manual via Midtrans.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Bisnis · Paket sesi</p>
+          <h1 className="page-title">Paket sesi</h1>
+          <p className="page-sub">
+            Paket 4/8/12 sesi (diskon 0/5/10%), berlaku 90 hari, kuota hangus bila lewat. Refund hanya dihitung &amp; dicatat — dana dikembalikan manual via Midtrans.
+          </p>
+        </div>
+        <div className="head-actions">
+          <div className="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              className="input"
+              type="search"
+              placeholder="Cari siswa atau tutor"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Cari paket"
+            />
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setSearch('')}>
+            Reset filter
+          </button>
+        </div>
+      </div>
 
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Belum ada pembelian paket.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Siswa</th>
-              <th>Tutor</th>
-              <th>Mapel · Jenjang</th>
-              <th>Sesi</th>
-              <th>Total bayar</th>
-              <th>Berlaku s/d</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p) => (
-              <tr key={p.id}>
-                <td>{p.students?.full_name ?? '—'}</td>
-                <td>{p.tutors?.full_name ?? '—'}</td>
-                <td>
-                  {p.subjects?.name ?? '—'} · {p.jenjang} · {p.duration_minutes} menit ·{' '}
-                  {p.mode === 'online' ? 'Online' : 'Offline'}
-                </td>
-                <td>
-                  {p.sesi_terpakai}/{p.total_sesi}
-                  {p.discount_percent > 0 && (
-                    <span className="muted"> (−{p.discount_percent}%)</span>
-                  )}
-                </td>
-                <td>{rupiah(p.price_total)}</td>
-                <td className="muted">
-                  {p.expires_at ? new Date(p.expires_at).toLocaleDateString('id-ID') : '—'}
-                </td>
-                <td>
-                  <span className={`status ${STATUS_CLASS[p.status] ?? 'status-diundang'}`}>
-                    {STATUS_LABEL[p.status] ?? p.status}
-                  </span>
-                </td>
-                <td className="actions">
-                  {p.status === 'active' || p.status === 'expired' ? (
-                    <button disabled={busy === p.id} onClick={() => onRefund(p)}>
-                      {busy === p.id ? '…' : `Refund ${rupiah(refundPreview(p))}`}
-                    </button>
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
-                  {(p.status === 'active' || p.status === 'expired') && (
-                    <button disabled={busy === p.id} onClick={() => onTransfer(p)}>
-                      Pindah tutor
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
       )}
+
+      <div className="card">
+        <div className="table-wrap">
+          <table className="data-table" style={{ minWidth: 880 }}>
+            <thead>
+              <tr>
+                <th>Siswa</th>
+                <th>Tutor</th>
+                <th>Mapel · jenjang</th>
+                <th>Sisa sesi</th>
+                <th className="num">Total bayar</th>
+                <th>Berlaku sampai</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Memuat paket…</strong>
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Belum ada pembelian paket</strong>
+                      <span>Pembelian dari siswa akan tampil di sini.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((p) => {
+                  const remaining = sisa(p)
+                  const rate = p.total_sesi ? Math.round((remaining / p.total_sesi) * 100) : 0
+                  const meta = STATUS_META[p.status] ?? { label: p.status, tone: 'neutral' }
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <div className="cell-person">
+                          <span className="avatar">{initials(p.students?.full_name ?? 'Siswa')}</span>
+                          <span className="strong">{p.students?.full_name ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td>{p.tutors?.full_name ?? '—'}</td>
+                      <td>
+                        {p.subjects?.name ?? '—'} · {p.jenjang}
+                        <span className="sub">
+                          {p.duration_minutes} menit · {p.mode === 'online' ? 'Online' : 'Offline'}
+                          {p.discount_percent > 0 ? ` · diskon ${p.discount_percent}%` : ''}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="progress-row">
+                          <span className={`progress${rate === 0 ? ' warn' : rate >= 80 ? ' done' : ''}`}>
+                            <span style={{ width: `${rate}%` }} />
+                          </span>
+                          <span className="num">
+                            {remaining}/{p.total_sesi}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="num">{rupiah(p.price_total)}</td>
+                      <td className="num">{tanggal(p.expires_at)}</td>
+                      <td>
+                        <span className={`badge ${meta.tone}`}>{meta.label}</span>
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          {(p.status === 'active' || p.status === 'expired') && (
+                            <>
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                disabled={busy === p.id}
+                                onClick={() => onRefund(p)}
+                              >
+                                Refund {rupiah(refundPreview(p))}
+                              </button>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                disabled={busy === p.id}
+                                onClick={() => onTransfer(p)}
+                              >
+                                Pindah tutor
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-foot">
+          <div className="note warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M12 3 2.5 20h19L12 3Z" />
+              <path d="M12 9v4.5M12 17h.01" />
+            </svg>
+            <span>Pengembalian dana hanya dicatat di sistem. Dana tetap dikirim manual lewat Midtrans oleh tim keuangan.</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

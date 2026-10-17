@@ -31,18 +31,18 @@ interface VersionRow {
   created_at: string
 }
 
-const STATUS_CLASS: Record<string, string> = {
-  draft: 'status-suspend',
-  review: 'status-diundang',
-  published: 'status-aktif',
-  archived: 'status-suspend',
-}
-
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draf',
   review: 'Review',
   published: 'Tayang',
   archived: 'Arsip',
+}
+
+const STATUS_TONE: Record<string, string> = {
+  draft: 'neutral',
+  review: 'warning',
+  published: 'success',
+  archived: 'neutral',
 }
 
 const emptyForm = {
@@ -92,6 +92,7 @@ export function QuestionCms() {
   const [versions, setVersions] = useState<Record<string, VersionRow[]>>({})
   const [openVersions, setOpenVersions] = useState<string | null>(null)
   const [signed, setSigned] = useState<Record<string, string>>({})
+  const [showForm, setShowForm] = useState(false)
 
   async function load() {
     const [s, t, q] = await Promise.all([
@@ -136,6 +137,7 @@ export function QuestionCms() {
       explanation: r.explanation ?? '',
       image: r.image_url ?? '',
     })
+    setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -168,6 +170,7 @@ export function QuestionCms() {
     setNotice(form.id ? 'Versi baru tersimpan.' : 'Soal baru tersimpan (draf).')
     setForm(emptyForm)
     setVersions({})
+    setShowForm(false)
     load()
   }
 
@@ -218,39 +221,74 @@ export function QuestionCms() {
 
   return (
     <section>
-      <h1>CMS Bank Soal</h1>
-      <p className="muted">
-        Soal + rumus (KaTeX, tulis di antara <code>$...$</code>) + gambar. Mengedit soal membuat
-        <strong> versi baru</strong> (riwayat tak hilang). Alur: draf → review → tayang.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Konten · Bank soal</p>
+          <h1 className="page-title">Bank soal</h1>
+          <p className="page-sub">
+            Alur: draf → perlu diperiksa → terbit → diarsipkan. Setiap perubahan pada soal terbit membuat versi baru.
+          </p>
+        </div>
+        <div className="head-actions">
+          <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? 'Tutup formulir' : 'Tulis soal'}
+          </button>
+        </div>
+      </div>
 
-      <form className="tutor-form" onSubmit={onSave} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value, topic: '' })} required>
-            <option value="">Mapel…</option>
-            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <select value={form.jenjang} onChange={(e) => setForm({ ...form, jenjang: e.target.value, topic: '' })}>
-            {['SD', 'SMP', 'SMA'].map((j) => <option key={j} value={j}>{j}</option>)}
-          </select>
-          <select value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
-            <option value="">Topik (opsional)…</option>
-            {topicOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as 'pg' | 'isian' })}>
-            <option value="pg">Pilihan ganda</option>
-            <option value="isian">Isian</option>
-          </select>
-          {form.id && <span className="muted">mengedit soal ({form.id.slice(0, 8)}…)</span>}
+      {showForm && (
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card-head">
+          <div>
+            <h2 className="card-title">{form.id ? 'Edit soal' : 'Soal baru'}</h2>
+            <p className="card-sub">
+              Rumus ditulis di antara <code>$...$</code>. Mengedit soal terbit membuat versi baru.
+            </p>
+          </div>
+          {form.id && <span className="badge warning">mengedit versi</span>}
+        </div>
+      <form className="card-body" onSubmit={onSave}>
+        <div className="form-grid">
+          <label className="field">
+            <span>Mapel</span>
+            <select className="select" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value, topic: '' })} required>
+              <option value="">Pilih mapel…</option>
+              {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>Jenjang</span>
+            <select className="select" value={form.jenjang} onChange={(e) => setForm({ ...form, jenjang: e.target.value, topic: '' })}>
+              {['SD', 'SMP', 'SMA'].map((j) => <option key={j} value={j}>{j}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>Topik</span>
+            <select className="select" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
+              <option value="">Topik (opsional)…</option>
+              {topicOptions.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>Jenis</span>
+            <select className="select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as 'pg' | 'isian' })}>
+              <option value="pg">Pilihan ganda</option>
+              <option value="isian">Isian</option>
+            </select>
+          </label>
         </div>
 
-        <textarea
-          rows={3}
-          placeholder="Isi soal. Rumus di antara $...$, contoh: Nilai dari $\sin 30^\circ$ adalah ..."
-          value={form.body}
-          onChange={(e) => setForm({ ...form, body: e.target.value })}
-          required
-        />
+        <label className="field" style={{ marginTop: 12 }}>
+          <span>Isi soal</span>
+          <textarea
+            className="textarea"
+            rows={3}
+            placeholder="Isi soal. Rumus di antara $...$, contoh: Nilai dari $\sin 30^\circ$ adalah ..."
+            value={form.body}
+            onChange={(e) => setForm({ ...form, body: e.target.value })}
+            required
+          />
+        </label>
 
         {form.body && (
           <div className="card" style={{ padding: 12 }}>
@@ -325,32 +363,56 @@ export function QuestionCms() {
           <img src={signed[form.image]} alt="soal" style={{ maxWidth: 320, borderRadius: 8 }} />
         )}
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" disabled={busy}>{busy ? 'Menyimpan…' : form.id ? 'Simpan versi baru' : 'Simpan soal'}</button>
-          {(form.id || form.body) && <button type="button" onClick={resetForm}>Bersihkan</button>}
+        <div className="head-actions" style={{ marginTop: 14 }}>
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? 'Menyimpan…' : form.id ? 'Simpan versi baru' : 'Simpan soal'}
+          </button>
+          {(form.id || form.body) && (
+            <button className="btn btn-secondary" type="button" onClick={() => { resetForm(); setShowForm(false) }}>
+              Bersihkan
+            </button>
+          )}
         </div>
       </form>
-
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      <div className="tutor-form">
-        <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
-          <option value="">Semua mapel</option>
-          {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">Semua status</option>
-          {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <span className="muted">{filtered.length} soal</span>
       </div>
+      )}
+
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="toolbar">
+          <select className="select" value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} aria-label="Filter mapel">
+            <option value="">Semua mapel</option>
+            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <select className="select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filter status">
+            <option value="">Semua status</option>
+            {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <div className="spacer" />
+          <span className="badge neutral">{filtered.length} soal</span>
+        </div>
 
       {loading ? (
-        <p className="muted">Memuat…</p>
+        <div className="empty-state">
+          <strong>Memuat soal…</strong>
+        </div>
       ) : filtered.length === 0 ? (
-        <p className="muted">Belum ada soal.</p>
+        <div className="empty-state">
+          <strong>Belum ada soal</strong>
+          <span>Tulis soal pertama lewat tombol di kanan atas.</span>
+        </div>
       ) : (
-        <table className="table">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
             <tr>
               <th>Soal</th>
@@ -368,21 +430,23 @@ export function QuestionCms() {
                     {r.body ? <MathText text={r.body} /> : <span className="muted">(tanpa isi)</span>}
                     {r.image_url && <div className="muted">🖼 {r.image_url}</div>}
                   </td>
-                  <td className="muted">
+                  <td>
                     {r.subject_name ?? '—'} · {r.topic_name ?? '—'} · {r.jenjang}
                   </td>
-                  <td>v{r.current_version}</td>
+                  <td className="num">v{r.current_version}</td>
                   <td>
-                    <span className={`status ${STATUS_CLASS[r.status] ?? 'status-diundang'}`}>
+                    <span className={`badge ${STATUS_TONE[r.status] ?? 'neutral'}`}>
                       {STATUS_LABEL[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="actions">
-                    <button onClick={() => startEdit(r)}>Edit</button>
-                    {r.status === 'draft' && <button onClick={() => setStatus(r, 'review')}>Ajukan review</button>}
-                    {r.status === 'review' && <button onClick={() => setStatus(r, 'published')}>Tayangkan</button>}
-                    {r.status === 'published' && <button onClick={() => setStatus(r, 'archived')}>Arsipkan</button>}
-                    <button onClick={() => toggleVersions(r)}>{openVersions === r.id ? 'Tutup' : 'Riwayat'}</button>
+                  <td>
+                    <div className="row-actions">
+                      <button className="btn btn-secondary btn-sm" onClick={() => startEdit(r)}>Edit</button>
+                      {r.status === 'draft' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus(r, 'review')}>Ajukan review</button>}
+                      {r.status === 'review' && <button className="btn btn-secondary btn-sm" onClick={() => setStatus(r, 'published')}>Tayangkan</button>}
+                      {r.status === 'published' && <button className="btn btn-ghost btn-sm" onClick={() => setStatus(r, 'archived')}>Arsipkan</button>}
+                      <button className="btn btn-ghost btn-sm" onClick={() => toggleVersions(r)}>{openVersions === r.id ? 'Tutup' : 'Riwayat'}</button>
+                    </div>
                   </td>
                 </tr>
                 {openVersions === r.id && (
@@ -400,7 +464,9 @@ export function QuestionCms() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
+      </div>
     </section>
   )
 }

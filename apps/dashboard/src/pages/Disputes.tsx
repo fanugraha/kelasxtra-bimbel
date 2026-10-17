@@ -27,12 +27,20 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: 'Lainnya',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Baru',
-  in_review: 'Ditinjau',
-  resolved: 'Selesai',
-  rejected: 'Ditolak',
+const STATUS_META: Record<string, { label: string; tone: string }> = {
+  open: { label: 'Baru', tone: 'danger' },
+  in_review: { label: 'Ditinjau', tone: 'info' },
+  resolved: { label: 'Selesai', tone: 'success' },
+  rejected: { label: 'Ditolak', tone: 'neutral' },
 }
+
+const FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Semua' },
+  { value: 'open', label: 'Baru' },
+  { value: 'in_review', label: 'Ditinjau' },
+  { value: 'resolved', label: 'Selesai' },
+  { value: 'rejected', label: 'Ditolak' },
+]
 
 const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 
@@ -47,15 +55,64 @@ export function Disputes() {
     setLoading(true)
     let q = supabase
       .from('complaints')
-      .select(
-        'id, category, body, status, decision, refund_nominal, created_at, ' +
-          'bookings(id, scheduled_at, price, students(full_name), tutors(full_name))',
-      )
+      .select('id, booking_id, category, body, status, decision, refund_nominal, created_at')
       .order('created_at', { ascending: false })
     if (filter !== 'all') q = q.eq('status', filter)
     const { data, error } = await q
-    if (error) setNotice(`Gagal memuat: ${error.message}`)
-    setRows((data as unknown as ComplaintRow[]) ?? [])
+    if (error) {
+      setNotice(`Gagal memuat: ${error.message}`)
+      setLoading(false)
+      return
+    }
+    const complaints = (data ?? []) as {
+      id: string
+      booking_id: string
+      category: string
+      body: string
+      status: string
+      decision: string | null
+      refund_nominal: number
+      created_at: string
+    }[]
+    const bookingIds = [...new Set(complaints.map((c) => c.booking_id))]
+    const { data: bookings } = await supabase
+      .from('bookings_visible')
+      .select('id, scheduled_at, price, student_id, tutor_id')
+      .in('id', bookingIds)
+    const list = (bookings ?? []) as {
+      id: string
+      scheduled_at: string
+      price: number
+      student_id: string
+      tutor_id: string
+    }[]
+    const studentIds = [...new Set(list.map((b) => b.student_id))]
+    const tutorIds = [...new Set(list.map((b) => b.tutor_id))]
+    const [{ data: students }, { data: tutors }] = await Promise.all([
+      supabase.from('students').select('id, full_name').in('id', studentIds),
+      supabase.from('tutors').select('id, full_name').in('id', tutorIds),
+    ])
+    const byId = new Map(list.map((b) => [b.id, b]))
+    const studentNames = Object.fromEntries((students ?? []).map((s) => [s.id, s.full_name]))
+    const tutorNames = Object.fromEntries((tutors ?? []).map((t) => [t.id, t.full_name]))
+
+    setRows(
+      complaints.map((c) => {
+        const b = byId.get(c.booking_id)
+        return {
+          ...c,
+          bookings: b
+            ? {
+                id: b.id,
+                scheduled_at: b.scheduled_at,
+                price: b.price,
+                students: studentNames[b.student_id] ? { full_name: studentNames[b.student_id] } : null,
+                tutors: tutorNames[b.tutor_id] ? { full_name: tutorNames[b.tutor_id] } : null,
+              }
+            : null,
+        }
+      }),
+    )
     setLoading(false)
   }
 
@@ -124,79 +181,129 @@ export function Disputes() {
 
   return (
     <section>
-      <h1>Komplain</h1>
-      <p className="muted">
-        Tiket dari siswa/tutor maksimal H+3 setelah sesi. Selama komplain terbuka,
-        penghasilan tutor ditahan. Refund di sini hanya dicatat — dana dikembalikan
-        manual via Midtrans.
-      </p>
-
-      <div className="actions" style={{ marginBottom: 12 }}>
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="open">Baru</option>
-          <option value="in_review">Ditinjau</option>
-          <option value="resolved">Selesai</option>
-          <option value="rejected">Ditolak</option>
-          <option value="all">Semua</option>
-        </select>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Layanan · Komplain</p>
+          <h1 className="page-title">Komplain</h1>
+          <p className="page-sub">
+            Selama komplain terbuka, gaji tutor ditahan. Keputusan pengembalian dana dicatat; dana dikirim manual via Midtrans.
+          </p>
+        </div>
       </div>
 
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Tidak ada komplain.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Siswa</th>
-              <th>Tutor</th>
-              <th>Kategori</th>
-              <th>Isi</th>
-              <th>Status</th>
-              <th>Refund</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((c) => (
-              <tr key={c.id}>
-                <td className="muted">
-                  {new Date(c.created_at).toLocaleString('id-ID')}
-                </td>
-                <td>{c.bookings?.students?.full_name ?? '—'}</td>
-                <td>{c.bookings?.tutors?.full_name ?? '—'}</td>
-                <td>{CATEGORY_LABEL[c.category] ?? c.category}</td>
-                <td>{c.body}</td>
-                <td>
-                  <span className="status status-diundang">
-                    {STATUS_LABEL[c.status] ?? c.status}
-                  </span>
-                  {c.decision && <div className="muted">{c.decision}</div>}
-                </td>
-                <td>{c.refund_nominal > 0 ? rupiah(c.refund_nominal) : '—'}</td>
-                <td className="actions">
-                  {c.status === 'open' || c.status === 'in_review' ? (
-                    <>
-                      <button disabled={busy === c.id} onClick={() => onResolve(c)}>
-                        {busy === c.id ? '…' : 'Selesaikan'}
-                      </button>
-                      <button disabled={busy === c.id} onClick={() => onReject(c)}>
-                        Tolak
-                      </button>
-                    </>
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
       )}
+
+      <div className="card">
+        <div className="toolbar">
+          <div className="segmented" role="group" aria-label="Filter status komplain">
+            {FILTERS.map((item) => (
+              <button
+                key={item.value}
+                aria-pressed={filter === item.value}
+                onClick={() => setFilter(item.value)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="spacer" />
+          <span className="badge neutral">{rows.length} tiket</span>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table" style={{ minWidth: 940 }}>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Siswa</th>
+                <th>Tutor</th>
+                <th>Kategori</th>
+                <th>Ringkasan</th>
+                <th>Status</th>
+                <th className="num">Dana kembali</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Memuat komplain…</strong>
+                    </div>
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Tidak ada komplain</strong>
+                      <span>Tiket baru akan tampil di sini.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((c) => {
+                  const meta = STATUS_META[c.status] ?? { label: c.status, tone: 'neutral' }
+                  return (
+                    <tr key={c.id}>
+                      <td className="num">
+                        {new Intl.DateTimeFormat('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          timeZone: 'Asia/Jakarta',
+                        }).format(new Date(c.created_at))}
+                      </td>
+                      <td>{c.bookings?.students?.full_name ?? '—'}</td>
+                      <td>{c.bookings?.tutors?.full_name ?? '—'}</td>
+                      <td>{CATEGORY_LABEL[c.category] ?? c.category}</td>
+                      <td>
+                        {c.body}
+                        {c.decision && <span className="sub">Keputusan: {c.decision}</span>}
+                      </td>
+                      <td>
+                        <span className={`badge ${meta.tone}`}>{meta.label}</span>
+                      </td>
+                      <td className="num">{c.refund_nominal > 0 ? rupiah(c.refund_nominal) : '—'}</td>
+                      <td>
+                        <div className="row-actions">
+                          {c.status === 'open' || c.status === 'in_review' ? (
+                            <>
+                              <button className="btn btn-secondary btn-sm" disabled={busy === c.id} onClick={() => onResolve(c)}>
+                                Selesaikan
+                              </button>
+                              <button className="btn btn-ghost btn-sm" disabled={busy === c.id} onClick={() => onReject(c)}>
+                                Tolak
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-foot">
+          <div className="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <span>Komplain bisa diajukan maksimal 3 hari setelah sesi. Auto-complete H+1 bila tidak ada komplain.</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

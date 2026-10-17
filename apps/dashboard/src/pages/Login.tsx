@@ -21,14 +21,36 @@ export function Login() {
   return (
     <div className="login">
       <form onSubmit={onSubmit}>
-        <h1>Kelasxtra — Admin</h1>
+        <div className="brand" style={{ padding: 0, marginBottom: 8 }}>
+          <div className="brand-mark" aria-hidden="true">k</div>
+          <div>
+            <div className="brand-name">kelasxtra</div>
+            <div className="brand-sub">Panel admin</div>
+          </div>
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, letterSpacing: '-0.03em' }}>
+          Masuk
+        </h1>
+        <p className="muted" style={{ marginTop: -6 }}>Gunakan akun admin Kelasxtra.</p>
         <label>
           Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </label>
         <label>
           Kata sandi
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={loading}>

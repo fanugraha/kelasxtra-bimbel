@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -50,29 +50,58 @@ const DAYS: { iso: number; label: string }[] = [
   { iso: 7, label: 'Min' },
 ]
 
-const STATUS_CLASS: Record<string, string> = {
-  open: 'status-diundang',
-  confirmed: 'status-aktif',
-  cancelled: 'status-suspend',
-  completed: 'status-aktif',
+const STATUS_META: Record<string, { label: string; tone: string }> = {
+  open: { label: 'Dibuka', tone: 'info' },
+  confirmed: { label: 'Terkonfirmasi', tone: 'success' },
+  cancelled: { label: 'Batal', tone: 'danger' },
+  completed: { label: 'Selesai', tone: 'neutral' },
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Dibuka',
-  confirmed: 'Jalan',
-  cancelled: 'Batal',
-  completed: 'Selesai',
-}
-
-const SEAT_LABEL: Record<string, string> = {
-  pending_payment: 'Menunggu bayar',
-  active: 'Aktif',
-  refund_pending: 'Perlu refund',
-  refunded: 'Sudah refund',
-  cancelled: 'Batal',
+const SEAT_META: Record<string, { label: string; tone: string }> = {
+  pending_payment: { label: 'Menunggu bayar', tone: 'warning' },
+  active: { label: 'Aktif', tone: 'success' },
+  refund_pending: { label: 'Perlu refund', tone: 'danger' },
+  refunded: { label: 'Sudah refund', tone: 'neutral' },
+  cancelled: { label: 'Batal', tone: 'neutral' },
 }
 
 const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
+
+const shortDate = (iso?: string) =>
+  iso
+    ? new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date(iso))
+    : '—'
+
+const fullDate = (iso?: string) =>
+  iso
+    ? new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date(iso))
+    : '—'
+
+const timeOf = (iso?: string) =>
+  iso
+    ? new Intl.DateTimeFormat('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date(iso))
+    : '—'
+
+function relative(iso: string) {
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)
+  if (days < 0) return 'terlewat'
+  if (days === 0) return 'hari ini'
+  if (days === 1) return 'besok'
+  return `${days} hari lagi`
+}
 
 const emptyForm = {
   tutor: '',
@@ -95,9 +124,13 @@ export function GroupClasses() {
   const [seats, setSeats] = useState<Record<string, Seat[]>>({})
   const [openId, setOpenId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<'all' | 'attention'>('all')
+  const [sort, setSort] = useState<'fill' | 'due' | 'name'>('fill')
 
   async function load() {
     const [t, s, r, g] = await Promise.all([
@@ -107,8 +140,8 @@ export function GroupClasses() {
       supabase
         .from('group_classes')
         .select(
-          'id, jenjang, mode, duration_minutes, total_sesi, discount_percent, price_per_session, '+ 
-            'price_total, min_seats, max_seats, seats_taken, status, min_confirm_deadline, '+ 
+          'id, jenjang, mode, duration_minutes, total_sesi, discount_percent, price_per_session, ' +
+            'price_total, min_seats, max_seats, seats_taken, status, min_confirm_deadline, ' +
             'tutors(full_name), subjects(name), rooms(name), group_sessions(seq, scheduled_at)',
         )
         .order('created_at', { ascending: false }),
@@ -160,6 +193,7 @@ export function GroupClasses() {
       return
     }
     setNotice(`Program dibuat (${data}).`)
+    setShowForm(false)
     load()
   }
 
@@ -192,172 +226,368 @@ export function GroupClasses() {
     load()
   }
 
-  const summary = useMemo(
-    () => rows.map((r) => {
-      const sorted = [...(r.group_sessions ?? [])].sort((a, b) => a.seq - b.seq)
-      return { first: sorted[0]?.scheduled_at, last: sorted[sorted.length - 1]?.scheduled_at }
-    }),
-    [rows],
-  )
+  function range(row: GroupClass) {
+    const sorted = [...(row.group_sessions ?? [])].sort((a, b) => a.seq - b.seq)
+    return { first: sorted[0]?.scheduled_at, last: sorted[sorted.length - 1]?.scheduled_at }
+  }
 
-  const fmt = (iso?: string) =>
-    iso ? new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+  const shown = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const list = rows.filter((row) => {
+      if (filter === 'attention' && !(row.status === 'open' && row.seats_taken < row.min_seats)) {
+        return false
+      }
+      if (!term) return true
+      return [row.subjects?.name, row.tutors?.full_name]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(term))
+    })
+    return list.sort((a, b) => {
+      if (sort === 'name') return (a.subjects?.name ?? '').localeCompare(b.subjects?.name ?? '')
+      if (sort === 'due') return new Date(a.min_confirm_deadline).getTime() - new Date(b.min_confirm_deadline).getTime()
+      return a.seats_taken / a.max_seats - b.seats_taken / b.max_seats
+    })
+  }, [rows, filter, search, sort])
+
+  const attention = rows.filter((row) => row.status === 'open' && row.seats_taken < row.min_seats)
+  const totalSeats = rows.reduce((sum, row) => sum + row.seats_taken, 0)
+  const totalCap = rows.reduce((sum, row) => sum + row.max_seats, 0)
+  const nearest = rows
+    .filter((row) => row.status === 'open' || row.status === 'confirmed')
+    .sort((a, b) => new Date(a.min_confirm_deadline).getTime() - new Date(b.min_confirm_deadline).getTime())[0]
 
   return (
     <section>
-      <h1>Kelas Grup</h1>
-      <p className="muted">
-        Program jadwal tetap, maks 5 kursi, <strong>minimal 3</strong>. Kalau kurang dari 3 pada
-        tenggat (H-1 20:00 WIB), program otomatis batal. Pembayaran sekali per kursi.
-      </p>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Operasional · Kelas grup</p>
+          <h1 className="page-title">Kelas grup</h1>
+          <p className="page-sub">
+            Kuota minimum 3 siswa, maksimal 5 kursi. Program batal otomatis bila kuota tidak terpenuhi pada tenggat H-1 20:00 WIB.
+          </p>
+        </div>
+        <div className="head-actions">
+          <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? 'Tutup formulir' : 'Buat program'}
+          </button>
+        </div>
+      </div>
 
-      <form className="tutor-form" onSubmit={onSubmit}>
-        <select value={form.tutor} onChange={(e) => setForm({ ...form, tutor: e.target.value })} required>
-          <option value="">Tutor…</option>
-          {tutors.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-        </select>
-        <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required>
-          <option value="">Mapel…</option>
-          {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <select value={form.jenjang} onChange={(e) => setForm({ ...form, jenjang: e.target.value })}>
-          {['SD', 'SMP', 'SMA'].map((j) => <option key={j} value={j}>{j}</option>)}
-        </select>
-        <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value, room: '' })}>
-          <option value="offline">Offline</option>
-          <option value="online">Online</option>
-        </select>
-        {form.mode === 'offline' && (
-          <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} required>
-            <option value="">Ruangan…</option>
-            {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+      {showForm && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-head">
+            <div>
+              <h2 className="card-title">Program baru</h2>
+              <p className="card-sub">Pertemuan disusun otomatis 2× per minggu sesuai hari yang dipilih.</p>
+            </div>
+          </div>
+          <form className="card-body" onSubmit={onSubmit}>
+            <div className="form-grid">
+              <label className="field">
+                <span>Tutor</span>
+                <select className="select" value={form.tutor} onChange={(e) => setForm({ ...form, tutor: e.target.value })} required>
+                  <option value="">Pilih tutor…</option>
+                  {tutors.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Mata pelajaran</span>
+                <select className="select" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required>
+                  <option value="">Pilih mapel…</option>
+                  {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Jenjang</span>
+                <select className="select" value={form.jenjang} onChange={(e) => setForm({ ...form, jenjang: e.target.value })}>
+                  {['SD', 'SMP', 'SMA'].map((j) => <option key={j} value={j}>{j}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Mode</span>
+                <select className="select" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value, room: '' })}>
+                  <option value="offline">Offline</option>
+                  <option value="online">Online</option>
+                </select>
+              </label>
+              {form.mode === 'offline' && (
+                <label className="field">
+                  <span>Ruangan</span>
+                  <select className="select" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} required>
+                    <option value="">Pilih ruangan…</option>
+                    {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="field">
+                <span>Durasi</span>
+                <select className="select" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}>
+                  {[60, 90, 120].map((d) => <option key={d} value={d}>{d} menit</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Jumlah sesi</span>
+                <select className="select" value={form.totalSesi} onChange={(e) => setForm({ ...form, totalSesi: Number(e.target.value) })}>
+                  {[4, 8, 12].map((n) => <option key={n} value={n}>{n} sesi</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Mulai</span>
+                <input className="input" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
+              </label>
+              <label className="field">
+                <span>Jam</span>
+                <input className="input" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
+              </label>
+              <div className="field">
+                <span>Hari</span>
+                <div className="head-actions">
+                  {DAYS.map((d) => (
+                    <label key={d.iso} className="btn btn-secondary btn-sm" style={{ gap: 5 }}>
+                      <input
+                        type="checkbox"
+                        checked={form.days.includes(d.iso)}
+                        onChange={() => toggleDay(d.iso)}
+                        style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
+                      />
+                      {d.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="head-actions" style={{ marginTop: 14 }}>
+              <button className="btn btn-primary" type="submit" disabled={busy || !canSubmit}>
+                {busy ? 'Menyimpan…' : 'Buat program'}
+              </button>
+              {canSubmit && <span className="sub">= {weeks} minggu</span>}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
+      )}
+
+      <div className="grp-summary">
+        <article className="grp-summary-card">
+          <p className="ov-label">
+            <span className="grp-summary-dot" aria-hidden="true" />
+            Perlu tindakan
+          </p>
+          <p className="ov-value">
+            <span>{attention.length}</span>
+            <span className="grp-unit">program</span>
+          </p>
+          <p className="ov-note">Kuota minimum belum terpenuhi</p>
+        </article>
+        <article className="grp-summary-card">
+          <p className="ov-label">Kursi terisi</p>
+          <p className="ov-value">
+            {totalSeats}
+            <span className="grp-unit">/{totalCap}</span>
+          </p>
+          <p className="ov-note">{rows.length} program</p>
+        </article>
+        <article className="grp-summary-card">
+          <p className="ov-label">Batas terdekat</p>
+          <p className="ov-value">{nearest ? shortDate(nearest.min_confirm_deadline) : '—'}</p>
+          <p className="ov-note">
+            {nearest ? `${nearest.subjects?.name ?? 'Program'} · ${relative(nearest.min_confirm_deadline)}` : 'Belum ada tenggat'}
+          </p>
+        </article>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <div>
+            <h2 className="card-title">Program grup</h2>
+            <p className="card-sub">Kuota minimum 3 siswa · maksimal 5 kursi</p>
+          </div>
+          <p className="grp-count">{shown.length} program</p>
+        </div>
+
+        <div className="toolbar grp-toolbar">
+          <div className="segmented" role="group" aria-label="Saring program grup">
+            <button aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+              Semua <span className="grp-filter-count">{rows.length}</span>
+            </button>
+            <button aria-pressed={filter === 'attention'} onClick={() => setFilter('attention')}>
+              Perlu tindakan <span className="grp-filter-count">{attention.length}</span>
+            </button>
+          </div>
+          <div className="spacer" />
+          <div className="search grp-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              className="input"
+              type="search"
+              placeholder="Cari program atau tutor"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Cari program"
+            />
+          </div>
+          <select className="select grp-sort" value={sort} onChange={(e) => setSort(e.target.value as 'fill' | 'due' | 'name')} aria-label="Urutkan program">
+            <option value="fill">Keterisian terendah</option>
+            <option value="due">Batas waktu terdekat</option>
+            <option value="name">Nama program A–Z</option>
           </select>
-        )}
-        <select value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}>
-          {[60, 90, 120].map((d) => <option key={d} value={d}>{d} menit</option>)}
-        </select>
-        <select value={form.totalSesi} onChange={(e) => setForm({ ...form, totalSesi: Number(e.target.value) })}>
-          {[4, 8, 12].map((n) => <option key={n} value={n}>{n} sesi</option>)}
-        </select>
-        <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
-        <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
+        </div>
 
-        <span className="toggle">
-          Hari:
-          {DAYS.map((d) => (
-            <label key={d.iso} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-              <input type="checkbox" checked={form.days.includes(d.iso)} onChange={() => toggleDay(d.iso)} />
-              {d.label}
-            </label>
-          ))}
-        </span>
-
-        <button type="submit" disabled={busy || !canSubmit}>
-          {busy ? 'Menyimpan…' : 'Buat program'}
-        </button>
-        {canSubmit && <span className="muted">= {weeks} minggu</span>}
-      </form>
-
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Belum ada program kelas grup.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Tutor · Mapel</th>
-              <th>Jadwal</th>
-              <th>Sesi</th>
-              <th>Kursi</th>
-              <th>Harga/kursi</th>
-              <th>Tenggat</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <Fragment key={r.id}>
-                <tr>
-                  <td>
-                    {r.tutors?.full_name ?? '—'} · {r.subjects?.name ?? '—'} · {r.jenjang}
-                    <div className="muted">
-                      {r.mode === 'online' ? 'Online' : `Offline · ${r.rooms?.name ?? '-'}`} ·{' '}
-                      {r.duration_minutes} menit
+        <div className="grp-list">
+          {loading ? (
+            <div className="empty-state">
+              <strong>Memuat program…</strong>
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="empty-state">
+              <strong>Belum ada program</strong>
+              <span>Buat program baru lewat tombol di kanan atas.</span>
+            </div>
+          ) : (
+            shown.map((row) => {
+              const meta = STATUS_META[row.status] ?? { label: row.status, tone: 'neutral' }
+              const span = range(row)
+              const fill = Math.round((row.seats_taken / row.max_seats) * 100)
+              const lacking = Math.max(0, row.min_seats - row.seats_taken)
+              const open = openId === row.id
+              return (
+                <div key={row.id}>
+                  <article className="grp-item">
+                    <div className="grp-item-main">
+                      <div className="grp-title">
+                        <h3>{row.subjects?.name ?? 'Kelas grup'}</h3>
+                        <span className={`badge ${meta.tone}`}>{meta.label}</span>
+                      </div>
+                      <p className="grp-meta">
+                        {row.tutors?.full_name ?? '—'} · {row.jenjang} ·{' '}
+                        {row.mode === 'online' ? 'Online' : `Offline · ${row.rooms?.name ?? '—'}`}
+                      </p>
                     </div>
-                  </td>
-                  <td className="muted">
-                    {fmt(summary[i]?.first)}
-                    <br />s/d {fmt(summary[i]?.last)}
-                  </td>
-                  <td>{r.total_sesi}× (−{r.discount_percent}%)</td>
-                  <td>
-                    <strong>{r.seats_taken}</strong>/{r.max_seats}
-                    <div className="muted">min {r.min_seats}</div>
-                  </td>
-                  <td>{rupiah(r.price_total)}</td>
-                  <td className="muted">{fmt(r.min_confirm_deadline)}</td>
-                  <td>
-                    <span className={`status ${STATUS_CLASS[r.status] ?? 'status-diundang'}`}>
-                      {STATUS_LABEL[r.status] ?? r.status}
-                    </span>
-                  </td>
-                  <td className="actions">
-                    <button onClick={() => openSeats(r.id)}>
-                      {openId === r.id ? 'Tutup' : 'Lihat kursi'}
-                    </button>
-                  </td>
-                </tr>
-                {openId === r.id && (
-                  <tr key={`${r.id}-seats`}>
-                    <td colSpan={8}>
-                      {(seats[r.id] ?? []).length === 0 ? (
-                        <span className="muted">Belum ada kursi diambil.</span>
-                      ) : (
-                        <table className="table">
+                    <div className="grp-schedule">
+                      <span className="grp-date">
+                        {shortDate(span.first)} – {shortDate(span.last)}
+                      </span>
+                      <span className="grp-time">{timeOf(span.first)} WIB · {row.total_sesi}×</span>
+                    </div>
+                    <div className="grp-fill">
+                      <div className="progress-row">
+                        <span className={`progress${row.seats_taken >= row.max_seats ? ' done' : row.seats_taken < row.min_seats ? ' warn' : ''}`}>
+                          <span style={{ width: `${fill}%` }} />
+                        </span>
+                        <span className="num">{row.seats_taken}/{row.max_seats}</span>
+                      </div>
+                      <span className={`grp-fill-note${lacking > 0 ? ' is-danger' : ''}`}>
+                        {lacking > 0 ? `Kurang ${lacking} siswa` : row.seats_taken >= row.max_seats ? 'Kursi penuh' : `Sisa ${row.max_seats - row.seats_taken} kursi`}
+                      </span>
+                    </div>
+                    <div className="grp-due">
+                      <span className="grp-date">{shortDate(row.min_confirm_deadline)}</span>
+                      <span className="grp-time">{relative(row.min_confirm_deadline)}</span>
+                    </div>
+                    <div className="grp-actions">
+                      <button className="btn btn-secondary btn-sm" onClick={() => openSeats(row.id)}>
+                        {open ? 'Tutup' : 'Kelola kursi'}
+                      </button>
+                    </div>
+                  </article>
+                  <div className="grp-detail" hidden={!open}>
+                    <div className="grp-detail-panel">
+                      <dl className="grp-detail-grid">
+                        <div>
+                          <dt>Tempat</dt>
+                          <dd>
+                            {row.mode === 'online' ? 'Online' : row.rooms?.name ?? '—'}
+                            <span>{row.mode === 'online' ? 'Tautan dikirim H-1' : `${row.jenjang} · ${row.duration_minutes} menit`}</span>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Harga / sesi</dt>
+                          <dd>{rupiah(row.price_per_session)}<span>per siswa</span></dd>
+                        </div>
+                        <div>
+                          <dt>Kursi</dt>
+                          <dd>{row.seats_taken} dari {row.max_seats}<span>minimal {row.min_seats}</span></dd>
+                        </div>
+                        <div>
+                          <dt>Batas waktu</dt>
+                          <dd>{fullDate(row.min_confirm_deadline)}<span>{relative(row.min_confirm_deadline)}</span></dd>
+                        </div>
+                      </dl>
+
+                      <div className="table-wrap" style={{ marginTop: 14 }}>
+                        <table className="data-table" style={{ minWidth: 560 }}>
                           <thead>
                             <tr>
                               <th>Siswa</th>
                               <th>Status</th>
-                              <th>Dibayar</th>
-                              <th>Refund</th>
-                              <th>Aksi</th>
+                              <th className="num">Dibayar</th>
+                              <th className="num">Refund</th>
+                              <th />
                             </tr>
                           </thead>
                           <tbody>
-                            {(seats[r.id] ?? []).map((s) => (
-                              <tr key={s.id}>
-                                <td>{s.students?.full_name ?? '—'}</td>
-                                <td>{SEAT_LABEL[s.status] ?? s.status}</td>
-                                <td>{rupiah(s.price_paid)}</td>
-                                <td className="muted">
-                                  {s.refund_amount ? rupiah(s.refund_amount) : '—'}
-                                </td>
-                                <td className="actions">
-                                  {s.status === 'refund_pending' || s.status === 'active' ? (
-                                    <button onClick={() => refund(s)}>
-                                      Refund {rupiah(s.price_paid)}
-                                    </button>
-                                  ) : (
-                                    <span className="muted">—</span>
-                                  )}
+                            {seats[row.id] === undefined ? (
+                              <tr>
+                                <td colSpan={5}>
+                                  <div className="empty-state">
+                                    <strong>Memuat kursi…</strong>
+                                  </div>
                                 </td>
                               </tr>
-                            ))}
+                            ) : seats[row.id].length === 0 ? (
+                              <tr>
+                                <td colSpan={5}>
+                                  <div className="empty-state">
+                                    <strong>Belum ada kursi diambil</strong>
+                                    <span>Kursi tampil setelah siswa membayar.</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : (
+                              seats[row.id].map((seat) => {
+                                const seatMeta = SEAT_META[seat.status] ?? { label: seat.status, tone: 'neutral' }
+                                return (
+                                  <tr key={seat.id}>
+                                    <td>{seat.students?.full_name ?? '—'}</td>
+                                    <td><span className={`badge ${seatMeta.tone}`}>{seatMeta.label}</span></td>
+                                    <td className="num">{rupiah(seat.price_paid)}</td>
+                                    <td className="num">{seat.refund_amount ? rupiah(seat.refund_amount) : '—'}</td>
+                                    <td>
+                                      <div className="row-actions">
+                                        {seat.status === 'refund_pending' || seat.status === 'active' ? (
+                                          <button className="btn btn-secondary btn-sm" onClick={() => refund(seat)}>
+                                            Refund
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )
+                              })
+                            )}
                           </tbody>
                         </table>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
     </section>
   )
 }

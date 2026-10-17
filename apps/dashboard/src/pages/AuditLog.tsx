@@ -19,7 +19,7 @@ export function AuditLog() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
 
-  async function load() {
+  async function load(term = filter) {
     setLoading(true)
     setNotice(null)
     let q = supabase
@@ -30,7 +30,7 @@ export function AuditLog() {
       )
       .order('created_at', { ascending: false })
       .limit(200)
-    if (filter.trim()) q = q.ilike('action', `%${filter.trim()}%`)
+    if (term.trim()) q = q.ilike('action', `%${term.trim()}%`)
     const { data, error } = await q
     if (error) setNotice(`Gagal memuat: ${error.message}`)
     setRows((data as unknown as AuditRow[]) ?? [])
@@ -53,63 +53,132 @@ export function AuditLog() {
 
   return (
     <section>
-      <h1>Audit Log</h1>
-      <p className="muted">
-        Jejak aksi sensitif: refund, koreksi absensi, perubahan status soal, payroll,
-        transfer paket. Hanya admin yang bisa membaca.
-      </p>
-
-      <div className="tutor-form">
-        <input
-          placeholder="Filter aksi (mis. payroll / booking.correct)"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        <button onClick={load} disabled={loading}>
-          {loading ? 'Memuat…' : 'Cari'}
-        </button>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Sistem · Riwayat aktivitas</p>
+          <h1 className="page-title">Riwayat aktivitas</h1>
+          <p className="page-sub">
+            Hanya bisa dilihat. Menyimpan 200 kegiatan terakhir beserta perubahan datanya.
+          </p>
+        </div>
       </div>
 
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Belum ada catatan.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>Aktor</th>
-              <th>Aksi</th>
-              <th>Entitas</th>
-              <th>ID</th>
-              <th>Sebelum</th>
-              <th>Sesudah</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="muted">{new Date(r.created_at).toLocaleString('id-ID')}</td>
-                <td>{r.profiles?.full_name ?? r.actor_id ?? 'sistem'}</td>
-                <td>{r.action}</td>
-                <td>{r.entity}</td>
-                <td className="muted" style={{ fontSize: 12 }}>
-                  {r.entity_id ?? '—'}
-                </td>
-                <td className="muted" style={{ fontSize: 12, maxWidth: 220, wordBreak: 'break-word' }}>
-                  {pretty(r.before_data)}
-                </td>
-                <td className="muted" style={{ fontSize: 12, maxWidth: 260, wordBreak: 'break-word' }}>
-                  {pretty(r.after_data)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {notice && (
+        <div className="note warn" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M12 3 2.5 20h19L12 3Z" />
+            <path d="M12 9v4.5M12 17h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
       )}
+
+      <div className="card">
+        <div className="toolbar">
+          <div className="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              className="input"
+              type="search"
+              placeholder="Filter aksi (mis. payroll)"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') load()
+              }}
+              aria-label="Filter aksi"
+            />
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={() => load()} disabled={loading}>
+            {loading ? 'Memuat…' : 'Cari'}
+          </button>
+          {filter && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setFilter('')
+                load('')
+              }}
+            >
+              Reset filter
+            </button>
+          )}
+          <div className="spacer" />
+          <span className="badge neutral">{rows.length} catatan</span>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table" style={{ minWidth: 980 }}>
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Pelaku</th>
+                <th>Kegiatan</th>
+                <th>Bagian</th>
+                <th>Nomor</th>
+                <th>Sebelum</th>
+                <th>Sesudah</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="empty-state">
+                      <strong>Memuat catatan…</strong>
+                    </div>
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="empty-state">
+                      <strong>Belum ada catatan</strong>
+                      <span>Aksi sensitif akan tercatat di sini.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td className="num">
+                      {new Intl.DateTimeFormat('id-ID', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'Asia/Jakarta',
+                      }).format(new Date(r.created_at))}
+                    </td>
+                    <td>{r.profiles?.full_name ?? r.profiles?.email ?? r.actor_id ?? 'sistem'}</td>
+                    <td className="strong">{r.action}</td>
+                    <td>{r.entity}</td>
+                    <td className="num">{r.entity_id?.slice(0, 8) ?? '—'}</td>
+                    <td className="sub" style={{ maxWidth: 220, wordBreak: 'break-word' }}>
+                      {pretty(r.before_data)}
+                    </td>
+                    <td className="sub" style={{ maxWidth: 260, wordBreak: 'break-word' }}>
+                      {pretty(r.after_data)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-foot">
+          <div className="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <span>Riwayat ini tidak bisa diubah atau dihapus dari halaman ini.</span>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

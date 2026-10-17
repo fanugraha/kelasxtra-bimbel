@@ -186,6 +186,11 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
       koreksi turun dari completed ditolak (guard ledger)
 - [x] Uji UI monitoring/keuangan/payroll di browser
 - [x] Audit log viewer
+- [x] **UI slicing desain admin** (17 Okt): shell sidebar 3 grup + topbar, dark mode, drawer mobile,
+      13 layar memakai token desain (Ringkasan, Pantau Kelas, Tutor, Daftar Harga, Paket, Kelas Grup,
+      Ruangan, Gaji Tutor, Keuangan, Voucher, Komplain, Bank Soal, Riwayat Aktivitas), login
+- [x] Perbaikan query dashboard: laporan voucher pakai `bookings_visible`; komplain + booking
+      diambil terpisah agar tidak kena RLS `bookings` (403)
 
 ## Fase 9 — Notifikasi & Hardening (🟡)
 

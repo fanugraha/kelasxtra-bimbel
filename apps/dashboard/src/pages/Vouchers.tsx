@@ -29,11 +29,23 @@ interface VoucherReport {
   discount: number
 }
 
+const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
+const tanggal = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date(value))
+    : '—'
+
 export function Vouchers() {
   const [rows, setRows] = useState<Voucher[]>([])
   const [report, setReport] = useState<Record<string, VoucherReport>>({})
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
+  const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -46,7 +58,7 @@ export function Vouchers() {
 
     const [{ data: redemptions }, { data: usedBookings }] = await Promise.all([
       supabase.from('voucher_redemptions').select('voucher_id, status'),
-      supabase.from('bookings').select('voucher_id, discount').not('voucher_id', 'is', null),
+      supabase.from('bookings_visible').select('voucher_id, discount').not('voucher_id', 'is', null),
     ])
     const map: Record<string, VoucherReport> = {}
     for (const r of (redemptions ?? []) as { voucher_id: string; status: string }[]) {
@@ -84,6 +96,8 @@ export function Vouchers() {
       return
     }
     setForm(emptyForm)
+    setShowForm(false)
+    setNotice('Voucher dibuat.')
     load()
   }
 
@@ -103,90 +117,222 @@ export function Vouchers() {
       ? `${v.discount_value}%`
       : 'Rp' + v.discount_value.toLocaleString('id-ID')
 
+  const totals = rows.reduce(
+    (sum, v) => {
+      const r = report[v.id] ?? { used: 0, locked: 0, discount: 0 }
+      return {
+        used: sum.used + r.used,
+        locked: sum.locked + r.locked,
+        discount: sum.discount + r.discount,
+        quota: sum.quota + (v.quota ?? 0),
+      }
+    },
+    { used: 0, locked: 0, discount: 0, quota: 0 },
+  )
+
   return (
     <section>
-      <h1>Voucher &amp; Promo</h1>
-      <p className="muted">1 voucher per transaksi. Kuota dikunci saat bayar (race-safe). Diskon 100% ditanggung platform.</p>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Bisnis · Voucher &amp; promo</p>
+          <h1 className="page-title">Voucher &amp; promo</h1>
+          <p className="page-sub">
+            Kuota dikunci saat pembayaran dimulai dan dilepas bila pembayaran gagal atau kedaluwarsa.
+          </p>
+        </div>
+        <div className="head-actions">
+          <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? 'Tutup formulir' : 'Buat voucher'}
+          </button>
+        </div>
+      </div>
 
-      <form className="tutor-form" onSubmit={onCreate}>
-        <input placeholder="Kode" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
-        <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value as Voucher['discount_type'] })}>
-          <option value="percent">Persen (%)</option>
-          <option value="nominal">Nominal (Rp)</option>
-        </select>
-        <input type="number" placeholder="Nilai diskon" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} required />
-        <input type="number" placeholder="Min. belanja" value={form.min_purchase} onChange={(e) => setForm({ ...form, min_purchase: e.target.value })} />
-        <input type="number" placeholder="Kuota (kosong = ∞)" value={form.quota} onChange={(e) => setForm({ ...form, quota: e.target.value })} />
-        <input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
-        <button type="submit" disabled={busy}>{busy ? 'Menyimpan…' : 'Tambah voucher'}</button>
-      </form>
-
-      {notice && <pre className="notice-line">{notice}</pre>}
-
-      {loading ? (
-        <p className="muted">Memuat…</p>
-      ) : rows.length === 0 ? (
-        <p className="muted">Belum ada voucher.</p>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Kode</th>
-              <th>Diskon</th>
-              <th>Min</th>
-              <th>Kuota</th>
-              <th>Berakhir</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((v) => (
-              <tr key={v.id}>
-                <td>{v.code}</td>
-                <td>{label(v)}</td>
-                <td>{v.min_purchase ? 'Rp' + v.min_purchase.toLocaleString('id-ID') : '—'}</td>
-                <td>{v.used}/{v.quota ?? '∞'}</td>
-                <td className="muted">{v.expires_at ? new Date(v.expires_at).toLocaleDateString('id-ID') : '—'}</td>
-                <td>
-                  <span className={`status status-${v.active ? 'aktif' : 'suspend'}`}>{v.active ? 'Aktif' : 'Nonaktif'}</span>
-                </td>
-                <td className="actions">
-                  <button onClick={() => toggleActive(v)}>{v.active ? 'Nonaktifkan' : 'Aktifkan'}</button>
-                  <button onClick={() => onDelete(v)}>Hapus</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {showForm && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-head">
+            <div>
+              <h2 className="card-title">Voucher baru</h2>
+              <p className="card-sub">Satu voucher per transaksi. Diskon 100% ditanggung platform.</p>
+            </div>
+          </div>
+          <form className="card-body" onSubmit={onCreate}>
+            <div className="form-grid">
+              <label className="field">
+                <span>Kode</span>
+                <input
+                  className="input"
+                  placeholder="HEBAT10"
+                  value={form.code}
+                  onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Jenis diskon</span>
+                <select
+                  className="select"
+                  value={form.discount_type}
+                  onChange={(e) => setForm({ ...form, discount_type: e.target.value as Voucher['discount_type'] })}
+                >
+                  <option value="percent">Persen (%)</option>
+                  <option value="nominal">Nominal (Rp)</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Nilai diskon</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  placeholder={form.discount_type === 'percent' ? '10' : '25000'}
+                  value={form.discount_value}
+                  onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Minimum belanja</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  value={form.min_purchase}
+                  onChange={(e) => setForm({ ...form, min_purchase: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Kuota</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  placeholder="Kosong = tanpa batas"
+                  value={form.quota}
+                  onChange={(e) => setForm({ ...form, quota: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Kedaluwarsa</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.expires_at}
+                  onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="head-actions" style={{ marginTop: 14 }}>
+              <button className="btn btn-primary" type="submit" disabled={busy}>
+                {busy ? 'Menyimpan…' : 'Tambah voucher'}
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <h2>Laporan pemakaian</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Kode</th>
-            <th>Terpakai</th>
-            <th>Dikunci (belum bayar)</th>
-            <th>Total diskon</th>
-            <th>Kuota</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((v) => {
-            const r = report[v.id] ?? { used: 0, locked: 0, discount: 0 }
-            return (
-              <tr key={v.id}>
-                <td>{v.code}</td>
-                <td>{r.used}</td>
-                <td>{r.locked}</td>
-                <td>{`Rp${r.discount.toLocaleString('id-ID')}`}</td>
-                <td className="muted">{v.quota ?? 'Tanpa batas'}</td>
+      {notice && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <span>{notice}</span>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="table-wrap">
+          <table className="data-table" style={{ minWidth: 840 }}>
+            <thead>
+              <tr>
+                <th>Kode</th>
+                <th>Diskon</th>
+                <th className="num">Minimum</th>
+                <th className="num">Kuota</th>
+                <th>Terpakai</th>
+                <th>Kedaluwarsa</th>
+                <th>Aktif</th>
+                <th />
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Memuat voucher…</strong>
+                    </div>
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="empty-state">
+                      <strong>Belum ada voucher</strong>
+                      <span>Buat voucher pertama lewat tombol di kanan atas.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((v) => {
+                  const r = report[v.id] ?? { used: 0, locked: 0, discount: 0 }
+                  const totalUsed = Math.max(v.used, r.used)
+                  const percent = v.quota ? Math.min(100, Math.round((totalUsed / v.quota) * 100)) : 0
+                  return (
+                    <tr key={v.id}>
+                      <td>
+                        <span className="strong">{v.code}</span>
+                        <span className="sub">
+                          {v.discount_type === 'percent' ? 'Persen' : 'Nominal'} · 1 per transaksi
+                        </span>
+                      </td>
+                      <td>{label(v)}</td>
+                      <td className="num">{v.min_purchase ? rupiah(v.min_purchase) : '—'}</td>
+                      <td className="num">{v.quota ?? '∞'}</td>
+                      <td>
+                        <div className="progress-row">
+                          <span className={`progress${percent >= 100 ? ' done' : ''}`}>
+                            <span style={{ width: `${percent}%` }} />
+                          </span>
+                          <span className="num">{totalUsed}</span>
+                        </div>
+                      </td>
+                      <td className="num">{tanggal(v.expires_at)}</td>
+                      <td>
+                        <button
+                          className="switch"
+                          role="switch"
+                          aria-checked={v.active}
+                          aria-label={`Aktifkan ${v.code}`}
+                          onClick={() => toggleActive(v)}
+                        />
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn btn-ghost btn-sm" onClick={() => onDelete(v)}>
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-foot" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span className="sub">
+            {totals.used} terpakai · {totals.locked} dikunci · total diskon {rupiah(totals.discount)}
+          </span>
+          <span className="badge neutral" style={{ marginLeft: 'auto' }}>
+            Kuota total {totals.quota || 'tanpa batas'}
+          </span>
+        </div>
+      </div>
     </section>
   )
 }

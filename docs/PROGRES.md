@@ -112,8 +112,12 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] CMS soal (dashboard): KaTeX + gambar, tag topik/jenjang, draf→review→tayang, versioning
 - [x] RPC `admin_save_question` (edit = versi baru), `admin_set_question_status`; view `questions_admin`
       (security_invoker → siswa 0 baris, kunci jawaban tetap aman)
-- [ ] Mobile: langganan (bayar + status) + latihan per topik + pembahasan + skor + "Fokus Perbaikimu"
-- [ ] Tryout (timer opsional)
+- [x] Langganan backend: Edge `create-subscription-snap`, RPC `activate_subscription`, webhook cabang
+      `subscription` (bulan manual via Snap + tenggang 3 hari; auto-potong kartu menyusul)
+- [x] Teruji: beli 29.000 → settlement → langganan +30 hari (tenggang +3)
+- [~] **Mobile bank soal: kode DITULIS, BELUM diverifikasi** (`flutter analyze` belum dijalankan;
+      lihat catatan `2026-10-17-fase-5-bank-soal.md`) — langganan, latihan per topik, pembahasan, skor
+- [ ] Tryout (timer opsional); auto-potong kartu
 
 ## Langkah berikutnya
 

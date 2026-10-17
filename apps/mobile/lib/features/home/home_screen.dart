@@ -71,6 +71,11 @@ class HomeScreen extends ConsumerWidget {
                   label: 'Kelas Grup',
                   onTap: () => context.go('/kelas-grup'),
                 ),
+                _QuickItem(
+                  icon: Icons.quiz_rounded,
+                  label: 'Bank Soal',
+                  onTap: () => context.go('/bank-soal'),
+                ),
               ],
             )
           else

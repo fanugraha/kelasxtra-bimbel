@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/bank_soal/bank_soal_screen.dart';
+import '../features/bank_soal/latihan_screen.dart';
 import '../features/booking/booking_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
@@ -96,6 +98,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kelas-grup/:id',
         builder: (c, s) => KelasGrupDetailScreen(classId: s.pathParameters['id']!),
+      ),
+      GoRoute(path: '/bank-soal', builder: (c, s) => const BankSoalScreen()),
+      GoRoute(
+        path: '/latihan/:topicId',
+        builder: (c, s) {
+          final extra = (s.extra as Map?) ?? const {};
+          return LatihanScreen(
+            topicId: s.pathParameters['topicId']!,
+            topicName: (extra['name'] ?? 'Latihan') as String,
+            jenjang: extra['jenjang'] as String?,
+          );
+        },
       ),
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
       GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),

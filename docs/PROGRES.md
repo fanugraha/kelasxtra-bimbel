@@ -17,7 +17,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 4 | Kelas Grup | 🟡 |
 | 5 | Bank Soal + Analisis | 🟡 |
 | 6 | Absensi, Reschedule, Komplain, Pesan | 🟡 |
-| 7 | Payroll Bulanan | ⬜ |
+| 7 | Payroll Bulanan | 🟡 |
 | 8 | Dashboard Management & Operasional | 🟡 |
 | 9 | Notifikasi & Hardening | 🟡 |
 
@@ -166,7 +166,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Dashboard modul **Payroll** (rekap, approve, batal draft, tandai transfer, CSV)
 - [x] Mobile tutor: layar **Penghasilan** (slip baca-saja)
 - [x] Admin kedua: `finance@kelasxtra.id` (admin_role finance) untuk four-eyes
-- [ ] Uji UI payroll di browser + slip di HP
+- [x] Uji UI payroll di browser (rekap + batal draft)
+- [ ] Uji slip Penghasilan di HP
 
 ## Fase 8 — Dashboard Management & Operasional (🟡)
 
@@ -183,8 +184,8 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Paket Sesi: tombol **Pindah tutor**
 - [x] Uji SQL (rollback): transfer paket + audit; koreksi ke completed membuat earning & audit;
       koreksi turun dari completed ditolak (guard ledger)
-- [ ] Uji UI monitoring/keuangan/payroll di browser
-- [ ] Audit log viewer
+- [x] Uji UI monitoring/keuangan/payroll di browser
+- [x] Audit log viewer
 
 ## Fase 9 — Notifikasi & Hardening (🟡)
 

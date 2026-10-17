@@ -48,6 +48,15 @@ Alur teruji: login tutor → Jadwal → Mulai sesi (status `Berlangsung`) → is
 Selesaikan sesi → status `completed`, `session_notes` terisi, `tutor_earnings`
 56.250/18.750 `belum_dibayar`; pesan chat terkirim dari akun tutor.
 
+## Sisa Fase 6 (17 Okt, lanjutan)
+
+- **Absensi grup di UI tutor**: layar `/absensi-grup` (Beranda tutor → Absensi Grup) membaca
+  view `group_attendance_visible` (definer, difilter `tutor_id = auth.uid()`), qid centang
+  Hadir/Izin/Alpa per siswa per pertemuan lewat RPC `mark_group_attendance`.
+  Diuji via SQL: tutor pemilik melihat baris, tutor lain 0 baris, status tersimpan.
+- **Koordinat ruangan**: form & tabel Ruangan (dashboard) kini punya lat/lng sebagai acuan
+  geofence 200 m. Titik lokasi booking privat masih kosong (belum ada pemilih lokasi saat checkout).
+
 ## Langkah berikutnya
 
 - Uji flavor tutor di HP: check-in → catatan sesi → selesai.

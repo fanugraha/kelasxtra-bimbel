@@ -120,6 +120,16 @@ class HomeScreen extends ConsumerWidget {
                   label: 'Jadwal Mengajar',
                   onTap: () => context.go('/jadwal'),
                 ),
+                _QuickItem(
+                  icon: Icons.fact_check_rounded,
+                  label: 'Absensi Grup',
+                  onTap: () => context.go('/absensi-grup'),
+                ),
+                _QuickItem(
+                  icon: Icons.account_balance_wallet_rounded,
+                  label: 'Penghasilan',
+                  onTap: () => context.go('/penghasilan'),
+                ),
               ],
             ),
         ],

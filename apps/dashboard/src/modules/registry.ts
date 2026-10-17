@@ -12,6 +12,7 @@ export const modules: ModuleDef[] = [
   { path: 'packages', label: 'Paket Sesi', desc: 'Pembelian paket, sisa kuota, refund proporsional.', phase: 'Fase 3' },
   { path: 'group-classes', label: 'Kelas Grup', desc: 'Slot grup, assign tutor, ruangan, pantau keterisian.', phase: 'Fase 4' },
   { path: 'question-cms', label: 'CMS Bank Soal', desc: 'Input soal + KaTeX + gambar, review sebelum tayang.', phase: 'Fase 5' },
+  { path: 'payroll', label: 'Payroll', desc: 'Rekap honor tutor per periode, approval four-eyes, bukti transfer.', phase: 'Fase 7' },
   { path: 'monitoring', label: 'Monitoring', desc: 'Progres siswa, performa tutor, operasional harian.', phase: 'Fase 8' },
   { path: 'finance', label: 'Keuangan', desc: 'Gross, potongan 25%, biaya gateway, payroll.', phase: 'Fase 7-8' },
   { path: 'vouchers', label: 'Voucher & Promo', desc: 'CRUD voucher, laporan pemakaian.', phase: 'Fase 8' },

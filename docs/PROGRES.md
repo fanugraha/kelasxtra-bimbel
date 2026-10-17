@@ -145,8 +145,10 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Mobile: layar **Detail Sesi** (`/sesi/:id`) — aksi absensi/reschedule/batal/ulasan/komplain + chat
 - [x] Dashboard: modul **Komplain** (filter status, selesaikan/tolak + refund)
 - [x] Perbaikan RLS pasca-uji: policy Fase 6 tak boleh subquery `bookings` (pakai helper definer)
-- [ ] Kehadiran grup di UI tutor (RPC & tabel sudah ada)
-- [ ] Titik lokasi untuk geofence privat (kolom `bookings.location_lat/lng` belum diisi dari UI)
+- [x] Kehadiran grup di UI tutor: tab **Absensi Grup** (view `group_attendance_visible`) — 3 status per siswa
+- [x] Titik lokasi ruangan di dashboard (lat/lng) untuk acuan geofence
+- [ ] Titik lokasi booking privat (kolom `bookings.location_lat/lng` belum diisi dari UI)
+- [ ] Uji UI absensi grup di HP (perlu login tutor pemilik kelas grup)
 - [x] Uji flavor tutor di HP: login tutor → tab **Jadwal** → Mulai sesi → catatan → selesai
       (status `completed`, earnings 56.250/18.750 `belum_dibayar`); chat terkirim
 - [x] Tab **Jadwal** ditambahkan ke navigasi tutor + guard "Akun ini bukan tutor" di Beranda

@@ -16,6 +16,7 @@ import { Rooms } from './pages/Rooms'
 import { GroupClasses } from './pages/GroupClasses'
 import { QuestionCms } from './pages/QuestionCms'
 import { Disputes } from './pages/Disputes'
+import { Payroll } from './pages/Payroll'
 import { modules } from './modules/registry'
 import type { ModuleDef } from './modules/registry'
 
@@ -29,6 +30,7 @@ const modulePages: Record<string, ComponentType> = {
   'group-classes': GroupClasses,
   'question-cms': QuestionCms,
   disputes: Disputes,
+  payroll: Payroll,
 }
 
 function ModulePage({ module }: { module: ModuleDef }) {

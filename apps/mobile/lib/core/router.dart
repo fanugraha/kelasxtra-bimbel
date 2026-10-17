@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/absensi_grup/absensi_grup_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/profil_screen.dart';
 import '../features/auth/register_screen.dart';
@@ -18,6 +19,7 @@ import '../features/kelas_grup/kelas_grup_screen.dart';
 import '../features/katalog/katalog_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
 import '../features/paket/beli_paket_screen.dart';
+import '../features/penghasilan/penghasilan_screen.dart';
 import '../features/paket/paket_screen.dart';
 import '../widgets/app_shell.dart';
 import 'nav_destinations.dart';
@@ -85,6 +87,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/booking/:id',
         builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/penghasilan',
+        builder: (c, s) => const PenghasilanScreen(),
+      ),
+      GoRoute(
+        path: '/absensi-grup',
+        builder: (c, s) => const AbsensiGrupScreen(),
       ),
       GoRoute(
         path: '/sesi/:id',

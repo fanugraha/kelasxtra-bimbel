@@ -46,6 +46,16 @@ C. Dashboard: buat program kelas grup + pantau keterisian
 D. Mobile siswa: daftar kelas grup, ambil kursi, bayar
 ```
 
+## Catatan teknis (jebakan yang ditemukan)
+
+- **Flutter**: `Row` dengan `CrossAxisAlignment.stretch` di dalam `ListView` (tinggi tak
+  terbatas) menggagalkan layout → seluruh grid aksi cepat Beranda (termasuk Kelas Grup) tak
+  tergambar, tanpa error yang kasat mata. Perbaikan: bungkus dengan `IntrinsicHeight`.
+- **DB**: `unique(kelas, siswa)` pada `group_seats` memblokir pemesanan ulang setelah kursi
+  dibatalkan → diganti indeks unik parsial (`where status <> 'cancelled'`).
+- **DB**: kelas offline awalnya boleh tanpa ruangan → kini wajib; ditambah cek tutor mengajar
+  kombinasi mapel+jenjang, dan anti-bentrok ruangan per pertemuan.
+
 ## Tautan terkait
 
 - [[2026-10-16-fase-3-paket-sesi]]

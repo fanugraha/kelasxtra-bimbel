@@ -19,7 +19,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 | 6 | Absensi, Reschedule, Komplain, Pesan | 🟡 |
 | 7 | Payroll Bulanan | ⬜ |
 | 8 | Dashboard Management & Operasional | 🟡 |
-| 9 | Notifikasi & Hardening | ⬜ |
+| 9 | Notifikasi & Hardening | 🟡 |
 
 ## Fase 0 — Fondasi (✅)
 
@@ -186,10 +186,28 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [ ] Uji UI monitoring/keuangan/payroll di browser
 - [ ] Audit log viewer
 
+## Fase 9 — Notifikasi & Hardening (🟡)
+
+- [x] Skema `device_tokens` + `notifications` (antrean, status pending/sent/failed, read_at)
+- [x] Trigger notifikasi: booking confirmed/in_progress/completed/batal, reschedule, komplain,
+      payroll paid, langganan aktif
+- [x] Edge `send-push` (FCM HTTP v1, JWT service account, `x-cron-secret`) — ter-deploy,
+      menunggu env `FIREBASE_SERVICE_ACCOUNT` + `PUSH_CRON_SECRET`
+- [x] Mobile: layar **Notifikasi** (inbox + tandai dibaca), ikon lonceng di Beranda
+- [x] Rate limit chat 20 pesan/menit per user + cron pembersih harian
+- [x] Hardening grant: cabut EXECUTE semua fungsi dari `anon`/PUBLIC; grant `authenticated`
+      hanya untuk RPC klien (temuan advisor 41 fungsi → 0)
+- [x] `search_path` tetap untuk `group_discount` & `distance_meters`
+- [x] Dashboard modul **Audit Log** (filter aksi, 200 terakhir) — teruji di browser
+- [ ] FCM di mobile: butuh `google-services.json` + plugin Firebase (belum ada)
+- [ ] Jadwalkan `send-push` (pg_cron/pg_net atau scheduler) setelah env diset
+- [ ] Backup/restore check + uji beban ringan
+- [ ] Rekonsiliasi Midtrans settlement = `payments` (checklist go-live)
+
 ## Langkah berikutnya
 
-1. Uji UI modul Monitoring, Keuangan, Payroll, koreksi, pindah paket di browser.
-2. Uji slip Penghasilan di HP.
-3. Fase 9 — notifikasi (FCM) + hardening.
-4. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
-5. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.
+1. Set `FIREBASE_SERVICE_ACCOUNT` + `PUSH_CRON_SECRET`, pasang config Firebase Android, uji push.
+2. Jadwalkan pemanggilan `send-push` tiap 1–5 menit.
+3. Backup/restore check (`supabase db dump`) + uji beban ringan.
+4. Rekonsiliasi pembayaran Midtrans vs tabel `payments`; lengkapi checklist go-live.
+5. Set secret email/SMTP Resend (masih pending).

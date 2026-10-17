@@ -17,6 +17,7 @@ import '../features/jadwal/jadwal_screen.dart';
 import '../features/kelas_grup/kelas_grup_detail_screen.dart';
 import '../features/kelas_grup/kelas_grup_screen.dart';
 import '../features/katalog/katalog_screen.dart';
+import '../features/notifikasi/notifikasi_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
 import '../features/paket/beli_paket_screen.dart';
 import '../features/penghasilan/penghasilan_screen.dart';
@@ -87,6 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/booking/:id',
         builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/notifikasi',
+        builder: (c, s) => const NotifikasiScreen(),
       ),
       GoRoute(
         path: '/penghasilan',

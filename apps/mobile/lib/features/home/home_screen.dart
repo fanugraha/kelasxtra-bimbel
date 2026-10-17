@@ -31,6 +31,11 @@ class HomeScreen extends ConsumerWidget {
         title: Text('Hai, $name 👋'),
         actions: [
           IconButton(
+            tooltip: 'Notifikasi',
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () => context.push('/notifikasi'),
+          ),
+          IconButton(
             tooltip: 'Keluar',
             icon: const Icon(Icons.logout_rounded),
             onPressed: () => ref.read(authControllerProvider.notifier).signOut(),

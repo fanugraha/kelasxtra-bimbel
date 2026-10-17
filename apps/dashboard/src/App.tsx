@@ -19,6 +19,7 @@ import { Disputes } from './pages/Disputes'
 import { Payroll } from './pages/Payroll'
 import { Monitoring } from './pages/Monitoring'
 import { Finance } from './pages/Finance'
+import { AuditLog } from './pages/AuditLog'
 import { modules } from './modules/registry'
 import type { ModuleDef } from './modules/registry'
 
@@ -35,6 +36,7 @@ const modulePages: Record<string, ComponentType> = {
   payroll: Payroll,
   monitoring: Monitoring,
   finance: Finance,
+  'audit-log': AuditLog,
 }
 
 function ModulePage({ module }: { module: ModuleDef }) {

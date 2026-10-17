@@ -4,6 +4,7 @@ import '../../core/supabase_client.dart';
 
 /// Profil gabungan `profiles` + `students` (kolom siswa null untuk tutor).
 typedef MyProfile = ({
+  String? role,
   String? fullName,
   String? email,
   String? phone,
@@ -58,7 +59,7 @@ class AuthRepository {
     final uid = supabase.auth.currentUser!.id;
     final p = await supabase
         .from('profiles')
-        .select('full_name, email, phone')
+        .select('role, full_name, email, phone')
         .eq('id', uid)
         .single();
     final s = await supabase
@@ -68,6 +69,7 @@ class AuthRepository {
         .maybeSingle();
 
     return (
+      role: p['role'] as String?,
       fullName: p['full_name'] as String?,
       email: p['email'] as String?,
       phone: p['phone'] as String?,

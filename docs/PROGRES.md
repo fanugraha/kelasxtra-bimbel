@@ -147,7 +147,9 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Perbaikan RLS pasca-uji: policy Fase 6 tak boleh subquery `bookings` (pakai helper definer)
 - [ ] Kehadiran grup di UI tutor (RPC & tabel sudah ada)
 - [ ] Titik lokasi untuk geofence privat (kolom `bookings.location_lat/lng` belum diisi dari UI)
-- [ ] Uji alur di HP untuk flavor tutor (check-in, catatan, selesai)
+- [x] Uji flavor tutor di HP: login tutor → tab **Jadwal** → Mulai sesi → catatan → selesai
+      (status `completed`, earnings 56.250/18.750 `belum_dibayar`); chat terkirim
+- [x] Tab **Jadwal** ditambahkan ke navigasi tutor + guard "Akun ini bukan tutor" di Beranda
 
 ## Langkah berikutnya
 

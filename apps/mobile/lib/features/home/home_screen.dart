@@ -17,6 +17,10 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final flavor = ref.watch(appFlavorProvider);
     final isSiswa = flavor == AppFlavor.siswa;
+    final profile = isSiswa ? null : ref.watch(myProfileProvider);
+    final wrongRole = !isSiswa &&
+        profile?.value?.role != null &&
+        profile!.value!.role != 'tutor';
     final user = supabase.auth.currentUser;
     final name = (user?.userMetadata?['full_name'] as String?)?.split(' ').first ??
         user?.email?.split('@').first ??
@@ -41,6 +45,31 @@ class HomeScreen extends ConsumerWidget {
           AppSpacing.xxl,
         ),
         children: [
+          if (wrongRole) ...[
+            AppCard(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Akun ini bukan tutor',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const Text(
+                    'Aplikasi ini untuk tutor. Keluar lalu masuk dengan akun tutor.',
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  OutlinedButton(
+                    onPressed: () =>
+                        ref.read(authControllerProvider.notifier).signOut(),
+                    child: const Text('Keluar'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           _Hero(isSiswa: isSiswa),
           const SizedBox(height: AppSpacing.xl),
           Text(
@@ -86,9 +115,10 @@ class HomeScreen extends ConsumerWidget {
                   label: 'Profil Saya',
                   onTap: () => context.go('/profil'),
                 ),
-                const _QuickItem(
+                _QuickItem(
                   icon: Icons.event_available_rounded,
                   label: 'Jadwal Mengajar',
+                  onTap: () => context.go('/jadwal'),
                 ),
               ],
             ),

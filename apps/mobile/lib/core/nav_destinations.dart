@@ -54,6 +54,12 @@ List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
             activeIcon: Icons.home_rounded,
           ),
           NavDest(
+            path: '/jadwal',
+            label: 'Jadwal',
+            icon: Icons.event_available_outlined,
+            activeIcon: Icons.event_available_rounded,
+          ),
+          NavDest(
             path: '/profil',
             label: 'Profil',
             icon: Icons.person_outline_rounded,

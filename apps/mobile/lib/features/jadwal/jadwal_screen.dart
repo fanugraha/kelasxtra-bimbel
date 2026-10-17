@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/app_flavor.dart';
+import '../../core/providers.dart';
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -16,27 +18,32 @@ class JadwalScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bookings = ref.watch(myBookingsProvider);
+    final bookings = ref.watch(jadwalProvider);
+    final isSiswa = ref.watch(appFlavorProvider) == AppFlavor.siswa;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Jadwal')),
       body: AsyncView<List<BookingItem>>(
         value: bookings,
         errorTitle: 'Gagal memuat jadwal',
-        onRetry: () => ref.invalidate(myBookingsProvider),
+        onRetry: () => ref.invalidate(jadwalProvider),
         builder: (list) => list.isEmpty
             ? EmptyState(
                 icon: Icons.event_busy_rounded,
                 title: 'Belum ada sesi',
-                message: 'Yuk cari tutor dan pesan sesi pertamamu.',
-                action: FilledButton.icon(
-                  onPressed: () => context.go('/katalog'),
-                  icon: const Icon(Icons.search_rounded),
-                  label: const Text('Cari Tutor'),
-                ),
+                message: isSiswa
+                    ? 'Yuk cari tutor dan pesan sesi pertamamu.'
+                    : 'Belum ada sesi yang dijadwalkan untukmu.',
+                action: isSiswa
+                    ? FilledButton.icon(
+                        onPressed: () => context.go('/katalog'),
+                        icon: const Icon(Icons.search_rounded),
+                        label: const Text('Cari Tutor'),
+                      )
+                    : null,
               )
             : RefreshIndicator(
-                onRefresh: () async => ref.invalidate(myBookingsProvider),
+                onRefresh: () async => ref.invalidate(jadwalProvider),
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.lg,

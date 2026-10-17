@@ -186,14 +186,17 @@ class BookingRepository {
     );
   }
 
-  Future<List<BookingItem>> fetchMyBookings() async {
+  Future<List<BookingItem>> fetchMyBookings({bool asTutor = false}) async {
     // Baca dari VIEW `bookings_visible`: tanpa kolom bagi hasil, `address`
     // hanya terbuka pasca-bayar, dan hanya baris milik sendiri.
-    final rows = await supabase
+    var query = supabase
         .from('bookings_visible')
         .select('id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
-            'scheduled_at, status, price')
-        .order('scheduled_at', ascending: false);
+            'scheduled_at, status, price');
+    if (asTutor) {
+      query = query.eq('tutor_id', supabase.auth.currentUser!.id);
+    }
+    final rows = await query.order('scheduled_at', ascending: false);
 
     if (rows.isEmpty) return [];
 

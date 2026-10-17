@@ -35,6 +35,19 @@ thread pesan per booking, dan ledger `tutor_earnings`.
   hanya berubah status, sesuai aturan append-only.
 - Rating tutor dihitung ulang dari rata-rata ulasan setiap kali ulasan masuk.
 
+## Uji flavor tutor di HP (17 Okt)
+
+APK `main_tutor.dart` dipasang di HP `e68890180406`. Ditemukan & diperbaiki:
+- flavor tutor belum punya rute `/jadwal` (hanya tab Beranda/Profil) → ditambah tab **Jadwal**;
+  tombol "Jadwal Mengajar" di Beranda kini membuka tab itu.
+- sesi siswa bisa masuk flavor tutor tanpa peringatan → Beranda tutor menampilkan
+  "Akun ini bukan tutor" + tombol keluar bila role bukan tutor.
+- daftar jadwal tutor kini difilter `tutor_id = auth.uid()` (`tutorBookingsProvider`).
+
+Alur teruji: login tutor → Jadwal → Mulai sesi (status `Berlangsung`) → isi catatan sesi →
+Selesaikan sesi → status `completed`, `session_notes` terisi, `tutor_earnings`
+56.250/18.750 `belum_dibayar`; pesan chat terkirim dari akun tutor.
+
 ## Langkah berikutnya
 
 - Uji flavor tutor di HP: check-in → catatan sesi → selesai.

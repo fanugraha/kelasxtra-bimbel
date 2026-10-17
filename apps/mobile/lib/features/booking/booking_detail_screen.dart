@@ -45,6 +45,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       _toast(success);
       ref.invalidate(bookingDetailProvider(widget.bookingId));
       ref.invalidate(myBookingsProvider);
+      ref.invalidate(tutorBookingsProvider);
     } catch (e) {
       _toast(e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -276,6 +277,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       _toast('Dibatalkan. Refund dicatat: ${AppFormat.rupiah(refund)}');
       ref.invalidate(bookingDetailProvider(widget.bookingId));
       ref.invalidate(myBookingsProvider);
+      ref.invalidate(tutorBookingsProvider);
     } catch (e) {
       _toast(e.toString().replaceFirst('Exception: ', ''));
     } finally {

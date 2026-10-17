@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_flavor.dart';
+import '../../core/providers.dart';
 import 'booking_repository.dart';
 
 final bookingRepositoryProvider = Provider<BookingRepository>(
@@ -20,6 +22,19 @@ final priceProvider = FutureProvider.family<int?, PriceQuery>((ref, q) {
 /// Daftar booking milik siswa yang sedang login.
 final myBookingsProvider = FutureProvider<List<BookingItem>>((ref) {
   return ref.read(bookingRepositoryProvider).fetchMyBookings();
+});
+
+/// Daftar sesi yang diampu tutor yang sedang login.
+final tutorBookingsProvider = FutureProvider<List<BookingItem>>((ref) {
+  return ref.read(bookingRepositoryProvider).fetchMyBookings(asTutor: true);
+});
+
+/// Pilih sumber jadwal sesuai flavor aplikasi.
+final jadwalProvider = FutureProvider<List<BookingItem>>((ref) {
+  final flavor = ref.watch(appFlavorProvider);
+  return flavor == AppFlavor.tutor
+      ? ref.watch(tutorBookingsProvider.future)
+      : ref.watch(myBookingsProvider.future);
 });
 
 final bookingDetailProvider =

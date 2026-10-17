@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   // Idempoten by order_id.
   const { data: payment } = await admin
     .from('payments')
-    .select('id, status, booking_id, package_purchase_id, group_seat_id')
+    .select('id, status, booking_id, package_purchase_id, group_seat_id, subscription_id')
     .eq('order_id', orderId)
     .maybeSingle()
   if (!payment) return json({ ok: false, reason: 'order_id tidak dikenal' })
@@ -155,6 +155,12 @@ Deno.serve(async (req) => {
     ) {
       await admin.rpc('release_group_seat', { p_seat_id: payment.group_seat_id })
     }
+  }
+
+  // Langganan bank soal: aktifkan/perpanjang saat berhasil.
+  // Gagal bayar tidak mengubah status (perpanjangan gagal -> langganan lama tetap berlaku).
+  if (payment.subscription_id && paid) {
+    await admin.rpc('activate_subscription', { p_subscription_id: payment.subscription_id })
   }
 
   return json({ ok: true, order_id: orderId, status: newStatus })

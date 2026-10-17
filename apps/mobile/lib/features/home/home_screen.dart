@@ -158,15 +158,17 @@ class _QuickGrid extends StatelessWidget {
       final end = (i + 2 > items.length) ? items.length : i + 2;
       final pair = items.sublist(i, end);
       rows.add(
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _QuickCard(item: pair[0])),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: pair.length > 1 ? _QuickCard(item: pair[1]) : const SizedBox(),
-            ),
-          ],
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _QuickCard(item: pair[0])),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: pair.length > 1 ? _QuickCard(item: pair[1]) : const SizedBox(),
+              ),
+            ],
+          ),
         ),
       );
       if (end < items.length) rows.add(const SizedBox(height: AppSpacing.md));

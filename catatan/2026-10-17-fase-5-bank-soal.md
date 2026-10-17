@@ -68,15 +68,21 @@ File (sudah di-commit WIP `adfface`):
 - diubah: `core/router.dart` (`/bank-soal`, `/latihan/:topicId`), `features/home/home_screen.dart`
   (aksi cepat **Bank Soal**), `pubspec.yaml` (`flutter_math_fork`)
 
+## Uji di HP (17 Okt)
+
+APK rilis dibangun lewat `apps/mobile/build-apk.sh` (baca kredensial `.dev.env`) dan dipasang
+di HP `e68890180406`. Hasil: latihan Trigonometri 4/4 → skor 100 + pembahasan; tryout
+20 soal timer 20 menit berjalan. Buffering awal ternyata HP offline, bukan bug. Satu kali
+muncul `ClientConnection reset by peer` saat `start_attempt` (Wi-Fi lemah); tombol Coba lagi
+berhasil.
+
+Data uji: **50 soal dummy** (5 per topik, semua 10 topik) lewat `supabase/seed_questions.sql`
+— idempoten (body sama dilewati). Trigonometri jadi 5 soal; tryout SMA memakai 20 dari 25 soal.
+
 ## Langkah berikutnya (saat lanjut)
 
-1. `flutter build apk --release -t lib/main_siswa.dart --dart-define=…` lalu `adb install -r`
-   (HP: `e68890180406`; APK juga ada di `build/app/outputs/flutter-apk/`).
-2. Uji alur di HP: **Bank Soal** → status langganan (siswa demo sudah aktif s/d 16 Des) →
-   pilih topik *Trigonometri* → kerjakan → lihat hasil + pembahasan → cek analisa
-   ("Fokus Perbaikimu") terbarui.
-3. Commit hasil 5c (termasuk perbaikan analyze).
-4. Sisa Fase 5 (opsional): **tryout** (timer) & **auto-potong kartu**.
+1. Commit `supabase/seed_questions.sql` + `apps/mobile/build-apk.sh`.
+2. Sisa Fase 5 (opsional): auto-potong kartu (Midtrans recurring).
 
 ## Jebakan yang sudah ditemukan
 

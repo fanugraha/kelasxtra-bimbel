@@ -117,15 +117,16 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] Langganan backend: Edge `create-subscription-snap`, RPC `activate_subscription`, webhook cabang
       `subscription` (bulan manual via Snap + tenggang 3 hari; auto-potong kartu menyusul)
 - [x] Teruji: beli 29.000 → settlement → langganan +30 hari (tenggang +3)
-- [~] **Mobile bank soal: analyze bersih + test 12/12** — sisa build APK & uji alur di HP
-      (lihat catatan `2026-10-17-fase-5-bank-soal.md`) — langganan, latihan per topik, pembahasan, skor
+- [x] **Mobile bank soal: teruji di HP (17 Okt)** — analyze bersih, test 12/12, APK rilis terpasang;
+      latihan Trigonometri 4/4 → skor 100 + pembahasan, tryout 20 soal timer jalan
+      (lihat catatan `2026-10-17-fase-5-bank-soal.md`)
 - [x] Tryout: 20 soal acak, timer 20 menit, auto-submit saat waktu habis (17 Okt 2026)
+- [x] Soal dummy: 5 soal/topik untuk 10 topik (`supabase/seed_questions.sql`, idempoten)
 - [ ] Auto-potong kartu (Midtrans recurring)
 
 ## Langkah berikutnya
 
-1. Verifikasi mobile bank soal: `cd apps/mobile && flutter analyze` → `flutter test` (12/12) → build APK + uji alur di HP.
-2. Commit hasil Fase 5 bagian 3 (mobile) setelah verifikasi.
-3. Sisa Fase 5 opsional: tryout (timer), auto-potong kartu.
-4. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
-5. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.
+1. Commit `supabase/seed_questions.sql` + `apps/mobile/build-apk.sh`.
+2. Mulai Fase 6 — absensi, reschedule, komplain, pesan.
+3. Set secret email: `supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Kelasxtra <noreply@domainmu>" ACTIVATION_BASE_URL="https://<domain-dashboard>/activate"`.
+4. Konfigurasi Supabase SMTP (Resend) untuk email auth siswa.

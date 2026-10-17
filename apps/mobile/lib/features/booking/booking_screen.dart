@@ -10,6 +10,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_error_text.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
 import '../katalog/katalog_providers.dart';
 import '../katalog/katalog_repository.dart';
 import '../paket/paket_providers.dart';
@@ -63,8 +64,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final detail = ref.watch(tutorDetailProvider(widget.tutorId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pesan Sesi')),
-      body: AsyncView<TutorDetail?>(
+      body: SafeArea(
+        child: AsyncView<TutorDetail?>(
         value: detail,
         errorTitle: 'Gagal memuat data tutor',
         onRetry: () => ref.invalidate(tutorDetailProvider(widget.tutorId)),
@@ -74,6 +75,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 title: 'Tutor tidak ditemukan',
               )
             : _buildForm(d),
+        ),
       ),
     );
   }
@@ -112,15 +114,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         (!addressRequired || _address.text.trim().isNotEmpty);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xxl,
-      ),
+      padding: screenPadding,
       children: [
-        Text(detail.tutor.fullName, style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.xl),
+        ScreenHead(
+          showBack: true,
+          eyebrow: 'Sesi privat',
+          title: 'Booking sesi',
+          subtitle:
+              '${detail.tutor.fullName} · ${_subject?.subjectName ?? detail.subjects.firstOrNull?.subjectName ?? 'Pilih mapel'}',
+        ),
+        const SizedBox(height: 18),
 
         _SectionLabel('Mapel & Jenjang'),
         if (subjects.isEmpty)

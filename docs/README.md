@@ -6,6 +6,7 @@ Indeks dokumen. Saling terhubung dengan catatan kerja di [`../catatan/`](../cata
 |---|---|
 | [brief-implementasi-v2.0.md](brief-implementasi-v2.0.md) | **Acuan kerja utama** — ringkasan siap-kerja (ringkasan proyek, aturan kritis, fase 0–9). |
 | [prd-v1.0.md](prd-v1.0.md) | PRD versi 1.0 (latar belakang, persona, user story, KPI, risiko). Lebih lama dari brief v2.0. |
+| [PRD-UI.md](PRD-UI.md) | **Acuan desain UI** — peta layar, spesifikasi tiap layar, state, alur, token desain, handoff. |
 | [RENCANA-DEV.md](RENCANA-DEV.md) | **Rencana pengembangan** — prasyarat, keputusan, roadmap fase 0–9, DoD, risiko. |
 | [arsitektur.md](arsitektur.md) | Tech stack, arsitektur, state machine booking, alur pembayaran & payroll. |
 | [erd.md](erd.md) | Daftar tabel data inti + relasi kunci. |

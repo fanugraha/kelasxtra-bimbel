@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
-import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
+import '../../widgets/status_badge.dart';
 import 'absensi_grup_providers.dart';
 import 'absensi_grup_repository.dart';
 
@@ -18,41 +19,55 @@ class AbsensiGrupScreen extends ConsumerWidget {
     final rows = ref.watch(groupAttendanceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Absensi Kelas Grup')),
-      body: AsyncView<List<GroupAttendanceRow>>(
-        value: rows,
-        errorTitle: 'Gagal memuat absensi',
-        onRetry: () => ref.invalidate(groupAttendanceProvider),
-        builder: (list) {
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.groups_rounded,
-              title: 'Belum ada kelas grup',
-              message: 'Kelas grup yang kamu ampu akan muncul di sini.',
-            );
-          }
-          final sessions = <String, List<GroupAttendanceRow>>{};
-          for (final r in list) {
-            sessions.putIfAbsent(r.sessionId, () => []).add(r);
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(groupAttendanceProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.lg,
-                AppSpacing.xxl,
+      body: SafeArea(
+        child: AsyncView<List<GroupAttendanceRow>>(
+          value: rows,
+          errorTitle: 'Gagal memuat absensi',
+          onRetry: () => ref.invalidate(groupAttendanceProvider),
+          builder: (list) {
+            if (list.isEmpty) {
+              return ListView(
+                padding: screenPadding,
+                children: const [
+                  ScreenHead(
+                    eyebrow: 'Kelas grup',
+                    title: 'Absensi',
+                    subtitle: 'Kehadiran siswa per pertemuan.',
+                  ),
+                  SizedBox(height: 40),
+                  EmptyState(
+                    icon: Icons.groups_rounded,
+                    title: 'Belum ada kelas grup',
+                    message: 'Kelas grup yang kamu ampu akan muncul di sini.',
+                  ),
+                ],
+              );
+            }
+            final sessions = <String, List<GroupAttendanceRow>>{};
+            for (final r in list) {
+              sessions.putIfAbsent(r.sessionId, () => []).add(r);
+            }
+            return RefreshIndicator(
+              onRefresh: () async => ref.invalidate(groupAttendanceProvider),
+              child: ListView(
+                padding: screenPadding,
+                children: [
+                  ScreenHead(
+                    eyebrow: 'Kelas grup',
+                    title: 'Absensi',
+                    subtitle:
+                        '${sessions.length} pertemuan menunggu · tersimpan otomatis.',
+                  ),
+                  const SizedBox(height: 18),
+                  for (final group in sessions.values) ...[
+                    _SessionCard(rows: group),
+                    const SizedBox(height: 10),
+                  ],
+                ],
               ),
-              itemCount: sessions.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (c, i) {
-                final group = sessions.values.elementAt(i);
-                return _SessionCard(rows: group);
-              },
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -93,59 +108,160 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final first = widget.rows.first;
+    final pending = widget.rows.where((r) => r.status == null).length;
+
     return AppCard(
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${first.subjectName} · ${first.jenjang} · ${first.mode}',
-            style: theme.textTheme.titleMedium,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pertemuan ${first.seq}',
+                        style: theme.textTheme.titleSmall?.copyWith(fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${first.subjectName} · ${AppFormat.dateTimeShort(first.scheduledAt)}',
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+                    ),
+                  ],
+                ),
+              ),
+              StatusBadge(
+                label: pending == 0 ? 'Tersimpan' : '$pending belum diisi',
+                tone: pending == 0 ? StatusTone.success : StatusTone.warning,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Pertemuan ${first.seq} · ${AppFormat.dateTimeShort(first.scheduledAt)}',
-            style: theme.textTheme.bodySmall,
-          ),
-          const Divider(height: AppSpacing.xl),
-          for (final r in widget.rows) ...[
-            Text(r.studentName, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: AppSpacing.xs),
-            _StatusPicker(
-              value: r.status,
-              onChanged: (v) => _mark(r, v),
+          const SizedBox(height: 12),
+          for (final r in widget.rows)
+            _StudentRow(
+              row: r,
+              busy: _busy,
+              onMark: (status) => _mark(r, status),
             ),
-            if (r != widget.rows.last) const SizedBox(height: AppSpacing.md),
-          ],
+          if (_busy)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(
+                minHeight: 3,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _StatusPicker extends StatelessWidget {
-  const _StatusPicker({required this.value, required this.onChanged});
+class _StudentRow extends StatelessWidget {
+  const _StudentRow({
+    required this.row,
+    required this.busy,
+    required this.onMark,
+  });
 
-  final String? value;
-  final ValueChanged<String> onChanged;
+  final GroupAttendanceRow row;
+  final bool busy;
+  final ValueChanged<String> onMark;
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<String>(
-      showSelectedIcon: false,
-      style: const ButtonStyle(
-        visualDensity: VisualDensity.compact,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    final theme = Theme.of(context);
+    final name = row.studentName;
+    final initial = name.isEmpty ? '?' : name[0].toUpperCase();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 19,
+            backgroundColor:
+                theme.colorScheme.primary.withValues(alpha: 0.10),
+            child: Text(initial,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(fontSize: 12)),
+                const SizedBox(height: 1),
+                Text('${row.jenjang} · ${row.mode}',
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 9.5)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _AttendButton(
+            label: 'Hadir',
+            selected: row.status == 'hadir',
+            color: theme.colorScheme.primary,
+            onTap: busy ? null : () => onMark('hadir'),
+          ),
+          const SizedBox(width: 4),
+          _AttendButton(
+            label: 'Alpa',
+            selected: row.status == 'tidak_hadir',
+            color: theme.colorScheme.error,
+            onTap: busy ? null : () => onMark('tidak_hadir'),
+          ),
+        ],
       ),
-      segments: const [
-        ButtonSegment(value: 'hadir', label: Text('Hadir')),
-        ButtonSegment(value: 'izin', label: Text('Izin')),
-        ButtonSegment(value: 'tidak_hadir', label: Text('Alpa')),
-      ],
-      selected: value == null ? const <String>{} : {value!},
-      emptySelectionAllowed: true,
-      onSelectionChanged: (s) {
-        if (s.isNotEmpty) onChanged(s.first);
-      },
+    );
+  }
+}
+
+class _AttendButton extends StatelessWidget {
+  const _AttendButton({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          border: Border.all(
+            color: selected ? color : Theme.of(context).colorScheme.outline,
+          ),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            color: selected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
     );
   }
 }

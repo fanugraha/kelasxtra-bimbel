@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_error_text.dart';
+import '../../widgets/screen_head.dart';
 import 'auth_providers.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -62,14 +63,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Siswa')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      body: SafeArea(
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const ScreenHead(
+                showBack: true,
+                eyebrow: 'Akun baru',
+                title: 'Daftar Siswa',
+                subtitle: 'Data dipakai untuk keselamatan dan penjadwalan sesi.',
+              ),
+              const SizedBox(height: 18),
               TextFormField(
                 controller: _name,
                 decoration: const InputDecoration(labelText: 'Nama lengkap'),
@@ -132,6 +140,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

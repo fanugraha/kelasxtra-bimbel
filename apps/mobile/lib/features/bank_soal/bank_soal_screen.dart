@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
+import '../../widgets/screen_head.dart';
 import '../auth/auth_providers.dart';
 import '../booking/snap_screen.dart';
 import 'bank_soal_providers.dart';
@@ -30,8 +31,8 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
     final bisa = sub.asData?.value?.bisaLatihan ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bank Soal')),
-      body: RefreshIndicator(
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(mySubscriptionProvider);
           ref.invalidate(myStatsProvider);
@@ -39,13 +40,15 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
           ref.invalidate(myProfileProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.sm,
-            AppSpacing.lg,
-            AppSpacing.xxl,
-          ),
+          padding: screenPadding,
           children: [
+            const ScreenHead(
+              showBack: true,
+              eyebrow: 'Latihan mandiri',
+              title: 'Bank Soal',
+              subtitle: 'Tryout dan latihan per topik, lengkap dengan pembahasan.',
+            ),
+            const SizedBox(height: 18),
             AsyncView<SubscriptionInfo?>(
               value: sub,
               errorTitle: 'Gagal memuat langganan',
@@ -58,37 +61,11 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            AppCard(
-              onTap: bisa
-                  ? () => context.push(
-                        '/tryout',
-                        extra: {'jenjang': profile.asData?.value.jenjang},
-                      )
-                  : null,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    color: bisa ? AppColors.primary : Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tryout', style: Theme.of(context).textTheme.titleSmall),
-                        Text(
-                          '20 soal · 20 menit · dinilai otomatis',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    bisa ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
-                    color: bisa ? AppColors.primary : Colors.grey,
-                  ),
-                ],
+            _TryoutHero(
+              enabled: bisa,
+              onTap: () => context.push(
+                '/tryout',
+                extra: {'jenjang': profile.asData?.value.jenjang},
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -105,6 +82,7 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
             const SizedBox(height: AppSpacing.md),
             const _Stats(),
           ],
+        ),
         ),
       ),
     );
@@ -129,6 +107,69 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
     } finally {
       if (mounted) setState(() => _buying = false);
     }
+  }
+}
+
+
+class _TryoutHero extends StatelessWidget {
+  const _TryoutHero({required this.enabled, required this.onTap});
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: enabled ? AppColors.gradient : null,
+        color: enabled ? null : theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outline),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TRYOUT',
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: enabled ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Uji kesiapanmu',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontSize: 22,
+              color: enabled ? Colors.white : null,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '20 soal · 20 menit · dinilai otomatis',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: enabled ? Colors.white70 : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: enabled ? onTap : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: enabled ? Colors.white : null,
+                foregroundColor: enabled ? AppColors.primary : null,
+                minimumSize: const Size(0, 42),
+              ),
+              child: Text(enabled ? 'Mulai tryout' : 'Langganan untuk membuka'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

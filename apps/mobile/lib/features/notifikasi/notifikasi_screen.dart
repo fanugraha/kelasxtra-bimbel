@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
 import 'notifikasi_providers.dart';
 import 'notifikasi_repository.dart';
 
@@ -17,34 +18,44 @@ class NotifikasiScreen extends ConsumerWidget {
     final items = ref.watch(myNotificationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi')),
-      body: AsyncView<List<AppNotification>>(
+      body: SafeArea(
+        child: AsyncView<List<AppNotification>>(
         value: items,
         errorTitle: 'Gagal memuat notifikasi',
         onRetry: () => ref.invalidate(myNotificationsProvider),
         builder: (list) {
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.notifications_none_rounded,
-              title: 'Belum ada notifikasi',
-              message: 'Info sesi, pembayaran, dan payroll akan muncul di sini.',
-            );
-          }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(myNotificationsProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.lg,
-                AppSpacing.xxl,
-              ),
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (c, i) => _NotifCard(item: list[i]),
+            child: ListView(
+              padding: screenPadding,
+              children: [
+                const ScreenHead(
+                  showBack: true,
+                  eyebrow: 'Pesan masuk',
+                  title: 'Notifikasi',
+                  subtitle: 'Informasi sesi, pembayaran, dan aktivitas belajar.',
+                ),
+                const SizedBox(height: 18),
+                if (list.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: EmptyState(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Belum ada notifikasi',
+                      message:
+                          'Info sesi, pembayaran, dan payroll akan muncul di sini.',
+                    ),
+                  )
+                else
+                  for (final item in list) ...[
+                    _NotifCard(item: item),
+                    const SizedBox(height: 8),
+                  ],
+              ],
             ),
           );
         },
+        ),
       ),
     );
   }

@@ -14,13 +14,13 @@ abstract final class AppSpacing {
   static const xxl = 32.0;
 
   /// Padding standar tepi layar.
-  static const page = EdgeInsets.symmetric(horizontal: lg);
+  static const page = EdgeInsets.symmetric(horizontal: 20);
 }
 
 abstract final class AppRadius {
-  static const sm = 8.0;
+  static const sm = 9.0;
   static const md = 12.0;
-  static const lg = 16.0;
+  static const lg = 18.0;
   static const xl = 24.0;
 
   static const card = BorderRadius.all(Radius.circular(lg));
@@ -101,7 +101,7 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 52),
+          minimumSize: const Size(0, 46),
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
           textStyle: text.labelLarge,
@@ -110,7 +110,7 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 52),
+          minimumSize: const Size(0, 46),
           foregroundColor: scheme.onSurface,
           side: BorderSide(color: border),
           textStyle: text.labelLarge,

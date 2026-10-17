@@ -10,6 +10,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_error_text.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
 import '../booking/booking_providers.dart';
 import '../booking/snap_screen.dart';
 import '../katalog/katalog_providers.dart';
@@ -37,8 +38,8 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
   Widget build(BuildContext context) {
     final detail = ref.watch(tutorDetailProvider(widget.tutorId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Beli Paket')),
-      body: AsyncView<TutorDetail?>(
+      body: SafeArea(
+        child: AsyncView<TutorDetail?>(
         value: detail,
         errorTitle: 'Gagal memuat data tutor',
         onRetry: () => ref.invalidate(tutorDetailProvider(widget.tutorId)),
@@ -48,6 +49,7 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
                 title: 'Tutor tidak ditemukan',
               )
             : _buildForm(d),
+        ),
       ),
     );
   }
@@ -57,15 +59,15 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     final ready = _subject != null && _mode != null;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xxl,
-      ),
+      padding: screenPadding,
       children: [
-        Text(detail.tutor.fullName, style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.xl),
+        ScreenHead(
+          showBack: true,
+          eyebrow: 'Paket sesi',
+          title: 'Beli paket',
+          subtitle: detail.tutor.fullName,
+        ),
+        const SizedBox(height: 18),
 
         _label('Mapel & Jenjang'),
         if (detail.subjects.isEmpty)

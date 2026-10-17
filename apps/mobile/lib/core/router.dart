@@ -44,6 +44,8 @@ Widget _screenFor(String path) => switch (path) {
       '/' => const HomeScreen(),
       '/katalog' => const KatalogScreen(),
       '/jadwal' => const JadwalScreen(),
+      '/absensi-grup' => const AbsensiGrupScreen(),
+      '/penghasilan' => const PenghasilanScreen(),
       '/profil' => const ProfilScreen(),
       _ => const HomeScreen(),
     };
@@ -92,14 +94,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifikasi',
         builder: (c, s) => const NotifikasiScreen(),
-      ),
-      GoRoute(
-        path: '/penghasilan',
-        builder: (c, s) => const PenghasilanScreen(),
-      ),
-      GoRoute(
-        path: '/absensi-grup',
-        builder: (c, s) => const AbsensiGrupScreen(),
       ),
       GoRoute(
         path: '/sesi/:id',

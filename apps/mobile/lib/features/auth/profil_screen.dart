@@ -6,10 +6,11 @@ import '../../core/app_flavor.dart';
 import '../../core/format.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_theme.dart';
-import '../../widgets/app_button.dart';
+import '../../core/theme/theme_mode_provider.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
+import '../../widgets/screen_head.dart';
+import '../../widgets/status_badge.dart';
 import '../bank_soal/bank_soal_providers.dart';
 import '../bank_soal/bank_soal_repository.dart';
 import 'auth_providers.dart';
@@ -24,45 +25,101 @@ class ProfilScreen extends ConsumerWidget {
     final isSiswa = ref.watch(appFlavorProvider) == AppFlavor.siswa;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(myProfileProvider);
-          ref.invalidate(mySubscriptionProvider);
-        },
-        child: AsyncView<MyProfile>(
-          value: profile,
-          errorTitle: 'Gagal memuat profil',
-          onRetry: () => ref.invalidate(myProfileProvider),
-          builder: (p) => ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.xxl,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(myProfileProvider);
+            ref.invalidate(mySubscriptionProvider);
+          },
+          child: AsyncView<MyProfile>(
+            value: profile,
+            errorTitle: 'Gagal memuat profil',
+            onRetry: () => ref.invalidate(myProfileProvider),
+            builder: (p) => ListView(
+              padding: screenPadding,
+              children: [
+                ScreenHead(
+                  eyebrow: isSiswa ? 'Akun' : 'Akun tutor',
+                  title: 'Profil',
+                  subtitle: isSiswa
+                      ? 'Data akun dan pengaturan aplikasi.'
+                      : 'Data akun dan rekening penerimaan gaji.',
+                ),
+                const SizedBox(height: 18),
+                _ProfileCard(profile: p, isSiswa: isSiswa),
+                if (isSiswa) ...[
+                  const SizedBox(height: 22),
+                  Text('Data siswa',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            letterSpacing: -0.3,
+                          )),
+                  const SizedBox(height: 9),
+                  _DataCard(
+                    rows: [
+                      ('Sekolah', p.school),
+                      ('Nomor HP', p.phone),
+                      ('Kontak darurat', p.emergencyContactName),
+                      ('Telepon darurat', p.emergencyContactPhone),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Text('Langganan',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            letterSpacing: -0.3,
+                          )),
+                  const SizedBox(height: 9),
+                  const _SubscriptionCard(),
+                ] else ...[
+                  const SizedBox(height: 22),
+                  Text('Data tutor',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            letterSpacing: -0.3,
+                          )),
+                  const SizedBox(height: 9),
+                  _DataCard(
+                    rows: [
+                      ('Nomor HP', p.phone),
+                      ('Email', p.email),
+                      ('Status akun', 'Tutor aktif'),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 22),
+                Text('Pengaturan',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 17,
+                          letterSpacing: -0.3,
+                        )),
+                const SizedBox(height: 9),
+                const _SettingsCard(),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        ref.read(authControllerProvider.notifier).signOut(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      side: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .error
+                            .withValues(alpha: 0.35),
+                      ),
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .error
+                          .withValues(alpha: 0.06),
+                    ),
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Keluar'),
+                  ),
+                ),
+              ],
             ),
-            children: [
-              _Header(profile: p),
-              if (p.jenjang != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                Text('Data siswa', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.md),
-                _StudentCard(profile: p),
-              ],
-              if (isSiswa) ...[
-                const SizedBox(height: AppSpacing.xl),
-                Text('Langganan', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.md),
-                const _SubscriptionCard(),
-              ],
-              const SizedBox(height: AppSpacing.xxl),
-              AppButton(
-                label: 'Keluar',
-                icon: Icons.logout_rounded,
-                variant: AppButtonVariant.secondary,
-                onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
-              ),
-            ],
           ),
         ),
       ),
@@ -70,10 +127,10 @@ class ProfilScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.profile});
-
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.profile, required this.isSiswa});
   final MyProfile profile;
+  final bool isSiswa;
 
   @override
   Widget build(BuildContext context) {
@@ -81,53 +138,83 @@ class _Header extends StatelessWidget {
     final name = profile.fullName ?? profile.email ?? 'Pengguna';
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
 
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-          child: Text(
-            initial,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
+    return AppCard(
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+            child: Text(initial,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                )),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
+                if (profile.email != null) ...[
+                  const SizedBox(height: 2),
+                  Text(profile.email!, style: theme.textTheme.bodySmall),
+                ],
+                const SizedBox(height: 6),
+                StatusBadge(
+                  label: isSiswa
+                      ? 'Siswa ${profile.jenjang ?? ''}'.trim()
+                      : 'Tutor',
+                  tone: StatusTone.info,
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: theme.textTheme.titleLarge),
-              if (profile.email != null) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Text(profile.email!, style: theme.textTheme.bodySmall),
-              ],
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _StudentCard extends StatelessWidget {
-  const _StudentCard({required this.profile});
-
-  final MyProfile profile;
+class _DataCard extends StatelessWidget {
+  const _DataCard({required this.rows});
+  final List<(String, String?)> rows;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
-          _Row(label: 'Jenjang', value: profile.jenjang),
-          if (profile.school != null) _Row(label: 'Sekolah', value: profile.school),
-          if (profile.emergencyContactName != null)
-            _Row(label: 'Kontak darurat', value: profile.emergencyContactName),
-          if (profile.emergencyContactPhone != null)
-            _Row(label: 'Telepon darurat', value: profile.emergencyContactPhone),
+          for (var i = 0; i < rows.length; i++)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              decoration: BoxDecoration(
+                border: i == 0
+                    ? null
+                    : Border(top: BorderSide(color: theme.colorScheme.outline)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(rows[i].$1,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        )),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(rows[i].$2 ?? '—',
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: theme.colorScheme.onSurface,
+                      )),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -140,7 +227,6 @@ class _SubscriptionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sub = ref.watch(mySubscriptionProvider);
-
     return AsyncView<SubscriptionInfo?>(
       value: sub,
       errorTitle: 'Gagal memuat langganan',
@@ -154,41 +240,46 @@ class _SubscriptionCard extends ConsumerWidget {
             'Tenggang sampai ${AppFormat.dateShort(s!.graceUntil!)}',
           _ => 'Latihan bank soal belum aktif',
         };
-
         return AppCard(
-          gradient: aktif ? AppColors.gradient : null,
           onTap: () => context.go('/bank-soal'),
           child: Row(
             children: [
-              Icon(
-                aktif ? Icons.verified_rounded : Icons.lock_outline_rounded,
-                color: aktif ? Colors.white : Theme.of(context).colorScheme.primary,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: (aktif ? AppColors.success : Theme.of(context).colorScheme.primary)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  aktif ? Icons.menu_book_rounded : Icons.lock_outline_rounded,
+                  size: 19,
+                  color: aktif
+                      ? AppColors.success
+                      : Theme.of(context).colorScheme.primary,
+                ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      s?.label ?? 'Belum aktif',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: aktif ? Colors.white : null,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      detail,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: aktif ? Colors.white70 : null,
-                          ),
-                    ),
+                    Text(s?.label ?? 'Belum aktif',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 2),
+                    Text(detail, style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: aktif ? Colors.white70 : Theme.of(context).colorScheme.outline,
-              ),
+              if (!aktif)
+                TextButton(
+                  onPressed: () => context.go('/bank-soal'),
+                  child: const Text('Perpanjang'),
+                )
+              else
+                Icon(Icons.chevron_right_rounded,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         );
@@ -197,29 +288,76 @@ class _SubscriptionCard extends ConsumerWidget {
   }
 }
 
-class _Row extends StatelessWidget {
-  const _Row({required this.label, this.value});
-
-  final String label;
-  final String? value;
+class _SettingsCard extends ConsumerWidget {
+  const _SettingsCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    ref.watch(themeModeProvider);
+    final dark = ref.read(themeModeProvider.notifier).isDark(context);
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: theme.textTheme.bodySmall),
+          InkWell(
+            onTap: () => ref.read(themeModeProvider.notifier).toggle(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              child: Row(
+                children: [
+                  Icon(Icons.dark_mode_outlined,
+                      size: 19, color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 11),
+                  const Expanded(
+                    child: Text('Tema gelap',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w800)),
+                  ),
+                  Switch(
+                    value: dark,
+                    onChanged: (_) =>
+                        ref.read(themeModeProvider.notifier).toggle(context),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Expanded(
-            child: Text(
-              value ?? '—',
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.right,
+          Divider(height: 1, color: theme.colorScheme.outline),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Row(
+              children: [
+                Icon(Icons.help_outline_rounded,
+                    size: 19, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 11),
+                const Expanded(
+                  child: Text('Bantuan & FAQ',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 17, color: theme.colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: theme.colorScheme.outline),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Row(
+              children: [
+                Icon(Icons.shield_outlined,
+                    size: 19, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 11),
+                const Expanded(
+                  child: Text('Kebijakan privasi',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 17, color: theme.colorScheme.onSurfaceVariant),
+              ],
             ),
           ),
         ],

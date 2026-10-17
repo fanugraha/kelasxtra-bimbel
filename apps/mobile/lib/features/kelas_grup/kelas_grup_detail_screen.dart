@@ -9,6 +9,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_error_text.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
 import '../booking/snap_screen.dart';
 import 'kelas_grup_providers.dart';
 import 'kelas_grup_repository.dart';
@@ -34,8 +35,8 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
     final mySeat = ref.watch(myGroupSeatProvider(widget.classId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kelas Grup')),
-      body: AsyncView<GroupClassItem?>(
+      body: SafeArea(
+        child: AsyncView<GroupClassItem?>(
         value: cls,
         errorTitle: 'Gagal memuat kelas',
         onRetry: () => ref.invalidate(groupClassProvider(widget.classId)),
@@ -45,6 +46,7 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
                 title: 'Kelas tidak ditemukan',
               )
             : _buildBody(c, sessions, mySeat),
+        ),
       ),
     );
   }
@@ -59,21 +61,15 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
     final bisaAmbil = c.dibuka && !c.penuh && seat == null;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xxl,
-      ),
+      padding: screenPadding,
       children: [
-        Text(c.tutorName ?? 'Tutor', style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          '${c.subjectName ?? '-'} · ${c.jenjang} · ${c.durationMinutes} menit · '
-          '${c.mode == 'online' ? 'Online' : 'Offline'}',
-          style: theme.textTheme.bodyMedium,
+        const ScreenHead(
+          showBack: true,
+          eyebrow: 'Kelas grup',
+          title: 'Detail program',
+          subtitle: 'Lihat jadwal, kursi, dan rincian biaya.',
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: 18),
 
         AppCard(
           child: Column(

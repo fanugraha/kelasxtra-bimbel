@@ -62,4 +62,34 @@ abstract final class AppFormat {
   /// "Sen, 5 Okt · 16:00" dari DateTime.
   static String dateTimeShort(DateTime d) =>
       '${dateShort(d)} · ${hhmm(d.hour * 60 + d.minute)}';
+
+  /// "Sabtu, 17 Oktober" dari DateTime.
+  static String dateLong(DateTime d) =>
+      '${_dayLong[d.weekday % 7]}, ${d.day} ${_monthLong[d.month - 1]}';
+
+  static const _monthLong = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  /// "19.00" dari DateTime.
+  static String hm(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}.${d.minute.toString().padLeft(2, '0')}';
+
+  /// Label ringkas: "Hari ini", "Besok", atau "Sen, 20 Okt".
+  static String dayLabel(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(d.year, d.month, d.day);
+    final diff = target.difference(today).inDays;
+    if (diff == 0) return 'Hari ini';
+    if (diff == 1) return 'Besok';
+    return dateShort(d);
+  }
+
+  /// "19.00–20.30" dari waktu mulai + durasi.
+  static String timeRangeFrom(DateTime start, int minutes) {
+    final end = start.add(Duration(minutes: minutes));
+    return '${hm(start)}–${hm(end)}';
+  }
 }

@@ -4,10 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_theme.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/screen_head.dart';
+import '../../widgets/status_badge.dart';
 import 'kelas_grup_providers.dart';
 import 'kelas_grup_repository.dart';
 
@@ -19,31 +20,43 @@ class KelasGrupScreen extends ConsumerWidget {
     final classes = ref.watch(groupClassesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kelas Grup')),
-      body: AsyncView<List<GroupClassItem>>(
-        value: classes,
-        errorTitle: 'Gagal memuat kelas grup',
-        onRetry: () => ref.invalidate(groupClassesProvider),
-        builder: (list) => list.isEmpty
-            ? const EmptyState(
-                icon: Icons.groups_rounded,
-                title: 'Belum ada kelas grup',
-                message: 'Kelas grup akan muncul di sini saat admin membukanya.',
-              )
-            : RefreshIndicator(
-                onRefresh: () async => ref.invalidate(groupClassesProvider),
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.sm,
-                    AppSpacing.lg,
-                    AppSpacing.xxl,
-                  ),
-                  itemCount: list.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (c, i) => _ClassCard(item: list[i]),
-                ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(groupClassesProvider),
+          child: ListView(
+            padding: screenPadding,
+            children: [
+              const ScreenHead(
+                showBack: true,
+                eyebrow: 'Kelas grup',
+                title: 'Belajar bareng',
+                subtitle:
+                    'Kuota 3–5 siswa. Program batal otomatis jika kuota minimum tidak terpenuhi.',
               ),
+              const SizedBox(height: 18),
+              AsyncView<List<GroupClassItem>>(
+                value: classes,
+                errorTitle: 'Gagal memuat kelas grup',
+                onRetry: () => ref.invalidate(groupClassesProvider),
+                builder: (list) => list.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.groups_rounded,
+                        title: 'Belum ada kelas grup',
+                        message:
+                            'Kelas grup akan muncul di sini saat admin membukanya.',
+                      )
+                    : Column(
+                        children: [
+                          for (final item in list) ...[
+                            _ClassCard(item: item),
+                            const SizedBox(height: 9),
+                          ],
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -58,9 +71,17 @@ class _ClassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final jadwal = (item.firstSession != null && item.lastSession != null)
-        ? '${AppFormat.dateTimeShort(item.firstSession!)}'
-            '  →  ${AppFormat.dateShort(item.lastSession!)}'
+        ? '${AppFormat.dateShort(item.firstSession!)} – ${AppFormat.dateShort(item.lastSession!)}'
         : '—';
+    final full = item.maxSeats == 0 ? 0.0 : item.seatsTaken / item.maxSeats;
+    final badge = item.seatsTaken >= item.maxSeats
+        ? const StatusBadge(label: 'Penuh', tone: StatusTone.success)
+        : item.seatsTaken / item.maxSeats >= 0.7
+            ? const StatusBadge(label: 'Hampir penuh', tone: StatusTone.warning)
+            : StatusBadge(
+                label: item.dibuka ? 'Dibuka' : 'Terkonfirmasi',
+                tone: item.dibuka ? StatusTone.info : StatusTone.success,
+              );
 
     return AppCard(
       onTap: () => context.push('/kelas-grup/${item.id}'),
@@ -68,78 +89,110 @@ class _ClassCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(item.tutorName ?? 'Tutor',
-                    style: theme.textTheme.titleMedium),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.subjectName ?? 'Kelas grup',
+                        style: theme.textTheme.titleSmall?.copyWith(fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${item.tutorName ?? 'Tutor'} · ${item.jenjang} · ${item.mode == 'online' ? 'Online' : 'Offline'}',
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+                    ),
+                  ],
+                ),
               ),
-              _Chip(
-                label: item.dibuka ? 'Dibuka' : 'Jalan',
-                color: item.dibuka ? AppColors.warning : AppColors.success,
+              badge,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              _Meta(icon: Icons.calendar_today_outlined, label: jadwal),
+              _Meta(
+                icon: Icons.schedule_rounded,
+                label: '${item.totalSesi} pertemuan · ${item.durationMinutes} menit',
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${item.subjectName ?? '-'} · ${item.jenjang} · ${item.durationMinutes} menit · '
-            '${item.mode == 'online' ? 'Online' : 'Offline'}',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.event_repeat_rounded, size: 16),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(child: Text(jadwal, style: theme.textTheme.bodySmall)),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: full,
+                    minHeight: 6,
+                    backgroundColor: theme.colorScheme.outline,
+                    valueColor: AlwaysStoppedAnimation(
+                      full >= 1
+                          ? AppColors.success
+                          : full < item.minSeats / item.maxSeats
+                              ? AppColors.warning
+                              : AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('${item.seatsTaken} / ${item.maxSeats} kursi',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                  )),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.airline_seat_recline_normal_rounded, size: 16),
-              const SizedBox(width: AppSpacing.xs),
-              Text('${item.seatsTaken}/${item.maxSeats} kursi',
-                  style: theme.textTheme.bodyMedium),
-              const SizedBox(width: AppSpacing.sm),
-              Text('· minimal ${item.minSeats}', style: theme.textTheme.bodySmall),
-              const Spacer(),
-              Text(
-                AppFormat.rupiah(item.priceTotal),
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(color: AppColors.primary),
+              Expanded(
+                child: Text(
+                  '${AppFormat.rupiah(item.pricePerSession)} / sesi',
+                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 12),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: () => context.push('/kelas-grup/${item.id}'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  textStyle: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w800),
+                ),
+                child: const Text('Lihat detail'),
               ),
             ],
           ),
-          if (item.discountPercent > 0) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text('${item.totalSesi} sesi · hemat ${item.discountPercent}%',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.success)),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.color});
+class _Meta extends StatelessWidget {
+  const _Meta({required this.icon, required this.label});
+  final IconData icon;
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(fontSize: 10.5)),
+      ],
     );
   }
 }

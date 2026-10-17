@@ -56,8 +56,20 @@ List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
           NavDest(
             path: '/jadwal',
             label: 'Jadwal',
-            icon: Icons.event_available_outlined,
-            activeIcon: Icons.event_available_rounded,
+            icon: Icons.calendar_today_outlined,
+            activeIcon: Icons.calendar_month_rounded,
+          ),
+          NavDest(
+            path: '/absensi-grup',
+            label: 'Absensi',
+            icon: Icons.groups_outlined,
+            activeIcon: Icons.groups_rounded,
+          ),
+          NavDest(
+            path: '/penghasilan',
+            label: 'Gaji',
+            icon: Icons.account_balance_wallet_outlined,
+            activeIcon: Icons.account_balance_wallet_rounded,
           ),
           NavDest(
             path: '/profil',

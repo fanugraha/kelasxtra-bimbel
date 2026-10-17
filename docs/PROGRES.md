@@ -191,6 +191,10 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
       Ruangan, Gaji Tutor, Keuangan, Voucher, Komplain, Bank Soal, Riwayat Aktivitas), login
 - [x] Perbaikan query dashboard: laporan voucher pakai `bookings_visible`; komplain + booking
       diambil terpisah agar tidak kena RLS `bookings` (403)
+- [x] **UI slicing mobile siswa + tutor** (17 Okt): token tema, bottom nav 5 tab tutor, Beranda
+      siswa/tutor, Jadwal, Absensi, Gaji, Profil, Katalog, Paket, Kelas Grup, Bank Soal,
+      Booking/Detail sesi, Login/Daftar
+- [x] `BookingItem` membawa `studentName` agar jadwal tutor menampilkan nama siswa
 
 ## Fase 9 — Notifikasi & Hardening (🟡)
 

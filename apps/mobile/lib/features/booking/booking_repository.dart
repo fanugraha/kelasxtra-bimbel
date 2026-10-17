@@ -10,6 +10,7 @@ class BookingItem {
   const BookingItem({
     required this.id,
     required this.tutorName,
+    required this.studentName,
     required this.subjectName,
     required this.jenjang,
     required this.durationMinutes,
@@ -21,6 +22,7 @@ class BookingItem {
 
   final String id;
   final String tutorName;
+  final String studentName;
   final String subjectName;
   final String jenjang;
   final int durationMinutes;
@@ -191,7 +193,7 @@ class BookingRepository {
     // hanya terbuka pasca-bayar, dan hanya baris milik sendiri.
     var query = supabase
         .from('bookings_visible')
-        .select('id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
+        .select('id, student_id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
             'scheduled_at, status, price');
     if (asTutor) {
       query = query.eq('tutor_id', supabase.auth.currentUser!.id);
@@ -201,12 +203,17 @@ class BookingRepository {
     if (rows.isEmpty) return [];
 
     final tutorIds = {for (final r in rows) r['tutor_id'] as String}.toList();
+    final studentIds = {for (final r in rows) r['student_id'] as String}.toList();
     final subjectIds = {for (final r in rows) r['subject_id'] as String}.toList();
 
     final tutorRows = await supabase
         .from('tutor_catalog')
         .select('id, full_name')
         .inFilter('id', tutorIds);
+    final studentRows = await supabase
+        .from('students')
+        .select('id, full_name')
+        .inFilter('id', studentIds);
     final subjectRows = await supabase
         .from('subjects')
         .select('id, name')
@@ -214,6 +221,9 @@ class BookingRepository {
 
     final tutorNames = {
       for (final r in tutorRows) r['id'] as String: (r['full_name'] ?? '-') as String,
+    };
+    final studentNames = {
+      for (final r in studentRows) r['id'] as String: (r['full_name'] ?? '-') as String,
     };
     final subjectNames = {
       for (final r in subjectRows) r['id'] as String: (r['name'] ?? '-') as String,
@@ -224,6 +234,7 @@ class BookingRepository {
         BookingItem(
           id: r['id'] as String,
           tutorName: tutorNames[r['tutor_id']] ?? '-',
+          studentName: studentNames[r['student_id']] ?? '-',
           subjectName: subjectNames[r['subject_id']] ?? '-',
           jenjang: (r['jenjang'] ?? '-') as String,
           durationMinutes: (r['duration_minutes'] as num).toInt(),

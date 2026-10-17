@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/async_view.dart';
+import '../../widgets/screen_head.dart';
 import 'booking_providers.dart';
 import 'booking_repository.dart';
 
@@ -60,19 +61,22 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final uid = supabase.auth.currentUser?.id;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Sesi')),
-      body: AsyncView<BookingDetail>(
+      body: SafeArea(
+        child: AsyncView<BookingDetail>(
         value: detail,
         errorTitle: 'Gagal memuat sesi',
         onRetry: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
         builder: (b) => ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.sm,
-            AppSpacing.lg,
-            AppSpacing.xxl,
-          ),
+          padding: screenPadding,
           children: [
+            ScreenHead(
+              showBack: true,
+              eyebrow: isTutor ? 'Sesi privat' : 'Sesi belajar',
+              title: 'Detail sesi',
+              subtitle:
+                  '${b.subjectName} · ${b.jenjang} · ${AppFormat.timeRangeFrom(b.scheduledAt, b.durationMinutes)} WIB',
+            ),
+            const SizedBox(height: 18),
             _Summary(booking: b),
             const SizedBox(height: AppSpacing.lg),
             ..._actions(b, isTutor),
@@ -83,6 +87,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               isTutor: isTutor,
             ),
           ],
+        ),
         ),
       ),
     );

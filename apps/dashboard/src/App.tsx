@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import type { ComponentType } from 'react'
-import { AuthProvider, useAuth } from './lib/auth'
+import { AuthProvider } from './lib/auth'
+import { useAuth } from './lib/auth-context'
 import { isSupabaseConfigured } from './lib/supabase'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'

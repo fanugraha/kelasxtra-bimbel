@@ -100,7 +100,6 @@ export function GroupClasses() {
   const [loading, setLoading] = useState(true)
 
   async function load() {
-    setLoading(true)
     const [t, s, r, g] = await Promise.all([
       supabase.from('tutors').select('id, full_name').eq('status', 'aktif').order('full_name'),
       supabase.from('subjects').select('id, name').eq('active', true).order('name'),
@@ -122,7 +121,7 @@ export function GroupClasses() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   const weekMultiplier = form.days.length || 1

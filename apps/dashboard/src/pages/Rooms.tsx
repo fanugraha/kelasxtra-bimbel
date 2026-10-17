@@ -19,7 +19,6 @@ export function Rooms() {
   const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
-    setLoading(true)
     const { data } = await supabase
       .from('rooms')
       .select('id, name, address, active')
@@ -29,7 +28,7 @@ export function Rooms() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   async function onCreate(e: FormEvent) {

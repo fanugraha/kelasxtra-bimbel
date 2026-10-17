@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../lib/auth-context'
 
 export function Login() {
   const { signIn } = useAuth()

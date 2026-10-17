@@ -23,7 +23,6 @@ export function Pricing() {
   const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
-    setLoading(true)
     const { data } = await supabase
       .from('price_matrix')
       .select('id, jenjang, duration_minutes, mode, type, price, active, effective_from')
@@ -37,7 +36,7 @@ export function Pricing() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   const active = rows.filter((r) => r.active)

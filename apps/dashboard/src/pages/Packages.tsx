@@ -42,7 +42,6 @@ export function Packages() {
   const [busy, setBusy] = useState<string | null>(null)
 
   async function load() {
-    setLoading(true)
     const { data } = await supabase
       .from('package_purchases')
       .select(
@@ -56,7 +55,7 @@ export function Packages() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   const sisa = (p: PackageRow) => p.total_sesi - p.sesi_terpakai

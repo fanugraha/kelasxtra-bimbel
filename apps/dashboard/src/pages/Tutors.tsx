@@ -38,7 +38,6 @@ export function Tutors() {
   const [creating, setCreating] = useState(false)
 
   async function load() {
-    setLoading(true)
     const { data } = await supabase
       .from('tutors')
       .select('id, full_name, status, education, bank_name, invite_expires_at')
@@ -48,7 +47,7 @@ export function Tutors() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   async function onCreate(e: FormEvent) {

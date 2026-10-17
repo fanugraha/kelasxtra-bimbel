@@ -94,7 +94,6 @@ export function QuestionCms() {
   const [signed, setSigned] = useState<Record<string, string>>({})
 
   async function load() {
-    setLoading(true)
     const [s, t, q] = await Promise.all([
       supabase.from('subjects').select('id, name').eq('active', true).order('name'),
       supabase.from('topics').select('id, name, subject_id, jenjang').eq('active', true).order('name'),
@@ -107,7 +106,7 @@ export function QuestionCms() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   const topicOptions = topics.filter(

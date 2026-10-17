@@ -31,7 +31,6 @@ export function Vouchers() {
   const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
-    setLoading(true)
     const { data } = await supabase
       .from('vouchers')
       .select('id, code, discount_type, discount_value, min_purchase, quota, used, active, expires_at')
@@ -41,7 +40,7 @@ export function Vouchers() {
   }
 
   useEffect(() => {
-    load()
+    queueMicrotask(load)
   }, [])
 
   async function onCreate(e: FormEvent) {

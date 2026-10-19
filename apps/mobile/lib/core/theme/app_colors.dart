@@ -20,20 +20,21 @@ abstract final class AppColors {
   static const star = Color(0xFFFFB020);
 
   // Terang
-  static const bgLight = Color(0xFFF3F7F9);
+  static const bgLight = Color(0xFFF2F3F5);
   static const surfaceLight = Color(0xFFFFFFFF);
-  static const surfaceAltLight = Color(0xFFF6FAFB);
-  static const borderLight = Color(0xFFE3ECEF);
+  static const surfaceAltLight = Color(0xFFF5F6F8);
+  static const borderLight = Color(0xFFE5E7EB);
   static const textLight = Color(0xFF17262A);
   static const textMutedLight = Color(0xFF5D7680);
 
-  // Gelap
-  static const bgDark = Color(0xFF0C161A);
-  static const surfaceDark = Color(0xFF132329);
-  static const surfaceAltDark = Color(0xFF1A2F36);
-  static const borderDark = Color(0xFF27424C);
-  static const textDark = Color(0xFFF2F8FA);
-  static const textMutedDark = Color(0xFF9DB6BF);
+  // Gelap — arang kebiruan seperti referensi "Relatelwise" (tombol utama putih,
+  // aksen periwinkle/oranye di AppPalette.dark).
+  static const bgDark = Color(0xFF0B0B10);
+  static const surfaceDark = Color(0xFF16161D);
+  static const surfaceAltDark = Color(0xFF1F1F27);
+  static const borderDark = Color(0xFF272730);
+  static const textDark = Color(0xFFF5F5F7);
+  static const textMutedDark = Color(0xFF8B8B95);
 
   /// Gradien utama header/hero. Cukup gelap agar teks putih aman dibaca.
   static const gradient = LinearGradient(

@@ -109,8 +109,9 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 50),
-          backgroundColor: scheme.primary,
-          foregroundColor: scheme.onPrimary,
+          // Mode gelap mengikuti referensi: tombol utama putih dengan teks gelap.
+          backgroundColor: isLight ? scheme.primary : Colors.white,
+          foregroundColor: isLight ? scheme.onPrimary : AppColors.bgDark,
           // Nonaktif = abu netral tanpa warna brand: jelas "belum bisa ditekan".
           disabledBackgroundColor: scheme.surfaceContainerHighest,
           disabledForegroundColor: scheme.onSurfaceVariant,

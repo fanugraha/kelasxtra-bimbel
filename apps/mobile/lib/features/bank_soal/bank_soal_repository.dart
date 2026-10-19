@@ -156,6 +156,10 @@ class TopicStat {
     required this.last20Correct,
     required this.last20Total,
     this.trend,
+    this.topicId,
+    this.subjectName,
+    this.jenjang,
+    this.correctCount = 0,
   });
 
   final String topicName;
@@ -165,21 +169,37 @@ class TopicStat {
   final int last20Total;
   final String? trend;
 
+  /// Untuk membuka latihan topik ini langsung (`/latihan/:topicId`).
+  final String? topicId;
+  final String? subjectName;
+  final String? jenjang;
+
+  /// Total jawaban benar sepanjang waktu (pasangan [attemptsCount]).
+  final int correctCount;
+
   String get kategori {
     if (accuracy >= 75) return 'KUAT';
     if (accuracy >= 50) return 'CUKUP';
     return 'LEMAH';
   }
 
-  factory TopicStat.fromMap(Map<String, dynamic> m, {String? topicName}) =>
-      TopicStat(
-        topicName: topicName ?? '-',
-        attemptsCount: (m['attempts_count'] as num).toInt(),
-        accuracy: (m['accuracy'] as num?)?.toDouble() ?? 0,
-        last20Correct: (m['last20_correct'] as num?)?.toInt() ?? 0,
-        last20Total: (m['last20_total'] as num?)?.toInt() ?? 0,
-        trend: m['trend'] as String?,
-      );
+  factory TopicStat.fromMap(
+    Map<String, dynamic> m, {
+    String? topicName,
+    String? subjectName,
+    String? jenjang,
+  }) => TopicStat(
+    topicName: topicName ?? '-',
+    topicId: m['topic_id'] as String?,
+    subjectName: subjectName,
+    jenjang: jenjang,
+    correctCount: (m['correct_count'] as num?)?.toInt() ?? 0,
+    attemptsCount: (m['attempts_count'] as num).toInt(),
+    accuracy: (m['accuracy'] as num?)?.toDouble() ?? 0,
+    last20Correct: (m['last20_correct'] as num?)?.toInt() ?? 0,
+    last20Total: (m['last20_total'] as num?)?.toInt() ?? 0,
+    trend: m['trend'] as String?,
+  );
 }
 
 class BankSoalRepository {
@@ -267,8 +287,8 @@ class BankSoalRepository {
     final rows = await supabase
         .from('student_topic_stats')
         .select(
-          'attempts_count, accuracy, last20_correct, last20_total, trend, '
-          'topics(name)',
+          'topic_id, attempts_count, correct_count, accuracy, last20_correct, '
+          'last20_total, trend, topics(name, jenjang, subjects(name))',
         )
         .order('accuracy');
     return [
@@ -276,6 +296,9 @@ class BankSoalRepository {
         TopicStat.fromMap(
           r,
           topicName: ((r['topics'] as Map?)?['name'] ?? '-') as String,
+          jenjang: (r['topics'] as Map?)?['jenjang'] as String?,
+          subjectName:
+              ((r['topics'] as Map?)?['subjects'] as Map?)?['name'] as String?,
         ),
     ];
   }

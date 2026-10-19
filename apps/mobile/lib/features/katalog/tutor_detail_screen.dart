@@ -8,10 +8,8 @@ import 'katalog_repository.dart';
 import 'widgets/tutor_action_bar.dart';
 import 'widgets/tutor_detail_content.dart';
 
-/// Profil tutor: identitas + harga, lalu Tentang, mapel, dan jadwal mingguan.
-///
-/// Hierarki teks: judul halaman (25, nama tutor) → judul bagian (16.5) →
-/// isi (13.5) → catatan (11.5). Jarak antar bagian 24, di dalam bagian 8–12.
+/// Profil tutor: foto besar, nama + ringkasan, tab Jadwal / Tentang / Mapel,
+/// lalu tombol "Beli Paket" di bar bawah.
 class TutorDetailScreen extends ConsumerWidget {
   const TutorDetailScreen({super.key, required this.tutorId});
 

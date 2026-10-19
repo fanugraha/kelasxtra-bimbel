@@ -102,6 +102,7 @@ class BookingDetail {
     this.hasReview = false,
     this.meetingUrl,
     this.note,
+    this.tutorPhotoUrl,
   });
 
   final String id;
@@ -127,6 +128,9 @@ class BookingDetail {
   /// Tautan Zoom (hanya terbaca pasca-bayar) dan catatan tentor, bila ada.
   final String? meetingUrl;
   final SessionNote? note;
+
+  /// Foto tutor untuk kepala Detail sesi (boleh null → inisial).
+  final String? tutorPhotoUrl;
 
   String get statusLabel => switch (status) {
     'pending_payment' => 'Menunggu bayar',
@@ -348,7 +352,7 @@ class BookingRepository {
         .single();
     final tutor = await supabase
         .from('tutor_catalog')
-        .select('full_name')
+        .select('full_name, photo_url')
         .eq('id', r['tutor_id'] as String)
         .maybeSingle();
     final subject = await supabase
@@ -376,6 +380,7 @@ class BookingRepository {
       studentId: r['student_id'] as String,
       tutorId: r['tutor_id'] as String,
       tutorName: (tutor?['full_name'] ?? '-') as String,
+      tutorPhotoUrl: tutor?['photo_url'] as String?,
       studentName: (student?['full_name'] ?? '-') as String,
       subjectName: (subject?['name'] ?? '-') as String,
       jenjang: (r['jenjang'] ?? '-') as String,

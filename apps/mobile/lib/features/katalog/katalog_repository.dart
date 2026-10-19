@@ -133,6 +133,29 @@ class TutorDetail {
   final int? minPackageSesi;
 }
 
+/// Satu ulasan siswa untuk tutor. Identitas siswa sengaja tidak dibawa
+/// (data pribadi siswa lain), jadi ulasan tampil anonim.
+class TutorReview {
+  const TutorReview({
+    required this.id,
+    required this.rating,
+    required this.createdAt,
+    this.comment,
+  });
+
+  final String id;
+  final int rating;
+  final String? comment;
+  final DateTime createdAt;
+
+  factory TutorReview.fromMap(Map<String, dynamic> m) => TutorReview(
+    id: m['id'] as String,
+    rating: (m['rating'] as num).toInt(),
+    comment: m['comment'] as String?,
+    createdAt: DateTime.parse(m['created_at'] as String).toLocal(),
+  );
+}
+
 /// Urutan hasil katalog. Dipakai tombol "Urutkan" di layar Cari Tutor.
 enum KatalogSort {
   rating('Terbaik', 'Rating tertinggi lebih dulu'),
@@ -213,6 +236,20 @@ class KatalogRepository {
         .eq('active', true)
         .order('name');
     return data.map(SubjectOption.fromMap).toList();
+  }
+
+  /// Ulasan terbaru untuk satu tutor (tabel `reviews` boleh dibaca publik).
+  Future<List<TutorReview>> fetchTutorReviews(
+    String tutorId, {
+    int limit = 30,
+  }) async {
+    final rows = await supabase
+        .from('reviews')
+        .select('id, rating, comment, created_at')
+        .eq('tutor_id', tutorId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return [for (final r in rows) TutorReview.fromMap(r)];
   }
 
   Future<TutorDetail?> fetchTutorDetail(String id) async {

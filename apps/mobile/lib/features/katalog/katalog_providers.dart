@@ -119,3 +119,8 @@ final tutorDetailProvider = FutureProvider.family<TutorDetail?, String>((
 ) {
   return ref.read(katalogRepositoryProvider).fetchTutorDetail(id);
 });
+
+/// Ulasan terbaru seorang tutor (tab Ulasan di profil).
+final tutorReviewsProvider = FutureProvider.family<List<TutorReview>, String>(
+  (ref, id) => ref.read(katalogRepositoryProvider).fetchTutorReviews(id),
+);

@@ -82,6 +82,9 @@ abstract final class AppFormat {
   static String dateNumber(DateTime d) =>
       '${d.day} ${_monthShort[d.month - 1]}';
 
+  /// "Okt" dari DateTime — label bulan di bawah angka tanggal.
+  static String monthShort(DateTime d) => _monthShort[d.month - 1];
+
   /// "Sen, 5 Okt · 16:00" dari DateTime.
   static String dateTimeShort(DateTime d) =>
       '${dateShort(d)} · ${hhmm(d.hour * 60 + d.minute)}';

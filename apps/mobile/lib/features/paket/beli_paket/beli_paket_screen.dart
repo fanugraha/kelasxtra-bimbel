@@ -6,7 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/screen_head.dart';
+import '../../../core/format.dart';
 import '../../booking/booking_providers.dart';
 import '../../booking/payment_status_screen.dart';
 import '../../booking/qris_screen.dart';
@@ -15,16 +15,16 @@ import '../../katalog/katalog_repository.dart';
 import '../paket_providers.dart';
 import '../paket_repository.dart';
 import 'beli_paket_controller.dart';
-import 'steps/step_jadwal.dart';
-import 'steps/step_paket.dart';
-import 'steps/step_ringkasan.dart';
-import 'widgets/bar_total.dart';
+import 'steps/step_atur_kelas.dart';
+import 'steps/step_pembayaran.dart';
+import 'widgets/checkout_parts.dart';
 
-/// Beli paket pertemuan (4/8/12, seminggu sekali) dalam satu halaman:
-/// paket, jadwal mingguan, lalu bayar dengan QRIS dari bar bawah.
+/// Beli paket pertemuan (4/8/12, seminggu sekali) dalam DUA langkah:
+/// 1. Atur kelas — mapel, metode, durasi, jumlah pertemuan, jadwal (+ alamat).
+/// 2. Ringkasan — cek pilihan, voucher/poin, rincian biaya, lalu bayar QRIS.
 ///
-/// Layar ini hanya mengurus kerangka (head, bar bawah) dan aksi; state &
-/// logika ada di [BeliPaketController], tiap bagian di `steps/`.
+/// Layar ini hanya mengurus kerangka (bar atas, langkah, bar bawah) dan aksi;
+/// state & logika ada di [BeliPaketController], tiap langkah di `steps/`.
 class BeliPaketScreen extends ConsumerStatefulWidget {
   const BeliPaketScreen({super.key, required this.tutorId});
 
@@ -36,6 +36,15 @@ class BeliPaketScreen extends ConsumerStatefulWidget {
 
 class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
   late final BeliPaketController _controller;
+
+  /// 0 = Atur kelas, 1 = Ringkasan pembayaran.
+  var _step = 0;
+  final _scroll = ScrollController();
+
+  void _goTo(int step) {
+    setState(() => _step = step);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
 
   @override
   void initState() {
@@ -58,6 +67,7 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     _controller
       ..removeListener(_onControllerChanged)
       ..dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -70,23 +80,29 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     final busy =
         busyAsync.asData?.value ??
         (busyAsync.hasError ? const <BusySlot>[] : null);
-    return Scaffold(
-      body: SafeArea(
-        child: AsyncView<TutorDetail?>(
-          value: detail,
-          errorTitle: 'Gagal memuat data tutor',
-          onRetry: () => ref.invalidate(tutorDetailProvider(widget.tutorId)),
-          builder: (d) => d == null
-              ? const EmptyState(
-                  icon: Icons.person_off_rounded,
-                  title: 'Tutor tidak ditemukan',
-                )
-              : _buildPage(d, busy),
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goTo(0);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: AsyncView<TutorDetail?>(
+            value: detail,
+            errorTitle: 'Gagal memuat data tutor',
+            onRetry: () => ref.invalidate(tutorDetailProvider(widget.tutorId)),
+            builder: (d) => d == null
+                ? const EmptyState(
+                    icon: Icons.person_off_rounded,
+                    title: 'Tutor tidak ditemukan',
+                  )
+                : _buildPage(d, busy),
+          ),
         ),
-      ),
-      bottomNavigationBar: detail.maybeWhen(
-        data: (d) => d == null ? null : _buildBottomBar(),
-        orElse: () => null,
+        bottomNavigationBar: detail.maybeWhen(
+          data: (d) => d == null ? null : _buildBottomBar(),
+          orElse: () => null,
+        ),
       ),
     );
   }
@@ -95,30 +111,35 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     final c = _controller;
     _autoSelect(detail);
     return ListView(
-      padding: screenPadding,
+      controller: _scroll,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
-        ScreenHead(
-          showBack: true,
-          eyebrow: 'Beli paket',
-          title: detail.tutor.fullName,
-          subtitle: 'Pilih paket dan jadwal, lalu bayar dengan QRIS.',
+        _TopBar(
+          title: _step == 0 ? 'Atur kelas' : 'Ringkasan pembayaran',
+          onBack: () => _step == 0 ? context.pop() : _goTo(0),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: CheckoutStepper(current: _step),
         ),
         const SizedBox(height: AppSpacing.xl),
-        StepPaket(controller: c, detail: detail),
-        const SizedBox(height: AppSpacing.xl),
-        StepJadwal(
-          controller: c,
-          detail: detail,
-          busy: busy,
-          mine: _mySessions(),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        StepRingkasan(
-          controller: c,
-          onApplyVoucher: _applyVoucher,
-          onClearVoucher: c.clearVoucher,
-        ),
-        const SizedBox(height: AppSpacing.xl),
+        if (_step == 0)
+          StepAturKelas(
+            controller: c,
+            detail: detail,
+            busy: busy,
+            mine: _mySessions(),
+          )
+        else
+          StepPembayaran(
+            controller: c,
+            detail: detail,
+            amounts: _amounts(watch: true),
+            onEdit: () => _goTo(0),
+            onApplyVoucher: _applyVoucher,
+            onClearVoucher: c.clearVoucher,
+          ),
       ],
     );
   }
@@ -153,57 +174,104 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     ];
   }
 
+  /// Harga paket → voucher → perkiraan poin → yang dibayar. Potongan poin
+  /// final tetap dihitung server (maks. sebesar tagihan).
+  CheckoutAmounts _amounts({bool watch = false}) {
+    final c = _controller;
+    final price = _packagePrice(watch: watch);
+    if (price == null) return (price: null, discount: 0, credits: 0, pay: null);
+    final discount = c.voucherDiscount.clamp(0, price);
+    final afterVoucher = price - discount;
+    final balance = c.useCredits
+        ? (watch ? ref.watch(myCreditProvider) : ref.read(myCreditProvider))
+                  .value ??
+              0
+        : 0;
+    final credits = balance.clamp(0, afterVoucher);
+    return (
+      price: price,
+      discount: discount,
+      credits: credits,
+      pay: afterVoucher - credits,
+    );
+  }
+
   // --- Bar bawah ----------------------------------------------------------
 
   Widget _buildBottomBar() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final c = _controller;
-    final showTotal = c.subject != null && c.mode != null;
+    final a = _amounts(watch: true);
+    final missing = _missing;
+    final ready = missing == null;
+
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outline),
-        ),
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: scheme.outline)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showTotal) ...[
-              BarTotal(
-                subject: c.subject!,
-                mode: c.mode!,
-                duration: c.duration,
-                size: c.size,
-                discount: c.voucherDiscount,
+        // Langkah 1: tombol saja (label = isian yang belum lengkap). Total
+        // baru tampil di langkah 2, bersama tombol bayar.
+        child: _step == 0
+            ? AppButton(
+                label: missing ?? 'Lanjut ke ringkasan',
+                icon: ready ? Icons.arrow_forward_rounded : null,
+                onPressed: ready ? () => _goTo(1) : null,
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total pembayaran',
+                          style: theme.textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            a.pay == null ? '—' : AppFormat.rupiah(a.pay!),
+                            maxLines: 1,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Bayar QRIS',
+                      icon: Icons.qr_code_2_rounded,
+                      loading: c.submitting,
+                      onPressed: ready ? _submit : null,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            AppButton(
-              label: _missing ?? 'Bayar dengan QRIS',
-              icon: _missing == null ? Icons.qr_code_2_rounded : null,
-              loading: c.submitting,
-              onPressed: _missing == null ? _submit : null,
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  /// Apa yang belum diisi (jadi label tombol), atau null bila siap bayar.
+  /// Apa yang belum diisi (jadi label tombol), atau null bila siap lanjut.
   String? get _missing {
     final c = _controller;
-    if (c.subject == null) return 'Pilih mata pelajaran';
-    if (c.mode == null) return 'Pilih mode belajar';
-    if (_packagePrice(watch: true) == null) return 'Harga paket belum tersedia';
-    if (c.date == null || c.startMinutes == null) {
-      return 'Pilih jadwal mingguan';
-    }
+    if (c.subject == null) return 'Pilih mapel';
+    if (c.mode == null) return 'Pilih metode';
+    if (_packagePrice(watch: true) == null) return 'Harga belum ada';
+    if (c.date == null || c.startMinutes == null) return 'Pilih jadwal';
     if (c.mode == 'offline' && c.address.text.trim().isEmpty) {
-      return 'Isi alamat belajar';
+      return 'Isi alamat';
     }
     return null;
   }
@@ -288,6 +356,42 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bar atas: tombol kembali bulat + judul langkah di tengah.
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.title, required this.onBack});
+
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        IconButton(
+          onPressed: onBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+          style: IconButton.styleFrom(
+            backgroundColor: scheme.surface,
+            side: BorderSide(color: scheme.outline),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 48),
+      ],
     );
   }
 }

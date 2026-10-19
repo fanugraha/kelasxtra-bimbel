@@ -15,6 +15,8 @@ import '../features/booking/payment_status_screen.dart';
 import '../features/chat/chat_room_screen.dart';
 import '../features/chat/chat_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/home/siswa/topic_strength_screen.dart';
+import '../features/jadwal/jadwal_person_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
 import '../features/kelas_grup/kelas_grup_detail_screen.dart';
 import '../features/kelas_grup/kelas_grup_screen.dart';
@@ -87,6 +89,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
         ],
       ),
+      // Detail kelas bersama satu tutor/siswa, dibuka dari tab Jadwal.
+      GoRoute(
+        path: '/jadwal/:personId',
+        builder: (c, s) =>
+            JadwalPersonScreen(personId: s.pathParameters['personId']!),
+      ),
       GoRoute(
         path: '/tutor/:id',
         builder: (c, s) => TutorDetailScreen(tutorId: s.pathParameters['id']!),
@@ -141,6 +149,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             KelasGrupDetailScreen(classId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/bank-soal', builder: (c, s) => const BankSoalScreen()),
+      GoRoute(
+        path: '/kekuatan-topik',
+        builder: (c, s) => const TopicStrengthScreen(),
+      ),
       GoRoute(
         path: '/tryout',
         builder: (c, s) {

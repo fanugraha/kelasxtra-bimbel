@@ -5,19 +5,23 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('math widgets dirender dan punya ukuran', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: MathText('Nilai dari tan 45 derajat adalah ...')),
-    ));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: MathText('Nilai dari tan 45 derajat adalah ...')),
+      ),
+    );
     await tester.pumpAndSettle();
     final math = find.byType(Math);
     expect(math, findsOneWidget);
     expect(tester.getSize(math).width, greaterThan(0));
   });
 
-  testWidgets('opsi matematika utuh dirender sebagai satu rumus', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: MathText('akar3/2')),
-    ));
+  testWidgets('opsi matematika utuh dirender sebagai satu rumus', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: MathText('akar3/2'))),
+    );
     await tester.pumpAndSettle();
     expect(find.byType(Math), findsOneWidget);
     expect(tester.getSize(find.byType(Math)).width, greaterThan(0));

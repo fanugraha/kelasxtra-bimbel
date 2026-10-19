@@ -33,8 +33,10 @@ void main() {
 
   test('chatStamp: jam hari ini, kemarin, beberapa hari, lalu tanggal', () {
     final now = DateTime.now();
-    expect(AppFormat.chatStamp(DateTime(now.year, now.month, now.day, 9, 30)),
-        '09.30');
+    expect(
+      AppFormat.chatStamp(DateTime(now.year, now.month, now.day, 9, 30)),
+      '09.30',
+    );
     expect(
       AppFormat.chatStamp(now.subtract(const Duration(days: 1))),
       'Kemarin',

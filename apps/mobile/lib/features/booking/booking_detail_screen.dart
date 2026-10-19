@@ -5,21 +5,19 @@ import 'package:go_router/go_router.dart';
 import '../../core/errors.dart';
 
 import '../../core/app_flavor.dart';
-import '../../core/format.dart';
-import '../../core/meeting_link.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/async_view.dart';
-import '../../core/widgets/screen_head.dart';
 import '../auth/auth_providers.dart';
 import 'booking_providers.dart';
 import 'booking_repository.dart';
-import 'widgets/booking_summary.dart';
 import 'widgets/reschedule_card.dart';
 import 'widgets/reschedule_sheet.dart';
 import 'widgets/session_note_card.dart';
-import 'widgets/zoom_join_button.dart';
+import 'widgets/class_access_card.dart';
+import 'widgets/session_hero.dart';
+import 'widgets/session_options.dart';
 
 /// Layar aksi sesi: absensi, reschedule, batal, ulasan, komplain, dan chat.
 class BookingDetailScreen extends ConsumerStatefulWidget {
@@ -57,75 +55,103 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     }
   }
 
+  void _openChat(BookingDetail b, bool isTutor) => context.push(
+    '/chat/room/${isTutor ? b.studentId : b.tutorId}',
+    extra: {'name': isTutor ? b.studentName : b.tutorName},
+  );
+
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(bookingDetailProvider(widget.bookingId));
     final isTutor = ref.watch(appFlavorProvider) == AppFlavor.tutor;
 
     return Scaffold(
-      body: SafeArea(
-        child: AsyncView<BookingDetail>(
-          value: detail,
-          errorTitle: 'Gagal memuat sesi',
-          onRetry: () =>
-              ref.invalidate(bookingDetailProvider(widget.bookingId)),
-          builder: (b) => ListView(
-            padding: screenPadding,
-            children: [
-              ScreenHead(
-                showBack: true,
-                eyebrow: isTutor ? 'Sesi privat' : 'Sesi belajar',
-                title: 'Detail sesi',
-                subtitle:
-                    '${b.subjectName} · ${b.jenjang} · ${AppFormat.timeRangeFrom(b.scheduledAt, b.durationMinutes)} WIB',
-              ),
-              const SizedBox(height: 18),
-              BookingSummary(booking: b),
-              const SizedBox(height: AppSpacing.md),
-              ZoomJoinButton(
-                status: meetingStatus(
-                  mode: b.mode,
-                  status: b.status,
-                  scheduledAt: b.scheduledAt,
-                  durationMinutes: b.durationMinutes,
-                  url: b.meetingUrl,
+      body: AsyncView<BookingDetail>(
+        value: detail,
+        errorTitle: 'Gagal memuat sesi',
+        onRetry: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
+        builder: (b) {
+          // Fungsi utama layar ini: masuk kelas & membaca catatan tutor.
+          // Sebelum/selama sesi → kartu masuk kelas di atas; setelah selesai
+          // → catatan yang paling dicari, jadi catatan naik ke atas.
+          final done = b.status == 'completed';
+          final access = ClassAccessCard(
+            booking: b,
+            isTutor: isTutor,
+            onChat: () => _openChat(b, isTutor),
+            onEditLink: isTutor && b.mode == 'online' && !done
+                ? () => _linkDialog(b)
+                : null,
+          );
+          final notes = SessionNoteCard(
+            note: b.note,
+            onEdit: _canEditNote(b, isTutor) ? () => _noteDialog(b) : null,
+            emptyHint: isTutor
+                ? 'Catatan wajib diisi sebelum sesi bisa ditandai selesai.'
+                : done
+                ? 'Tutor tidak meninggalkan catatan untuk sesi ini.'
+                : 'Catatan dari tutor muncul setelah sesi berjalan.',
+          );
+          final primary = _primaryActions(b, isTutor);
+          final options = _options(b, isTutor);
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(bookingDetailProvider(widget.bookingId));
+              ref.invalidate(bookingRescheduleProvider(widget.bookingId));
+            },
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                SessionHero(
+                  booking: b,
+                  isTutor: isTutor,
+                  onChat: () => _openChat(b, isTutor),
                 ),
-                url: b.meetingUrl,
-                isTutor: isTutor,
-                onAddLink: () => _linkDialog(b),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _rescheduleSection(b),
-              SessionNoteCard(
-                note: b.note,
-                onEdit: _canEditNote(b, isTutor) ? () => _noteDialog(b) : null,
-                emptyHint: isTutor
-                    ? 'Catatan wajib diisi sebelum sesi bisa ditandai selesai.'
-                    : null,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ..._actions(b, isTutor),
-              const SizedBox(height: AppSpacing.sm),
-              AppButton(
-                label: isTutor ? 'Chat dengan siswa' : 'Chat dengan tutor',
-                variant: AppButtonVariant.secondary,
-                icon: Icons.forum_outlined,
-                onPressed: () => context.push(
-                  '/chat/room/${isTutor ? b.studentId : b.tutorId}',
-                  extra: {'name': isTutor ? b.studentName : b.tutorName},
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.xxl + 4,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _rescheduleSection(b),
+                      if (done) ...[
+                        notes,
+                        for (final w in primary) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          w,
+                        ],
+                      ] else ...[
+                        access,
+                        for (final w in primary) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          w,
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                        notes,
+                      ],
+                      if (options.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.xl),
+                        SessionOptions(options: options, busy: _busy),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  List<Widget> _actions(BookingDetail b, bool isTutor) {
+  /// Aksi utama sesuai tahap sesi — paling banyak satu-dua tombol penuh.
+  List<Widget> _primaryActions(BookingDetail b, bool isTutor) {
     final widgets = <Widget>[];
-    final canChat = b.status != 'pending_payment' && b.status != 'expired';
-
     if (isTutor) {
       if (b.status == 'confirmed') {
         widgets.add(
@@ -138,17 +164,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onPressed: () => _checkin(b),
           ),
         );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
-        widgets.add(
-          AppButton(
-            label: 'Ajukan ganti hari',
-            variant: AppButtonVariant.secondary,
-            icon: Icons.schedule_rounded,
-            loading: false,
-            onPressed: () => _requestRescheduleDialog(b),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
       }
       if (b.status == 'no_show_tutor') {
         widgets.add(
@@ -159,7 +174,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             onPressed: () => _rescheduleNoShowDialog(b),
           ),
         );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
       }
       if (b.status == 'in_progress') {
         final perluCatatan = b.note == null;
@@ -180,22 +194,6 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   ),
           ),
         );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
-      }
-      if (b.status == 'confirmed' || b.status == 'in_progress') {
-        widgets.add(
-          AppButton(
-            label: 'Tandai siswa tidak hadir',
-            variant: AppButtonVariant.ghost,
-            loading: _busy,
-            onPressed: () => _run(
-              () => ref
-                  .read(bookingRepositoryProvider)
-                  .markNoShow(b.id, 'student'),
-              'Siswa ditandai tidak hadir.',
-            ),
-          ),
-        );
       }
     } else {
       if (b.status == 'in_progress' && b.studentAttendedAt == null) {
@@ -210,66 +208,83 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             ),
           ),
         );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
-      }
-      if (b.status == 'confirmed') {
-        widgets.add(
-          AppButton(
-            label: 'Ajukan ganti hari',
-            variant: AppButtonVariant.secondary,
-            icon: Icons.schedule_rounded,
-            loading: false,
-            onPressed: () => _requestRescheduleDialog(b),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
-      }
-      if (b.status == 'confirmed' &&
-          DateTime.now().isAfter(
-            b.scheduledAt.add(const Duration(minutes: 15)),
-          )) {
-        widgets.add(
-          AppButton(
-            label: 'Tutor tidak hadir',
-            variant: AppButtonVariant.ghost,
-            loading: _busy,
-            onPressed: () => _run(
-              () =>
-                  ref.read(bookingRepositoryProvider).markNoShow(b.id, 'tutor'),
-              'Tutor ditandai tidak hadir.',
-            ),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
       }
       if (b.status == 'completed' && !b.hasReview) {
         widgets.add(
           AppButton(
             label: 'Beri ulasan',
             icon: Icons.star_rounded,
-            loading: false,
+            variant: AppButtonVariant.secondary,
             onPressed: () => _reviewDialog(b),
           ),
         );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
       }
-      if (b.status == 'completed' || b.status == 'disputed') {
-        widgets.add(
-          AppButton(
-            label: 'Ajukan komplain',
-            variant: AppButtonVariant.secondary,
-            loading: false,
-            onPressed: () => _complaintDialog(b),
-          ),
-        );
-        widgets.add(const SizedBox(height: AppSpacing.sm));
-      }
-    }
-
-    if (canChat && widgets.isEmpty) {
-      widgets.add(const SizedBox.shrink());
     }
     return widgets;
+  }
+
+  /// Aksi yang jarang dipakai → daftar "Opsi lain" di bawah.
+  List<SessionOption> _options(BookingDetail b, bool isTutor) {
+    final options = <SessionOption>[];
+    if (b.status == 'confirmed') {
+      options.add(
+        SessionOption(
+          icon: Icons.schedule_rounded,
+          label: 'Ajukan ganti hari',
+          subtitle: isTutor
+              ? 'Siswa perlu menyetujui jadwal barunya'
+              : 'Tutor perlu menyetujui jadwal barunya',
+          onTap: () => _requestRescheduleDialog(b),
+        ),
+      );
+    }
+    if (isTutor) {
+      if (b.status == 'confirmed' || b.status == 'in_progress') {
+        options.add(
+          SessionOption(
+            icon: Icons.person_off_outlined,
+            label: 'Tandai siswa tidak hadir',
+            danger: true,
+            onTap: () => _run(
+              () => ref
+                  .read(bookingRepositoryProvider)
+                  .markNoShow(b.id, 'student'),
+              'Siswa ditandai tidak hadir.',
+            ),
+          ),
+        );
+      }
+    } else {
+      if (b.status == 'confirmed' &&
+          DateTime.now().isAfter(
+            b.scheduledAt.add(const Duration(minutes: 15)),
+          )) {
+        options.add(
+          SessionOption(
+            icon: Icons.person_off_outlined,
+            label: 'Tutor tidak hadir',
+            subtitle: 'Laporkan bila tutor belum datang 15 menit',
+            danger: true,
+            onTap: () => _run(
+              () =>
+                  ref.read(bookingRepositoryProvider).markNoShow(b.id, 'tutor'),
+              'Tutor ditandai tidak hadir.',
+            ),
+          ),
+        );
+      }
+      if (b.status == 'completed' || b.status == 'disputed') {
+        options.add(
+          SessionOption(
+            icon: Icons.report_outlined,
+            label: 'Ajukan komplain',
+            subtitle: 'Ada masalah dengan sesi ini?',
+            onTap: () => _complaintDialog(b),
+          ),
+        );
+      }
+    }
+    return options;
   }
 
   Future<void> _checkin(BookingDetail b) async {

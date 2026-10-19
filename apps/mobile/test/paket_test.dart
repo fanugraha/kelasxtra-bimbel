@@ -5,10 +5,10 @@ import 'package:bimbel_mobile/features/paket/paket_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 BeliPaketController _controller() => BeliPaketController(
-      tutorId: 't',
-      repository: PaketRepository(),
-      invalidateBusy: () {},
-    );
+  tutorId: 't',
+  repository: PaketRepository(),
+  invalidateBusy: () {},
+);
 
 const _senin = TutorAvailabilityItem(
   dayOfWeek: 1,

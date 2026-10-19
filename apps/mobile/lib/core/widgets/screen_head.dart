@@ -6,14 +6,15 @@ import 'package:go_router/go_router.dart';
 class ScreenHead extends StatelessWidget {
   const ScreenHead({
     super.key,
-    required this.eyebrow,
+    this.eyebrow,
     required this.title,
     this.subtitle,
     this.showBack = false,
     this.trailing,
   });
 
-  final String eyebrow;
+  /// Label kecil di atas judul; null = tanpa label.
+  final String? eyebrow;
   final String title;
   final String? subtitle;
   final bool showBack;
@@ -49,31 +50,33 @@ class ScreenHead extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    Flexible(
-                      child: Text(
-                        eyebrow.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
+                if (eyebrow != null) ...[
+                  Row(
+                    children: [
+                      Container(
+                        width: 18,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(999),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 7),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          eyebrow!.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                ],
                 Text(title, style: theme.textTheme.headlineMedium),
                 if (subtitle != null) ...[
                   const SizedBox(height: 6),

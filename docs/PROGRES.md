@@ -620,22 +620,20 @@ live; penyesuaian dashboard & mobile sesi dilakukan di sesi ini.
       `my_payment_status` tiap 3 detik + saat app kembali aktif, tombol "Saya sudah
       bayar"), `snap_screen.dart` dihapus (5 pemanggil pindah), `SnapResult` kini
       `qrString/qrUrl/expiresAt` + `fromJson`, `pubspec` tambah `qr_flutter ^4.1.0`
-      dan buang `webview_flutter`. Migrasi `20261019000047_my_payment_status.sql`
-      (belum diterapkan): RPC definer yang hanya mengembalikan status payment milik
-      `auth.uid()`. `flutter analyze` bersih; 33 tes lulus; typecheck Edge (harness
-      tsc, 7 fungsi) bersih.
+      dan `webview_flutter` (cadangan Snap bila kanal QRIS Core API belum aktif).
+      Migrasi `20261019000047_my_payment_status.sql` (diterapkan 19 Okt 2026 lewat
+      MCP): RPC definer yang hanya mengembalikan status payment milik `auth.uid()`.
+      `flutter analyze` bersih; 36 tes lulus; typecheck Edge (harness tsc, 7 fungsi) bersih.
 
 ## Langkah berikutnya
 
-0. **Migrasi QRIS (menunggu izin pemilik)**: terapkan migrasi
-   `20261019000047_my_payment_status.sql` (lewat MCP `apply_migration`, **bukan**
-   `supabase db push` — riwayat migrasi remote memakai versi timestamp dari MCP,
-   jadi `db push` akan menganggap 43–47 belum jalan) lalu deploy
-   `supabase functions deploy create-snap create-package-snap
-   create-group-seat-snap create-subscription-snap reconcile-payments`. Setelah itu
-   uji sandbox: bayar QRIS Simulator → webhook → `payments.status = settlement` →
-   `QrisScreen` menutup sendiri; uji juga QR dipakai ulang, QR kedaluwarsa, dan
-   lunas penuh oleh poin (tanpa QrisScreen).
+0. **[x] Migrasi QRIS + deploy (selesai 19 Okt 2026)**: `20261019000047_my_payment_status.sql`
+   diterapkan lewat MCP; lima Edge (`create-snap`, `create-package-snap`,
+   `create-group-seat-snap`, `create-subscription-snap`, `reconcile-payments`)
+   dideploy ulang dan menjawab 401 tanpa JWT. Sisa: uji sandbox — bayar QRIS
+   Simulator → webhook → `payments.status = settlement` → `QrisScreen` menutup
+   sendiri; uji QR dipakai ulang, QR kedaluwarsa, dan lunas penuh oleh poin
+   (tanpa QrisScreen).
 1. Uji pemakaian poin end-to-end dengan akun siswa berpoin: (a) potong sebagian
    (bayar sisa via Midtrans), (b) potong penuh → lunas tanpa Midtrans. Beri poin uji
    lewat komplain (`resolve_complaint`) atau `grant_student_credit` sebagai admin.

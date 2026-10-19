@@ -21,10 +21,9 @@ class SectionHead extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 17,
-                  letterSpacing: -0.3,
-                ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
         if (actionLabel != null)

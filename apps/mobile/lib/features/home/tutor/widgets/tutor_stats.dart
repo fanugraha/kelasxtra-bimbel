@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/dates.dart';
 
 import '../../../../core/format.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../booking/booking_repository.dart';
 import '../../../penghasilan/penghasilan_repository.dart';
@@ -34,6 +35,7 @@ class TutorStats extends StatelessWidget {
       (sum, b) => sum + (b.price * 75 ~/ 100),
     );
     final monthTotal = payoutTotal > 0 ? payoutTotal : estimate;
+    final palette = context.palette;
 
     return Row(
       children: [
@@ -42,6 +44,9 @@ class TutorStats extends StatelessWidget {
             label: 'Sesi hari ini',
             value: '${today.length}',
             note: '${today.where((b) => b.mode == 'online').length} online',
+            icon: Icons.today_rounded,
+            color: palette.brand,
+            soft: palette.brandSoft,
           ),
         ),
         const SizedBox(width: 8),
@@ -50,6 +55,9 @@ class TutorStats extends StatelessWidget {
             label: 'Perlu check-in',
             value: '$needCheckIn',
             note: 'status terkonfirmasi',
+            icon: Icons.login_rounded,
+            color: palette.warning,
+            soft: palette.warningSoft,
           ),
         ),
         const SizedBox(width: 8),
@@ -58,6 +66,10 @@ class TutorStats extends StatelessWidget {
             label: 'Bulan ini',
             value: AppFormat.rupiah(monthTotal),
             note: 'estimasi',
+            icon: Icons.payments_outlined,
+            // Warna: penghasilan = REWARD (hasil kerja tutor); angkanya netral.
+            color: palette.reward,
+            soft: palette.rewardSoft,
           ),
         ),
       ],
@@ -66,14 +78,21 @@ class TutorStats extends StatelessWidget {
 }
 
 class _TutorStat extends StatelessWidget {
-  const _TutorStat({required this.label,
+  const _TutorStat({
+    required this.label,
     required this.value,
     required this.note,
+    required this.icon,
+    required this.color,
+    required this.soft,
   });
 
   final String label;
   final String value;
   final String note;
+  final IconData icon;
+  final Color color;
+  final Color soft;
 
   @override
   Widget build(BuildContext context) {
@@ -83,13 +102,22 @@ class _TutorStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: soft,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(height: 7),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 4),
@@ -98,9 +126,9 @@ class _TutorStat extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontSize: 20,
-                letterSpacing: -0.5,
+              // Angka ringkasan = angka besar (Bold) dan netral.
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -109,7 +137,7 @@ class _TutorStat extends StatelessWidget {
             note,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 9.5),
+            style: theme.textTheme.labelSmall,
           ),
         ],
       ),

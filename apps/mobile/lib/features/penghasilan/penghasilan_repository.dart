@@ -20,11 +20,11 @@ class PayoutItem {
   final String? transferRef;
 
   String get statusLabel => switch (status) {
-        'draft' => 'Disiapkan',
-        'approved' => 'Disetujui',
-        'paid' => 'Sudah ditransfer',
-        _ => status,
-      };
+    'draft' => 'Disiapkan',
+    'approved' => 'Disetujui',
+    'paid' => 'Sudah ditransfer',
+    _ => status,
+  };
 }
 
 class PenghasilanRepository {

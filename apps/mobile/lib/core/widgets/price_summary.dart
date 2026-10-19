@@ -1,31 +1,48 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_theme.dart';
 import 'app_card.dart';
+
+/// Peran warna satu baris rincian harga.
+enum PriceTone {
+  /// Harga biasa — informasi, bukan ajakan.
+  neutral,
+
+  /// Diskon, voucher, potongan promo.
+  promo,
+
+  /// Potongan dari poin milik siswa.
+  reward,
+}
 
 /// Satu baris rincian harga.
 class PriceLine {
   const PriceLine(
     this.label,
     this.value, {
-    this.tone,
+    this.tone = PriceTone.neutral,
     this.strike = false,
   });
 
   /// Baris "harga normal" yang dicoret saat ada diskon.
-  PriceLine.strike(this.label, this.value)
-      : tone = null,
-        strike = true;
+  const PriceLine.strike(this.label, this.value)
+    : tone = PriceTone.neutral,
+      strike = true;
 
-  /// Baris diskon (hijau).
-  PriceLine.discount(this.label, this.value)
-      : tone = AppColors.success,
-        strike = false;
+  /// Baris diskon/voucher (promo).
+  const PriceLine.discount(this.label, this.value)
+    : tone = PriceTone.promo,
+      strike = false;
+
+  /// Baris potongan poin (reward).
+  const PriceLine.points(this.label, this.value)
+    : tone = PriceTone.reward,
+      strike = false;
 
   final String label;
   final String value;
-  final Color? tone;
+  final PriceTone tone;
   final bool strike;
 }
 
@@ -58,6 +75,14 @@ class PriceSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
+    Color? toneColor(PriceLine line) => switch (line.tone) {
+      PriceTone.promo => palette.promo,
+      PriceTone.reward => palette.reward,
+      // Harga coret diredam agar mata langsung ke total.
+      PriceTone.neutral =>
+        line.strike ? theme.colorScheme.onSurfaceVariant : null,
+    };
 
     if (loading) {
       return AppCard(
@@ -88,8 +113,7 @@ class PriceSummaryCard extends StatelessWidget {
                   child: Text(
                     line.label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 12.5,
-                      color: line.tone,
+                      color: toneColor(line),
                     ),
                   ),
                 ),
@@ -97,11 +121,9 @@ class PriceSummaryCard extends StatelessWidget {
                 Text(
                   line.value,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: line.tone,
-                    decoration:
-                        line.strike ? TextDecoration.lineThrough : null,
+                    fontWeight: FontWeight.w600,
+                    color: toneColor(line) ?? theme.colorScheme.onSurface,
+                    decoration: line.strike ? TextDecoration.lineThrough : null,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -114,10 +136,7 @@ class PriceSummaryCard extends StatelessWidget {
             Divider(height: 1, color: theme.colorScheme.outline),
             const SizedBox(height: AppSpacing.md),
           ],
-          Text(
-            totalLabel,
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-          ),
+          Text(totalLabel, style: theme.textTheme.bodySmall),
           const SizedBox(height: 2),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -125,11 +144,10 @@ class PriceSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   totalValue ?? emptyLabel,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 25,
-                    height: 1.1,
-                    letterSpacing: -0.6,
-                    color: totalValue == null ? null : AppColors.primary,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    // Warna: total netral — informasi, tidak boleh menyaingi
+                    // tombol bayar yang memakai warna brand.
+                    color: theme.colorScheme.onSurface,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -137,19 +155,13 @@ class PriceSummaryCard extends StatelessWidget {
               if (totalNote != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
-                  child: Text(
-                    totalNote!,
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
-                  ),
+                  child: Text(totalNote!, style: theme.textTheme.labelSmall),
                 ),
             ],
           ),
           if (footNote != null) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              footNote!,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
-            ),
+            Text(footNote!, style: theme.textTheme.bodySmall),
           ],
         ],
       ),
@@ -180,31 +192,17 @@ class SummaryRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 92,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-            ),
+            child: Text(label, style: theme.textTheme.bodySmall),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.titleSmall)),
           if (onEdit != null)
             TextButton(
               onPressed: onEdit,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 minimumSize: const Size(0, 32),
-                textStyle: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                ),
+                textStyle: theme.textTheme.labelMedium,
               ),
               child: const Text('Ubah'),
             ),

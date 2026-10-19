@@ -140,11 +140,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
           .resumePackageSnap(retry.packageId);
       if (!mounted) return;
       _packageId = result.packageId ?? _packageId;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QrisScreen(result: result),
-        ),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => QrisScreen(result: result)));
       if (!mounted) return;
       _refresh();
       _startPolling();
@@ -202,7 +200,11 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
               subtitle: _subtitle(phase),
             ),
             const SizedBox(height: AppSpacing.xl),
-            PaymentStatusHero(phase: phase, amount: amount, orderId: widget.orderId),
+            PaymentStatusHero(
+              phase: phase,
+              amount: amount,
+              orderId: widget.orderId,
+            ),
             const SizedBox(height: AppSpacing.md),
             if (isPackage && paket != null)
               PaymentDetailCard(
@@ -213,7 +215,7 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
                     ('Mapel', '${paket.subjectName} · ${paket.jenjang}'),
                   (
                     'Mode · durasi',
-                    '${paket.mode == 'online' ? 'Online' : 'Offline'} · ${paket.durationMinutes} menit'
+                    '${paket.mode == 'online' ? 'Online' : 'Offline'} · ${paket.durationMinutes} menit',
                   ),
                   ('Jadwal', paket.jadwalLabel),
                   ('Mulai', paket.mulaiLabel),
@@ -229,7 +231,7 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
                   ('Mapel', '${booking.subjectName} · ${booking.jenjang}'),
                   (
                     'Mode · durasi',
-                    '${booking.mode == 'online' ? 'Online' : 'Offline'} · ${booking.durationMinutes} menit'
+                    '${booking.mode == 'online' ? 'Online' : 'Offline'} · ${booking.durationMinutes} menit',
                   ),
                   ('Jadwal', AppFormat.dateTimeShort(booking.scheduledAt)),
                   if (booking.address != null && booking.address!.isNotEmpty)
@@ -248,67 +250,57 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
     );
   }
 
-  Widget _buildActions(PaymentPhase phase, BookingDetail? booking, PackageItem? paket) {
+  Widget _buildActions(
+    PaymentPhase phase,
+    BookingDetail? booking,
+    PackageItem? paket,
+  ) {
     final scheme = Theme.of(context).colorScheme;
     final sessionId = _bookingId;
     final canPayAgain = widget.retry != null && phase == PaymentPhase.waiting;
 
     final List<Widget> buttons = switch (phase) {
       PaymentPhase.success => [
-          AppButton(
-            label: widget.packageId != null ? 'Lihat jadwal' : 'Lihat detail sesi',
-            icon: Icons.event_available_rounded,
-            onPressed: widget.packageId != null
-                ? () => context.go('/jadwal')
-                : (sessionId == null
+        AppButton(
+          label: widget.packageId != null
+              ? 'Lihat jadwal'
+              : 'Lihat detail sesi',
+          icon: Icons.event_available_rounded,
+          onPressed: widget.packageId != null
+              ? () => context.go('/jadwal')
+              : (sessionId == null
                     ? null
                     : () => context.push('/sesi/$sessionId')),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          AppButton(
-            label: 'Kembali ke Beranda',
-            variant: AppButtonVariant.ghost,
-            onPressed: () => context.go('/'),
-          ),
-        ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppButton(
+          label: 'Kembali ke Beranda',
+          variant: AppButtonVariant.ghost,
+          onPressed: () => context.go('/'),
+        ),
+      ],
       PaymentPhase.waiting => [
-          if (canPayAgain)
-            AppButton(
-              label: 'Bayar sekarang',
-              icon: Icons.lock_outline_rounded,
-              loading: _paying,
-              onPressed: _payAgain,
-            )
-          else
-            AppButton(
-              label: 'Cek status',
-              icon: Icons.refresh_rounded,
-              onPressed: _refresh,
-            ),
-          if (canPayAgain) ...[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Cek status',
-              variant: AppButtonVariant.ghost,
-              onPressed: _refresh,
-            ),
-          ] else ...[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Kembali ke Beranda',
-              variant: AppButtonVariant.ghost,
-              onPressed: () => context.go('/'),
-            ),
-          ],
-        ],
-      PaymentPhase.failed => [
+        if (canPayAgain)
           AppButton(
-            label: widget.packageId != null ? 'Beli paket lagi' : 'Kembali ke Beranda',
-            icon: widget.packageId != null ? Icons.refresh_rounded : null,
-            onPressed: () => widget.packageId != null && paket?.tutorId != null
-                ? context.go('/paket/beli/${paket!.tutorId}')
-                : context.go('/'),
+            label: 'Bayar sekarang',
+            icon: Icons.lock_outline_rounded,
+            loading: _paying,
+            onPressed: _payAgain,
+          )
+        else
+          AppButton(
+            label: 'Cek status',
+            icon: Icons.refresh_rounded,
+            onPressed: _refresh,
           ),
+        if (canPayAgain) ...[
+          const SizedBox(height: AppSpacing.sm),
+          AppButton(
+            label: 'Cek status',
+            variant: AppButtonVariant.ghost,
+            onPressed: _refresh,
+          ),
+        ] else ...[
           const SizedBox(height: AppSpacing.sm),
           AppButton(
             label: 'Kembali ke Beranda',
@@ -316,9 +308,27 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
             onPressed: () => context.go('/'),
           ),
         ],
+      ],
+      PaymentPhase.failed => [
+        AppButton(
+          label: widget.packageId != null
+              ? 'Beli paket lagi'
+              : 'Kembali ke Beranda',
+          icon: widget.packageId != null ? Icons.refresh_rounded : null,
+          onPressed: () => widget.packageId != null && paket?.tutorId != null
+              ? context.go('/paket/beli/${paket!.tutorId}')
+              : context.go('/'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppButton(
+          label: 'Kembali ke Beranda',
+          variant: AppButtonVariant.ghost,
+          onPressed: () => context.go('/'),
+        ),
+      ],
       PaymentPhase.checking => [
-          AppButton(label: 'Memeriksa status…', loading: true, onPressed: null),
-        ],
+        AppButton(label: 'Memeriksa status…', loading: true, onPressed: null),
+      ],
     };
 
     return Container(
@@ -334,18 +344,19 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
   }
 
   String _title(PaymentPhase phase) => switch (phase) {
-        PaymentPhase.checking => 'Memeriksa pembayaran',
-        PaymentPhase.success => 'Pembayaran berhasil',
-        PaymentPhase.waiting => 'Menunggu pembayaran',
-        PaymentPhase.failed => 'Pembayaran belum berhasil',
-      };
+    PaymentPhase.checking => 'Memeriksa pembayaran',
+    PaymentPhase.success => 'Pembayaran berhasil',
+    PaymentPhase.waiting => 'Menunggu pembayaran',
+    PaymentPhase.failed => 'Pembayaran belum berhasil',
+  };
 
   String _subtitle(PaymentPhase phase) => switch (phase) {
-        PaymentPhase.checking => 'Sebentar ya, kami sedang memastikan statusnya.',
-        PaymentPhase.success =>
-          'Semua pertemuan paketmu sudah tercatat. Sampai jumpa di kelas!',
-        PaymentPhase.waiting =>
-          'Selesaikan pembayaran sebelum batas waktu; jadwalmu masih ditahan.',
-        PaymentPhase.failed => 'Tagihan ini tidak dibayar. Kamu bisa membeli paket lagi.',
-      };
+    PaymentPhase.checking => 'Sebentar ya, kami sedang memastikan statusnya.',
+    PaymentPhase.success =>
+      'Semua pertemuan paketmu sudah tercatat. Sampai jumpa di kelas!',
+    PaymentPhase.waiting =>
+      'Selesaikan pembayaran sebelum batas waktu; jadwalmu masih ditahan.',
+    PaymentPhase.failed =>
+      'Tagihan ini tidak dibayar. Kamu bisa membeli paket lagi.',
+  };
 }

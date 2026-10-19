@@ -140,12 +140,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
+                    style: theme.textTheme.titleSmall,
                   ),
-                  Text(
-                    'Percakapan privat',
-                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                  ),
+                  Text('Percakapan privat', style: theme.textTheme.labelSmall),
                 ],
               ),
             ),
@@ -215,7 +212,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                 ChatBubble(
                   message: list[i],
                   mine: list[i].isMine(uid),
-                  lastMine: list[i].isMine(uid) &&
+                  lastMine:
+                      list[i].isMine(uid) &&
                       !list.skip(i + 1).any((m) => m.isMine(uid)),
                 ),
           ],
@@ -249,8 +247,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   hintText: 'Tulis pesan',
                   filled: true,
                   fillColor: scheme.surfaceContainerHighest,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
                     borderSide: BorderSide.none,

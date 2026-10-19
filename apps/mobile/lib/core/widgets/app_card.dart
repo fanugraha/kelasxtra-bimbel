@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Kartu dasar aplikasi: sudut membulat, border halus, tanpa bayangan berat.
+/// Kartu dasar aplikasi: sudut membulat, border halus, bayangan lembut.
 ///
 /// Pakai [gradient] untuk kartu unggulan (hero/CTA).
 class AppCard extends StatelessWidget {
@@ -34,7 +34,22 @@ class AppCard extends StatelessWidget {
 
     if (gradient != null) {
       return DecoratedBox(
-        decoration: BoxDecoration(gradient: gradient, borderRadius: radius),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              // Bayangan mengikuti warna gradien (brand/challenge/promo).
+              color:
+                  (gradient is LinearGradient
+                          ? (gradient as LinearGradient).colors.first
+                          : scheme.primary)
+                      .withValues(alpha: 0.18),
+              blurRadius: 26,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
         child: content,
       );
     }
@@ -46,9 +61,9 @@ class AppCard extends StatelessWidget {
         border: Border.all(color: scheme.outline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 22,
+            offset: const Offset(0, 9),
           ),
         ],
       ),

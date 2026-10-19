@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 
 import '../../core/format.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/empty_state.dart';
@@ -96,9 +97,9 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
       ref.invalidate(groupAttendanceProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(cleanError(e))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(cleanError(e))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -123,12 +124,16 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pertemuan ${first.seq}',
-                        style: theme.textTheme.titleSmall?.copyWith(fontSize: 15)),
+                    Text(
+                      'Pertemuan ${first.seq}',
+                      style: theme.textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 3),
                     Text(
                       '${first.subjectName} · ${AppFormat.dateTimeShort(first.scheduledAt)}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -182,26 +187,32 @@ class _StudentRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 19,
-            backgroundColor:
-                theme.colorScheme.primary.withValues(alpha: 0.10),
-            child: Text(initial,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: theme.colorScheme.primary)),
+            backgroundColor: context.palette.brandSoft,
+            child: Text(
+              initial,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(fontSize: 12)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 1),
-                Text('${row.jenjang} · ${row.mode}',
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 9.5)),
+                Text(
+                  '${row.jenjang} · ${row.mode}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -209,14 +220,17 @@ class _StudentRow extends StatelessWidget {
           _AttendButton(
             label: 'Hadir',
             selected: row.status == 'hadir',
-            color: theme.colorScheme.primary,
+            // Warna: hadir = success, alpa = danger (status nyata).
+            color: context.palette.success,
+            soft: context.palette.successSoft,
             onTap: busy ? null : () => onMark('hadir'),
           ),
           const SizedBox(width: 4),
           _AttendButton(
             label: 'Alpa',
             selected: row.status == 'tidak_hadir',
-            color: theme.colorScheme.error,
+            color: context.palette.danger,
+            soft: context.palette.dangerSoft,
             onTap: busy ? null : () => onMark('tidak_hadir'),
           ),
         ],
@@ -230,12 +244,14 @@ class _AttendButton extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.color,
+    required this.soft,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
   final Color color;
+  final Color soft;
   final VoidCallback? onTap;
 
   @override
@@ -248,7 +264,7 @@ class _AttendButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          color: selected ? soft : Colors.transparent,
           border: Border.all(
             color: selected ? color : Theme.of(context).colorScheme.outline,
           ),
@@ -256,10 +272,10 @@ class _AttendButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w800,
-            color: selected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: selected
+                ? color
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ),

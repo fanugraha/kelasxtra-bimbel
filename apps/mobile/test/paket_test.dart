@@ -10,6 +10,16 @@ BeliPaketController _controller() => BeliPaketController(
       invalidateBusy: () {},
     );
 
+const _senin = TutorAvailabilityItem(
+  dayOfWeek: 1,
+  startTime: '16:00:00',
+  endTime: '18:00:00',
+  mode: 'online',
+);
+
+WeeklyOption _option(DateTime date) =>
+    WeeklyOption(slot: _senin, date: date, startMinutes: 960);
+
 void main() {
   test('paketSizeLabel: masa berlaku mengikuti jumlah pertemuan', () {
     expect(paketSizeLabel(4), '4 pertemuan · 1 bulan');
@@ -30,7 +40,7 @@ void main() {
   test('meetingDates: pertemuan tiap 7 hari sejumlah paket', () {
     final c = _controller()
       ..selectSize(4)
-      ..selectDate(DateTime(2026, 10, 19));
+      ..selectWeekly(_option(DateTime(2026, 10, 19)));
     expect(c.meetingDates(), [
       DateTime(2026, 10, 19),
       DateTime(2026, 10, 26),
@@ -49,7 +59,7 @@ void main() {
   test('meetingsFree: bentrok di salah satu pertemuan mingguan terdeteksi', () {
     final c = _controller()
       ..selectSize(4)
-      ..selectDate(DateTime(2026, 10, 19));
+      ..selectWeekly(_option(DateTime(2026, 10, 19)));
     final busy = [
       BusySlot(
         start: DateTime(2026, 10, 26, 16),
@@ -62,20 +72,56 @@ void main() {
     expect(c.meetingsFree(DateTime(2026, 10, 19), 900, busy), isTrue);
   });
 
-  test('startTimes: hanya jam yang muat durasi & bebas bentrok', () {
-    final c = _controller()..selectDuration(60);
-    const slot = TutorAvailabilityItem(
-      dayOfWeek: 1,
-      startTime: '16:00:00',
-      endTime: '18:00:00',
-      mode: 'online',
-    );
-    final times = c.startTimes(
-      date: DateTime(2026, 10, 19),
-      slot: slot,
-      busy: const [],
+  test('weeklyOptions: tiap jam yang muat durasi jadi satu pilihan', () {
+    final c = _controller()
+      ..selectMode('online')
+      ..selectDuration(60);
+    final options = c.weeklyOptions(
+      availability: const [_senin],
+      tutorBusy: const [],
+      mine: const [],
       now: DateTime(2026, 10, 18),
     );
-    expect(times, [960, 1020]); // 16:00 & 17:00
+    expect([for (final o in options) o.startMinutes], [960, 1020]);
+    expect(options.first.date, DateTime(2026, 10, 19));
+    expect(options.every((o) => o.clash == null), isTrue);
+  });
+
+  test('weeklyOptions: tutor penuh di minggu pertama → mulai minggu depan', () {
+    final c = _controller()
+      ..selectMode('online')
+      ..selectSize(4);
+    final options = c.weeklyOptions(
+      availability: const [_senin],
+      tutorBusy: [
+        BusySlot(
+          start: DateTime(2026, 10, 19, 16),
+          end: DateTime(2026, 10, 19, 17),
+        ),
+      ],
+      mine: const [],
+      now: DateTime(2026, 10, 18),
+    );
+    final jam16 = options.firstWhere((o) => o.startMinutes == 960);
+    expect(jam16.date, DateTime(2026, 10, 26));
+  });
+
+  test('weeklyOptions: bentrok dengan les siswa sendiri ditandai', () {
+    final c = _controller()..selectMode('online');
+    final options = c.weeklyOptions(
+      availability: const [_senin],
+      tutorBusy: const [],
+      mine: [
+        (
+          start: DateTime(2026, 11, 2, 17),
+          end: DateTime(2026, 11, 2, 18),
+          label: 'Fisika · Budi',
+        ),
+      ],
+      now: DateTime(2026, 10, 18),
+    );
+    final jam17 = options.firstWhere((o) => o.startMinutes == 1020);
+    expect(jam17.clash, 'Bentrok dengan les Fisika · Budi');
+    expect(options.firstWhere((o) => o.startMinutes == 960).clash, isNull);
   });
 }

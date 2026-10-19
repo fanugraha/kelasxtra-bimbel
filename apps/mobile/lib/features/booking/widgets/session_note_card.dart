@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
@@ -37,20 +38,22 @@ class SessionNoteCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.menu_book_rounded,
-                size: 17,
-                color: theme.colorScheme.primary,
+                size: 18,
+                color: context.palette.brand,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   'Catatan tentor',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
               if (n?.updatedAt != null)
                 Text(
                   AppFormat.dateShort(n!.updatedAt!),
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                  style: theme.textTheme.labelSmall,
                 ),
             ],
           ),
@@ -58,17 +61,11 @@ class SessionNoteCard extends StatelessWidget {
           if (n == null) ...[
             Text(
               'Belum ada catatan dari tentor.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+              style: theme.textTheme.titleSmall,
             ),
             if (emptyHint != null) ...[
               const SizedBox(height: AppSpacing.xs),
-              Text(
-                emptyHint!,
-                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-              ),
+              Text(emptyHint!, style: theme.textTheme.bodySmall),
             ],
           ] else ...[
             _Field(label: 'Materi', value: n.material),
@@ -115,18 +112,15 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final palette = context.palette;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: highlight
-            ? scheme.primary.withValues(alpha: 0.07)
-            : scheme.surfaceContainerLow,
+        color: highlight ? palette.brandSoft : scheme.surfaceContainerLow,
         borderRadius: const BorderRadius.all(Radius.circular(AppRadius.md)),
         border: Border.all(
-          color: highlight
-              ? scheme.primary.withValues(alpha: 0.25)
-              : scheme.outline,
+          color: highlight ? palette.brandSoft : scheme.outline,
         ),
       ),
       child: Column(
@@ -134,17 +128,17 @@ class _Field extends StatelessWidget {
         children: [
           Text(
             label.toUpperCase(),
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: highlight ? scheme.primary : scheme.onSurfaceVariant,
+            // Eyebrow: labelSmall kapital, spasi huruf kecil.
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+              color: highlight ? palette.brand : scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+            style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurface),
           ),
         ],
       ),

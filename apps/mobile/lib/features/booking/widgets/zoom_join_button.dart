@@ -64,14 +64,14 @@ class ZoomJoinButton extends StatelessWidget {
               children: [
                 Icon(
                   Icons.videocam_off_outlined,
-                  size: 17,
+                  size: 18,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     'Tautan Zoom belum ada',
-                    style: theme.textTheme.titleSmall?.copyWith(fontSize: 13.5),
+                    style: theme.textTheme.titleSmall,
                   ),
                 ),
               ],
@@ -81,7 +81,7 @@ class ZoomJoinButton extends StatelessWidget {
               isTutor
                   ? 'Tempel tautan Zoom sesi ini supaya siswa bisa bergabung.'
                   : 'Tentor belum menambahkan tautan. Kamu bisa mengingatkan lewat chat.',
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+              style: theme.textTheme.bodySmall,
             ),
             if (isTutor && onAddLink != null) ...[
               const SizedBox(height: AppSpacing.md),
@@ -103,14 +103,14 @@ class ZoomJoinButton extends StatelessWidget {
           children: [
             Icon(
               Icons.videocam_outlined,
-              size: 17,
+              size: 18,
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 'Sesi daring ini sudah berakhir.',
-                style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                style: theme.textTheme.bodySmall,
               ),
             ),
           ],
@@ -131,7 +131,7 @@ class ZoomJoinButton extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Aktif ${meetingCountdown(status.opensAt!)}. Tautan dibuka 15 menit sebelum sesi.',
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
+            style: theme.textTheme.bodySmall,
           ),
         ],
       ],

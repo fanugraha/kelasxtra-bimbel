@@ -19,13 +19,12 @@ import 'steps/step_jadwal.dart';
 import 'steps/step_paket.dart';
 import 'steps/step_ringkasan.dart';
 import 'widgets/bar_total.dart';
-import 'widgets/step_progress.dart';
 
-/// Beli paket pertemuan (4/8/12, seminggu sekali) dalam 3 langkah:
-/// paket & durasi, jadwal mingguan, lalu ringkasan & pembayaran.
+/// Beli paket pertemuan (4/8/12, seminggu sekali) dalam satu halaman:
+/// paket, jadwal mingguan, lalu bayar dengan QRIS dari bar bawah.
 ///
-/// Layar ini hanya mengurus kerangka (head, progres, bar bawah) dan navigasi;
-/// state & logika ada di [BeliPaketController], tiap langkah di `steps/`.
+/// Layar ini hanya mengurus kerangka (head, bar bawah) dan aksi; state &
+/// logika ada di [BeliPaketController], tiap bagian di `steps/`.
 class BeliPaketScreen extends ConsumerStatefulWidget {
   const BeliPaketScreen({super.key, required this.tutorId});
 
@@ -82,7 +81,7 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
                   icon: Icons.person_off_rounded,
                   title: 'Tutor tidak ditemukan',
                 )
-              : _buildWizard(d, busy),
+              : _buildPage(d, busy),
         ),
       ),
       bottomNavigationBar: detail.maybeWhen(
@@ -92,55 +91,72 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     );
   }
 
-  Widget _buildWizard(TutorDetail detail, List<BusySlot>? busy) {
+  Widget _buildPage(TutorDetail detail, List<BusySlot>? busy) {
     final c = _controller;
-    return Column(
+    _autoSelect(detail);
+    return ListView(
+      padding: screenPadding,
       children: [
-        Expanded(
-          child: ListView(
-            padding: screenPadding,
-            children: [
-              ScreenHead(
-                showBack: c.step == 0,
-                eyebrow:
-                    'Paket belajar · langkah ${c.step + 1} dari ${beliPaketStepTitles.length}',
-                title: beliPaketStepTitles[c.step],
-                subtitle: detail.tutor.fullName,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              StepProgress(
-                current: c.step,
-                labels: beliPaketStepTitles,
-                onTap: c.goTo,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _stepWidget(detail, busy),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-          ),
+        ScreenHead(
+          showBack: true,
+          eyebrow: 'Beli paket',
+          title: detail.tutor.fullName,
+          subtitle: 'Pilih paket dan jadwal, lalu bayar dengan QRIS.',
         ),
+        const SizedBox(height: AppSpacing.xl),
+        StepPaket(controller: c, detail: detail),
+        const SizedBox(height: AppSpacing.xl),
+        StepJadwal(
+          controller: c,
+          detail: detail,
+          busy: busy,
+          mine: _mySessions(),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        StepRingkasan(
+          controller: c,
+          onApplyVoucher: _applyVoucher,
+          onClearVoucher: c.clearVoucher,
+        ),
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
 
-  Widget _stepWidget(TutorDetail detail, List<BusySlot>? busy) {
+  /// Mapel & mode langsung terpilih bila tutor hanya punya satu pilihan.
+  void _autoSelect(TutorDetail detail) {
     final c = _controller;
-    return switch (c.step) {
-      0 => StepPaket(controller: c, detail: detail),
-      1 => StepJadwal(controller: c, detail: detail, busy: busy),
-      _ => StepRingkasan(
-        controller: c,
-        onApplyVoucher: _applyVoucher,
-        onClearVoucher: c.clearVoucher,
-      ),
-    };
+    final modes = c.availableModes(detail.availability);
+    if (c.subject != null && c.mode != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (c.subject == null && detail.subjects.length == 1) {
+        c.selectSubject(detail.subjects.single);
+      }
+      if (c.mode == null && modes.length == 1) c.selectMode(modes.single);
+    });
+  }
+
+  /// Les siswa yang masih berjalan/menunggu bayar — tidak boleh ditabrak.
+  List<MySession> _mySessions() {
+    final mine = ref.watch(myBookingsProvider).asData?.value ?? const [];
+    return [
+      for (final b in mine)
+        if (b.status == 'confirmed' ||
+            b.status == 'in_progress' ||
+            b.status == 'pending_payment')
+          (
+            start: b.scheduledAt,
+            end: b.scheduledAt.add(Duration(minutes: b.durationMinutes)),
+            label: '${b.subjectName} · ${b.tutorName}',
+          ),
+    ];
   }
 
   // --- Bar bawah ----------------------------------------------------------
 
   Widget _buildBottomBar() {
     final c = _controller;
-    final isLast = c.isLastStep;
     final showTotal = c.subject != null && c.mode != null;
     return Container(
       decoration: BoxDecoration(
@@ -165,28 +181,11 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
             ],
-            Row(
-              children: [
-                if (c.step > 0) ...[
-                  AppButton(
-                    label: 'Kembali',
-                    expand: false,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: c.submitting ? null : () => c.goTo(c.step - 1),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                ],
-                Expanded(
-                  child: AppButton(
-                    label: _advanceLabel,
-                    icon: isLast ? Icons.lock_outline_rounded : null,
-                    loading: c.submitting,
-                    onPressed: _canAdvance()
-                        ? (isLast ? _submit : () => c.goTo(c.step + 1))
-                        : null,
-                  ),
-                ),
-              ],
+            AppButton(
+              label: _missing ?? 'Bayar dengan QRIS',
+              icon: _missing == null ? Icons.qr_code_2_rounded : null,
+              loading: c.submitting,
+              onPressed: _missing == null ? _submit : null,
             ),
           ],
         ),
@@ -194,35 +193,33 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
     );
   }
 
-  String get _advanceLabel => switch (_controller.step) {
-    0 => 'Lanjutkan ke jadwal',
-    1 => 'Lanjut ke ringkasan',
-    _ => 'Lanjut ke pembayaran',
-  };
-
-  bool _canAdvance() {
+  /// Apa yang belum diisi (jadi label tombol), atau null bila siap bayar.
+  String? get _missing {
     final c = _controller;
-    return switch (c.step) {
-      0 => c.subject != null && c.mode != null && _packagePrice() != null,
-      1 => c.slot != null && c.date != null && c.startMinutes != null,
-      _ => c.mode != 'offline' || c.address.text.trim().isNotEmpty,
-    };
+    if (c.subject == null) return 'Pilih mata pelajaran';
+    if (c.mode == null) return 'Pilih mode belajar';
+    if (_packagePrice(watch: true) == null) return 'Harga paket belum tersedia';
+    if (c.date == null || c.startMinutes == null) {
+      return 'Pilih jadwal mingguan';
+    }
+    if (c.mode == 'offline' && c.address.text.trim().isEmpty) {
+      return 'Isi alamat belajar';
+    }
+    return null;
   }
 
-  int? _packagePrice() {
+  /// [watch] dipakai dari build agar tombol ikut aktif begitu harga selesai
+  /// dimuat; dari callback cukup `read`.
+  int? _packagePrice({bool watch = false}) {
     final c = _controller;
     if (c.subject == null || c.mode == null) return null;
-    return ref
-        .read(
-          packagePriceProvider((
-            jenjang: c.subject!.jenjang,
-            duration: c.duration,
-            mode: c.mode!,
-            totalSesi: c.size,
-          )),
-        )
-        .asData
-        ?.value;
+    final provider = packagePriceProvider((
+      jenjang: c.subject!.jenjang,
+      duration: c.duration,
+      mode: c.mode!,
+      totalSesi: c.size,
+    ));
+    return (watch ? ref.watch(provider) : ref.read(provider)).asData?.value;
   }
 
   // --- Aksi ---------------------------------------------------------------
@@ -261,11 +258,9 @@ class _BeliPaketScreenState extends ConsumerState<BeliPaketScreen> {
       context.pushReplacement('/paket');
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => QrisScreen(result: result),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => QrisScreen(result: result)));
     if (!mounted) return;
     ref.invalidate(myPackagesProvider);
     context.pushReplacement(

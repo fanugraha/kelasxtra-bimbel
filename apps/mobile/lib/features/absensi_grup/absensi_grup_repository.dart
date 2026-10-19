@@ -27,7 +27,8 @@ class GroupAttendanceRow {
   final String studentName;
   final String? status;
 
-  factory GroupAttendanceRow.fromMap(Map<String, dynamic> m) => GroupAttendanceRow(
+  factory GroupAttendanceRow.fromMap(Map<String, dynamic> m) =>
+      GroupAttendanceRow(
         sessionId: m['group_session_id'] as String,
         classId: m['group_class_id'] as String,
         seq: (m['seq'] as num).toInt(),
@@ -48,18 +49,19 @@ class GroupAttendanceRepository {
         .select()
         .order('scheduled_at')
         .order('student_name');
-    return [
-      for (final r in data) GroupAttendanceRow.fromMap(r),
-    ];
+    return [for (final r in data) GroupAttendanceRow.fromMap(r)];
   }
 
   Future<void> mark(String sessionId, String studentId, String status) async {
     try {
-      await supabase.rpc('mark_group_attendance', params: {
-        'p_session': sessionId,
-        'p_student': studentId,
-        'p_status': status,
-      });
+      await supabase.rpc(
+        'mark_group_attendance',
+        params: {
+          'p_session': sessionId,
+          'p_student': studentId,
+          'p_status': status,
+        },
+      );
     } on PostgrestException catch (e) {
       throw Exception(e.message);
     }

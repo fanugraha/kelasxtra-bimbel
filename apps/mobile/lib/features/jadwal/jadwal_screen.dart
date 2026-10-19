@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_flavor.dart';
 import '../../core/format.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
@@ -12,10 +13,14 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/screen_head.dart';
 import '../booking/booking_providers.dart';
 import '../booking/booking_repository.dart';
-import 'widgets/session_card.dart';
+import 'widgets/next_session_card.dart';
+import 'widgets/session_tile.dart';
 
-/// Agenda sesi siswa/tutor: yang akan datang dan yang sudah selesai.
-/// Riwayat uang (paket, sesi, langganan) ada di halaman Riwayat transaksi.
+/// Agenda sesi siswa/tutor yang SUDAH LUNAS.
+///
+/// Susunannya meniru kartu janji temu Halodoc: sesi terdekat tampil sebagai
+/// satu kartu besar (foto tentor + jadwal + aksi), lalu pertemuan berikutnya
+/// sebagai timeline titik ke bawah yang dikelompokkan per tanggal.
 class JadwalScreen extends ConsumerStatefulWidget {
   const JadwalScreen({super.key});
 
@@ -26,21 +31,16 @@ class JadwalScreen extends ConsumerStatefulWidget {
 class _JadwalScreenState extends ConsumerState<JadwalScreen> {
   var _completed = false;
 
-  /// Kelompok Lapis 1 yang sedang ditutup (per id tentor/siswa).
-  final _collapsed = <String>{};
+  static const _closed = {'completed', 'cancelled', 'refunded', 'expired'};
 
-  /// Sesi mendatang: semua yang belum tuntas/dibatalkan. Sesi lampau:
-  /// yang sudah selesai — dipisah agar agenda tetap ringkas.
   List<BookingItem> _agenda(List<BookingItem> all) {
     final list =
         all
             .where(
               (b) => _completed
                   ? b.status == 'completed'
-                  : b.status != 'completed' &&
-                        b.status != 'cancelled' &&
-                        b.status != 'refunded' &&
-                        b.status != 'expired',
+                  : b.status != 'pending_payment' &&
+                        !_closed.contains(b.status),
             )
             .toList()
           ..sort(
@@ -49,6 +49,18 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                 : a.scheduledAt.compareTo(b.scheduledAt),
           );
     return list;
+  }
+
+  /// Kelompokkan sesi per tanggal; urutan mengikuti daftar yang sudah diurut.
+  List<_DayGroup> _byDay(List<BookingItem> list) {
+    final days = <DateTime, List<BookingItem>>{};
+    for (final b in list) {
+      final d = b.scheduledAt;
+      days.putIfAbsent(DateTime(d.year, d.month, d.day), () => []).add(b);
+    }
+    return [
+      for (final e in days.entries) _DayGroup(day: e.key, items: e.value),
+    ];
   }
 
   @override
@@ -64,6 +76,11 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
           onRetry: () => ref.invalidate(jadwalProvider),
           builder: (all) {
             final list = _agenda(all);
+            final hasUnpaid =
+                isSiswa && all.any((b) => b.status == 'pending_payment');
+            final next = !_completed && list.isNotEmpty ? list.first : null;
+            final rest = next == null ? list : list.skip(1).toList();
+            final groups = _byDay(rest);
 
             return RefreshIndicator(
               onRefresh: () async => ref.invalidate(jadwalProvider),
@@ -74,8 +91,8 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                     eyebrow: isSiswa ? 'Agenda' : 'Agenda mengajar',
                     title: 'Jadwal',
                     subtitle: isSiswa
-                        ? 'Dikelompokkan per tentor. Ketuk untuk buka daftar sesinya. Waktu memakai WIB.'
-                        : 'Dikelompokkan per siswa. Sesi privat dan kelas grup yang harus kamu ajar.',
+                        ? 'Sesi yang sudah dibayar, urut dari yang terdekat.'
+                        : 'Sesi mengajar, urut dari yang terdekat.',
                   ),
                   const SizedBox(height: 18),
                   _Segmented(
@@ -85,12 +102,16 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                     onChanged: (v) => setState(() => _completed = v),
                   ),
                   const SizedBox(height: 18),
+                  if (hasUnpaid && !_completed) ...[
+                    const _UnpaidBanner(),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                   if (list.isEmpty)
                     EmptyState(
                       icon: Icons.event_busy_rounded,
                       title: _completed
                           ? 'Belum ada sesi selesai'
-                          : 'Belum ada sesi',
+                          : 'Belum ada jadwal',
                       message: _completed
                           ? 'Sesi yang sudah berjalan akan tampil di sini.'
                           : isSiswa
@@ -104,8 +125,32 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                             )
                           : null,
                     )
-                  else
-                    ..._grouped(list, isSiswa),
+                  else ...[
+                    if (next != null) ...[
+                      const _SectionLabel(
+                        icon: Icons.bolt_rounded,
+                        text: 'Sesi berikutnya',
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      NextSessionCard(booking: next, isSiswa: isSiswa),
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
+                    if (groups.isNotEmpty) ...[
+                      _SectionLabel(
+                        icon: _completed
+                            ? Icons.history_rounded
+                            : Icons.event_repeat_rounded,
+                        text: _completed ? 'Riwayat sesi' : 'Jadwal berikutnya',
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      for (final group in groups)
+                        _DayGroupView(
+                          group: group,
+                          isSiswa: isSiswa,
+                          muted: _completed,
+                        ),
+                    ],
+                  ],
                 ],
               ),
             );
@@ -114,139 +159,151 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
       ),
     );
   }
+}
 
-  /// Dua lapis: Lapis 1 kartu tentor (atau siswa, bila kita tutor) dan
-  /// Lapis 2 daftar jadwal milik orang itu. Urutan sesi tetap kronologis.
-  List<Widget> _grouped(List<BookingItem> list, bool isSiswa) {
-    final groups = <String, _PersonGroup>{};
-    for (final b in list) {
-      final key = isSiswa ? b.tutorId : b.studentId;
-      final group = groups.putIfAbsent(
-        key,
-        () => _PersonGroup(
-          id: key,
-          name: isSiswa ? b.tutorName : b.studentName,
-          photoUrl: isSiswa ? b.tutorPhotoUrl : null,
-        ),
-      );
-      group.items.add(b);
-    }
+class _DayGroup {
+  const _DayGroup({required this.day, required this.items});
 
-    return [
-      for (final group in groups.values) ...[
-        _PersonCard(
-          group: group,
-          isSiswa: isSiswa,
-          collapsed: _collapsed.contains(group.id),
-          onToggle: () => setState(() {
-            if (!_collapsed.remove(group.id)) _collapsed.add(group.id);
-          }),
-        ),
-        if (!_collapsed.contains(group.id))
-          for (final b in group.items)
-            Padding(
-              padding: const EdgeInsets.only(left: 14, top: AppSpacing.sm + 2),
-              child: SessionCard(booking: b, isSiswa: isSiswa),
+  final DateTime day;
+  final List<BookingItem> items;
+}
+
+/// Satu tanggal di timeline: judul hari + deretan titik sesi.
+class _DayGroupView extends StatelessWidget {
+  const _DayGroupView({
+    required this.group,
+    required this.isSiswa,
+    required this.muted,
+  });
+
+  final _DayGroup group;
+  final bool isSiswa;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DayHead(day: group.day, count: group.items.length),
+          const SizedBox(height: 2),
+          for (var i = 0; i < group.items.length; i++)
+            SessionTile(
+              booking: group.items[i],
+              isSiswa: isSiswa,
+              isFirst: i == 0,
+              isLast: i == group.items.length - 1,
+              muted: muted,
             ),
-        const SizedBox(height: AppSpacing.md),
-      ],
-    ];
+        ],
+      ),
+    );
   }
 }
 
-/// Satu kelompok Lapis 1: tentor (dilihat siswa) atau siswa (dilihat tutor).
-class _PersonGroup {
-  _PersonGroup({required this.id, required this.name, this.photoUrl});
+class _DayHead extends StatelessWidget {
+  const _DayHead({required this.day, required this.count});
 
-  final String id;
-  final String name;
-  final String? photoUrl;
-  final items = <BookingItem>[];
-}
-
-/// Kartu Lapis 1: foto/inisial, nama, ringkasan mapel & jumlah sesi, lalu
-/// tombol buka-tutup daftar jadwalnya.
-class _PersonCard extends StatelessWidget {
-  const _PersonCard({
-    required this.group,
-    required this.isSiswa,
-    required this.collapsed,
-    required this.onToggle,
-  });
-
-  final _PersonGroup group;
-  final bool isSiswa;
-  final bool collapsed;
-  final VoidCallback onToggle;
+  final DateTime day;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final initial = group.name.isEmpty ? '?' : group.name[0].toUpperCase();
-    final subjects = <String>{
-      for (final b in group.items) b.subjectName,
-    }.join(', ');
-    final photo = group.photoUrl;
-    final nearest = group.items.first.scheduledAt;
+    final label = AppFormat.dayLabel(day);
+    final soon = label == 'Hari ini' || label == 'Besok';
 
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: soon ? scheme.primary : scheme.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$count sesi',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: scheme.primary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pengingat tagihan yang belum dibayar; detailnya di Riwayat transaksi.
+class _UnpaidBanner extends StatelessWidget {
+  const _UnpaidBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     return AppCard(
-      onTap: onToggle,
+      onTap: () => context.push('/riwayat-transaksi'),
+      // Warna: tagihan menggantung perlu perhatian → peringatan tonal.
+      color: palette.warningSoft,
       padding: const EdgeInsets.all(AppSpacing.md + 2),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 21,
-            backgroundColor: scheme.primary.withValues(alpha: 0.12),
-            backgroundImage: photo == null ? null : NetworkImage(photo),
-            child: photo == null
-                ? Text(
-                    initial,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.primary,
-                    ),
-                  )
-                : null,
-          ),
+          Icon(Icons.receipt_long_rounded, color: palette.warning),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${isSiswa ? 'Tutor' : 'Siswa'} ${group.name}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14.5),
+                  'Ada pembayaran yang belum selesai',
+                  style: theme.textTheme.titleSmall,
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
-                  '${group.items.length} sesi · $subjects',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '${collapsed ? 'Berikutnya' : 'Mulai'}: ${AppFormat.dateShort(nearest)} · '
-                  '${AppFormat.hm(nearest)} WIB',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.primary,
-                  ),
+                  'Jadwalnya baru muncul di sini setelah lunas. Lihat di Riwayat transaksi.',
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
           ),
-          Icon(
-            collapsed ? Icons.expand_more_rounded : Icons.expand_less_rounded,
-            color: scheme.onSurfaceVariant,
-          ),
+          const Icon(Icons.chevron_right_rounded),
         ],
       ),
     );
@@ -268,34 +325,35 @@ class _Segmented extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     Widget item(String label, bool selected, VoidCallback onTap) {
       return Expanded(
         child: GestureDetector(
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            height: 40,
+            height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? scheme.surface : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
+              color: selected ? scheme.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
               boxShadow: selected
                   ? [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+                        color: scheme.primary.withValues(alpha: 0.22),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
                     ]
                   : null,
             ),
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -306,9 +364,9 @@ class _Segmented extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.04),
+        color: scheme.surface,
         border: Border.all(color: scheme.outline),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         children: [

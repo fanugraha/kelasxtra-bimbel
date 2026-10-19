@@ -7,9 +7,8 @@ import '../../../../core/widgets/selectable_chip.dart';
 import '../../../katalog/katalog_repository.dart';
 import '../../paket_providers.dart';
 import '../beli_paket_controller.dart';
-import '../widgets/price_card.dart';
 
-/// Langkah 1: mapel, mode, durasi, jumlah pertemuan.
+/// Bagian paket: mapel, mode, durasi, jumlah pertemuan.
 class StepPaket extends StatelessWidget {
   const StepPaket({super.key, required this.controller, required this.detail});
 
@@ -91,13 +90,6 @@ class StepPaket extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        PriceCard(
-          subject: c.subject,
-          mode: c.mode,
-          duration: c.duration,
-          size: c.size,
         ),
       ],
     );

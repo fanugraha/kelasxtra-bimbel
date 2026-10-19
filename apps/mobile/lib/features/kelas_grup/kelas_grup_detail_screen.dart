@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 
 import '../../core/format.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
@@ -81,11 +81,15 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
             children: [
               Row(
                 children: [
-                  Text(
-                    '${c.seatsTaken}/${c.maxSeats} kursi terisi',
-                    style: theme.textTheme.titleMedium,
+                  Expanded(
+                    child: Text(
+                      '${c.seatsTaken}/${c.maxSeats} kursi terisi',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     'minimal ${c.minSeats}',
                     style: theme.textTheme.bodySmall,
@@ -98,9 +102,7 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
                 child: LinearProgressIndicator(
                   value: c.maxSeats == 0 ? 0 : c.seatsTaken / c.maxSeats,
                   minHeight: 8,
-                  backgroundColor: theme.colorScheme.primary.withValues(
-                    alpha: 0.12,
-                  ),
+                  backgroundColor: context.palette.brandSoft,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -134,13 +136,11 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
                     radius: 16,
-                    backgroundColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.12,
-                    ),
+                    backgroundColor: context.palette.brandSoft,
                     child: Text(
                       '${s.seq}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: context.palette.brand,
                       ),
                     ),
                   ),
@@ -157,16 +157,20 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
             children: [
               Row(
                 children: [
-                  Text(
-                    '${c.totalSesi} × ${AppFormat.rupiah(c.pricePerSession)}',
-                    style: theme.textTheme.bodySmall,
+                  Expanded(
+                    child: Text(
+                      '${c.totalSesi} × ${AppFormat.rupiah(c.pricePerSession)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
-                  const Spacer(),
                   if (c.discountPercent > 0)
                     Text(
                       '−${c.discountPercent}%',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.success,
+                        // Warna: diskon = peran promo.
+                        color: context.palette.promo,
                       ),
                     ),
                 ],
@@ -179,8 +183,10 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 AppFormat.rupiah(c.priceTotal),
+                // Warna: total netral tebal — jangan saingi tombol bayar.
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ],
@@ -192,14 +198,16 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
           AppCard(
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_circle_rounded,
-                  color: AppColors.success,
+                  color: context.palette.success,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Kursimu: ${seat.statusLabel}',
-                  style: theme.textTheme.bodyMedium,
+                Expanded(
+                  child: Text(
+                    'Kursimu: ${seat.statusLabel}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                 ),
               ],
             ),
@@ -223,10 +231,10 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
             onPressed: _submit,
           ),
           const SizedBox(height: AppSpacing.sm),
-          const Text(
+          Text(
             'Kursi ditahan 30 menit saat kamu lanjut ke pembayaran.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12),
+            style: theme.textTheme.labelSmall,
           ),
         ] else if (seat == null) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -271,11 +279,9 @@ class _KelasGrupDetailScreenState extends ConsumerState<KelasGrupDetailScreen> {
         Navigator.of(context).pop(true);
         return;
       }
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QrisScreen(result: res),
-        ),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => QrisScreen(result: res)));
       if (!mounted) return;
       ref.invalidate(myGroupSeatProvider(widget.classId));
       ref.invalidate(groupClassProvider(widget.classId));

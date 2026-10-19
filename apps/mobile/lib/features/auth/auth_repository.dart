@@ -51,7 +51,9 @@ class AuthRepository {
       'emergency_contact_name': emergencyContactName,
       'emergency_contact_phone': emergencyContactPhone,
       'guardian_consent': guardianConsent,
-      'guardian_consent_at': guardianConsent ? DateTime.now().toUtc().toIso8601String() : null,
+      'guardian_consent_at': guardianConsent
+          ? DateTime.now().toUtc().toIso8601String()
+          : null,
     });
   }
 
@@ -64,7 +66,9 @@ class AuthRepository {
         .single();
     final s = await supabase
         .from('students')
-        .select('jenjang, school, emergency_contact_name, emergency_contact_phone')
+        .select(
+          'jenjang, school, emergency_contact_name, emergency_contact_phone',
+        )
         .eq('id', uid)
         .maybeSingle();
 

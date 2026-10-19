@@ -52,13 +52,17 @@ class RiwayatRepository {
   Future<List<TransaksiItem>> _paket() async {
     final rows = await supabase
         .from('package_purchases')
-        .select('id, tutor_id, subject_id, total_sesi, jenjang, price_total, '
-            'discount, status, created_at, purchased_at')
+        .select(
+          'id, tutor_id, subject_id, total_sesi, jenjang, price_total, '
+          'discount, status, created_at, purchased_at',
+        )
         .order('created_at', ascending: false);
     if (rows.isEmpty) return [];
 
     final tutorIds = {for (final r in rows) r['tutor_id'] as String}.toList();
-    final subjectIds = {for (final r in rows) r['subject_id'] as String}.toList();
+    final subjectIds = {
+      for (final r in rows) r['subject_id'] as String,
+    }.toList();
     final tutorNames = await _names('tutor_catalog', 'full_name', tutorIds);
     final subjectNames = await _names('subjects', 'name', subjectIds);
 
@@ -68,9 +72,11 @@ class RiwayatRepository {
           id: r['id'] as String,
           kind: TransaksiKind.paket,
           title: 'Paket ${r['total_sesi']} pertemuan',
-          subtitle: '${subjectNames[r['subject_id']] ?? '-'} · '
+          subtitle:
+              '${subjectNames[r['subject_id']] ?? '-'} · '
               '${tutorNames[r['tutor_id']] ?? '-'} · ${r['jenjang'] ?? '-'}',
-          amount: (r['price_total'] as num).toInt() -
+          amount:
+              (r['price_total'] as num).toInt() -
               ((r['discount'] as num?)?.toInt() ?? 0),
           status: (r['status'] ?? '-') as String,
           at: _date(r['purchased_at'] ?? r['created_at']),
@@ -114,12 +120,14 @@ class RiwayatRepository {
             id: p['order_id'] as String,
             kind: TransaksiKind.sesi,
             title: 'Sesi ${b['duration_minutes'] ?? '-'} menit',
-            subtitle: '${subjectNames[b['subject_id']] ?? '-'} · '
+            subtitle:
+                '${subjectNames[b['subject_id']] ?? '-'} · '
                 '${tutorNames[b['tutor_id']] ?? '-'}',
             amount: (p['amount'] as num).toInt(),
             status: (p['status'] ?? '-') as String,
             at: _date(p['paid_at'] ?? p['created_at']),
-            note: 'ID ${(p['order_id'] as String).split('-').last.toUpperCase()}',
+            note:
+                'ID ${(p['order_id'] as String).split('-').last.toUpperCase()}',
             route: '/sesi/${p['booking_id']}',
           ),
     ];
@@ -157,11 +165,15 @@ class RiwayatRepository {
   Future<List<TransaksiItem>> _kelasGrup() async {
     final seats = await supabase
         .from('group_seats')
-        .select('id, group_class_id, price_paid, status, refund_amount, created_at')
+        .select(
+          'id, group_class_id, price_paid, status, refund_amount, created_at',
+        )
         .order('created_at', ascending: false);
     if (seats.isEmpty) return [];
 
-    final classIds = {for (final s in seats) s['group_class_id'] as String}.toList();
+    final classIds = {
+      for (final s in seats) s['group_class_id'] as String,
+    }.toList();
     final classes = await supabase
         .from('group_classes_visible')
         .select('id, subject_name, tutor_name, jenjang, total_sesi')
@@ -175,7 +187,8 @@ class RiwayatRepository {
             id: s['id'] as String,
             kind: TransaksiKind.kelasGrup,
             title: 'Kelas grup ${c['subject_name'] ?? ''}'.trim(),
-            subtitle: '${c['tutor_name'] ?? '-'} · ${c['jenjang'] ?? '-'} · '
+            subtitle:
+                '${c['tutor_name'] ?? '-'} · ${c['jenjang'] ?? '-'} · '
                 '${c['total_sesi'] ?? '-'} sesi',
             amount: (s['price_paid'] as num).toInt(),
             status: (s['status'] ?? '-') as String,
@@ -194,7 +207,10 @@ class RiwayatRepository {
     List<String> ids,
   ) async {
     if (ids.isEmpty) return const {};
-    final rows = await supabase.from(table).select('id, $column').inFilter('id', ids);
+    final rows = await supabase
+        .from(table)
+        .select('id, $column')
+        .inFilter('id', ids);
     return {
       for (final r in rows) r['id'] as String: (r[column] ?? '-') as String,
     };

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 
 import '../../core/format.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
@@ -82,7 +82,9 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
   }
 
   Future<({String attemptId, List<PracticeQuestion> questions})> _start() {
-    return ref.read(bankSoalRepositoryProvider).startAttempt(
+    return ref
+        .read(bankSoalRepositoryProvider)
+        .startAttempt(
           mode: widget.mode,
           topicId: widget.topicId,
           jenjang: widget.jenjang,
@@ -103,9 +105,10 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
                 child: Text(
                   AppFormat.clock(_remaining),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: _remaining <= 60 ? AppColors.danger : null,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                    // Warna: waktu hampir habis = perlu perhatian → warning.
+                    color: _remaining <= 60 ? context.palette.warning : null,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
@@ -167,7 +170,7 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: AppSpacing.md),
-              MathText(q.body, style: theme.textTheme.titleMedium!),
+              MathText(q.body, style: theme.textTheme.bodyLarge!),
               const SizedBox(height: AppSpacing.lg),
               if (q.type == 'pg')
                 for (final o in q.options)
@@ -206,7 +209,9 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
                   loading: _submitting,
                   onPressed: (!answered && !last)
                       ? null
-                      : (last ? () => _submit(data) : () => setState(() => _index++)),
+                      : (last
+                            ? () => _submit(data)
+                            : () => setState(() => _index++)),
                 ),
               ),
             ],
@@ -224,11 +229,15 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
     _timer = null;
     setState(() => _submitting = true);
     try {
-      final result = await ref.read(bankSoalRepositoryProvider).submitAttempt(
+      final result = await ref
+          .read(bankSoalRepositoryProvider)
+          .submitAttempt(
             attemptId: data.attemptId,
             answers: {for (final q in data.questions) q.id: _answers[q.id]},
           );
-      await ref.read(bankSoalRepositoryProvider).fetchMyStats(); // hangatkan cache
+      await ref
+          .read(bankSoalRepositoryProvider)
+          .fetchMyStats(); // hangatkan cache
       if (!mounted) return;
       ref.invalidate(myStatsProvider);
       await Navigator.of(context).pushReplacement(
@@ -242,9 +251,9 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(cleanError(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(cleanError(e))));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -265,9 +274,10 @@ class _OptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     return AppCard(
       onTap: onTap,
-      color: selected ? AppColors.primary.withValues(alpha: 0.08) : null,
+      color: selected ? palette.brandSoft : null,
       child: Row(
         children: [
           Container(
@@ -276,20 +286,21 @@ class _OptionTile extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: selected
-                  ? AppColors.primary
-                  : theme.colorScheme.primary.withValues(alpha: 0.08),
+              color: selected ? theme.colorScheme.primary : palette.brandSoft,
             ),
             child: Text(
               option.key,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : theme.colorScheme.primary,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.primary,
               ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Expanded(child: MathText(option.text, style: theme.textTheme.bodyLarge!)),
+          Expanded(
+            child: MathText(option.text, style: theme.textTheme.bodyMedium!),
+          ),
         ],
       ),
     );

@@ -15,7 +15,9 @@ class AppErrorText extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.md),
       child: Text(
         message!,
-        style: TextStyle(color: Theme.of(context).colorScheme.error),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.error,
+        ),
       ),
     );
   }

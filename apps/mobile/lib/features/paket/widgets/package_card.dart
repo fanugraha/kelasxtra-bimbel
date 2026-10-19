@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors.dart';
 
 import '../../../core/format.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -36,11 +36,9 @@ class _PackageCardState extends ConsumerState<PackageCard> {
           .read(paketRepositoryProvider)
           .resumePackageSnap(item.id);
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QrisScreen(result: result),
-        ),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => QrisScreen(result: result)));
       if (!mounted) return;
       ref.invalidate(myPackagesProvider);
       context.push(
@@ -84,8 +82,7 @@ class _PackageCardState extends ConsumerState<PackageCard> {
               const Spacer(),
               Text(
                 '#${item.id.substring(0, 6).toUpperCase()}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 9.5,
+                style: theme.textTheme.labelSmall?.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -96,17 +93,13 @@ class _PackageCardState extends ConsumerState<PackageCard> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.11,
-                ),
+                backgroundColor: context.palette.brandSoft,
                 child: Text(
                   (item.tutorName ?? 'T').isEmpty
                       ? 'T'
                       : item.tutorName![0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: theme.colorScheme.primary,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: context.palette.brand,
                   ),
                 ),
               ),
@@ -117,16 +110,18 @@ class _PackageCardState extends ConsumerState<PackageCard> {
                   children: [
                     Text(
                       item.tutorName ?? 'Tutor',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontSize: 14.5,
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${item.subjectName ?? '-'} · ${item.jenjang} · '
                       '${item.durationMinutes} menit · '
                       '${item.mode == 'online' ? 'Online' : 'Offline'}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -163,13 +158,7 @@ class _PackageCardState extends ConsumerState<PackageCard> {
                       : pending
                       ? (_paying ? null : _pay)
                       : null,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 42)),
                   child: _paying
                       ? const SizedBox(
                           width: 16,
@@ -193,10 +182,6 @@ class _PackageCardState extends ConsumerState<PackageCard> {
                       : () => context.push('/tutor/${item.tutorId}'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                    ),
                   ),
                   child: Text(pending ? 'Ubah jadwal' : 'Lihat tutor'),
                 ),
@@ -227,20 +212,21 @@ class _PackageInfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: 5),
       child: Row(
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
-          ),
-          const Spacer(),
-          Flexible(
+          Text(label, style: theme.textTheme.bodySmall),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: emphasize ? AppColors.primary : null,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              // Warna: nilai netral; harga ditonjolkan dengan semibold netral,
+              // bukan brand.
+              style: emphasize
+                  ? theme.textTheme.titleSmall
+                  : theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
             ),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -30,7 +31,7 @@ class RescheduleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final palette = context.palette;
 
     return AppCard(
       child: Column(
@@ -40,8 +41,10 @@ class RescheduleCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.schedule_rounded,
-                size: 17,
-                color: isMine ? scheme.primary : scheme.tertiary,
+                size: 18,
+                // Warna: pengajuan sendiri cukup info (tidak menuntut aksi);
+                // permintaan masuk perlu dijawab → peringatan.
+                color: isMine ? palette.info : palette.warning,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -49,7 +52,9 @@ class RescheduleCard extends StatelessWidget {
                   isMine
                       ? 'Menunggu persetujuan ganti hari'
                       : 'Permintaan ganti hari',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
             ],
@@ -72,7 +77,7 @@ class RescheduleCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Batas jawaban: ${AppFormat.dateTimeShort(request.respondBy!)} WIB',
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
+              style: theme.textTheme.labelSmall,
             ),
           ],
           const SizedBox(height: AppSpacing.md),
@@ -123,24 +128,10 @@ class _Row extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 108,
-          child: Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 11.5,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          width: 120,
+          child: Text(label, style: theme.textTheme.bodySmall),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
+        Expanded(child: Text(value, style: theme.textTheme.titleSmall)),
       ],
     );
   }

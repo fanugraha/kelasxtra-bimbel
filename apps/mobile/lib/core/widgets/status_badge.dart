@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 
 enum StatusTone { success, warning, info, neutral, danger }
 
@@ -14,21 +14,29 @@ class StatusBadge extends StatelessWidget {
   final String label;
   final StatusTone tone;
 
-  Color get color => switch (tone) {
-        StatusTone.success => AppColors.success,
-        StatusTone.warning => AppColors.warning,
-        StatusTone.info => AppColors.info,
-        StatusTone.danger => AppColors.danger,
-        StatusTone.neutral => const Color(0xFF6B7280),
-      };
+  /// Warna (isi, latar) per nada — dari palette agar benar di mode gelap.
+  (Color, Color) _colors(BuildContext context) {
+    final p = context.palette;
+    final scheme = Theme.of(context).colorScheme;
+    return switch (tone) {
+      StatusTone.success => (p.success, p.successSoft),
+      StatusTone.warning => (p.warning, p.warningSoft),
+      StatusTone.info => (p.info, p.infoSoft),
+      StatusTone.danger => (p.danger, p.dangerSoft),
+      StatusTone.neutral => (
+        scheme.onSurfaceVariant,
+        scheme.surfaceContainerHighest,
+      ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final c = color;
+    final (c, bg) = _colors(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.13),
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -40,12 +48,15 @@ class StatusBadge extends StatelessWidget {
             decoration: BoxDecoration(color: c, shape: BoxShape.circle),
           ),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              color: c,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: c,
+              ),
             ),
           ),
         ],
@@ -62,7 +73,10 @@ class StatusBadge extends StatelessWidget {
       'pending_payment' => (label: 'Menunggu bayar', tone: StatusTone.warning),
       'rescheduled' => (label: 'Dijadwalkan ulang', tone: StatusTone.info),
       'no_show_tutor' => (label: 'Tutor tidak hadir', tone: StatusTone.danger),
-      'no_show_student' => (label: 'Siswa tidak hadir', tone: StatusTone.danger),
+      'no_show_student' => (
+        label: 'Siswa tidak hadir',
+        tone: StatusTone.danger,
+      ),
       'cancelled' => (label: 'Dibatalkan', tone: StatusTone.danger),
       'expired' => (label: 'Kedaluwarsa', tone: StatusTone.neutral),
       'refunded' => (label: 'Dana kembali', tone: StatusTone.neutral),

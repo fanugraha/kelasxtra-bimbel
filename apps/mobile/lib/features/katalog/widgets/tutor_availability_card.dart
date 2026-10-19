@@ -45,10 +45,9 @@ class TutorAvailabilityCard extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
                         AppFormat.longDayName(days[i]),
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall,
                       ),
                     ),
                   ),
@@ -57,7 +56,8 @@ class TutorAvailabilityCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        for (final s in byDay[days[i]]!) _TutorSlotChip(slot: s),
+                        for (final s in byDay[days[i]]!)
+                          _TutorSlotChip(slot: s),
                       ],
                     ),
                   ),
@@ -77,7 +77,8 @@ class _TutorSlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final online = slot.mode == 'online';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -97,9 +98,8 @@ class _TutorSlotChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             slot.timeRange,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],

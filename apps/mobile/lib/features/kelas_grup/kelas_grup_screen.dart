@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/empty_state.dart';
@@ -75,7 +75,7 @@ class _ClassCard extends StatelessWidget {
         : '—';
     final full = item.maxSeats == 0 ? 0.0 : item.seatsTaken / item.maxSeats;
     final badge = item.seatsTaken >= item.maxSeats
-        ? const StatusBadge(label: 'Penuh', tone: StatusTone.success)
+        ? const StatusBadge(label: 'Penuh', tone: StatusTone.neutral)
         : item.seatsTaken / item.maxSeats >= 0.7
         ? const StatusBadge(label: 'Hampir penuh', tone: StatusTone.warning)
         : StatusBadge(
@@ -97,14 +97,16 @@ class _ClassCard extends StatelessWidget {
                   children: [
                     Text(
                       item.subjectName ?? 'Kelas grup',
-                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 15),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${item.tutorName ?? 'Tutor'} · ${item.jenjang} · ${item.mode == 'online' ? 'Online' : 'Offline'}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10.5,
-                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -137,10 +139,10 @@ class _ClassCard extends StatelessWidget {
                     backgroundColor: theme.colorScheme.outline,
                     valueColor: AlwaysStoppedAnimation(
                       full >= 1
-                          ? AppColors.success
+                          ? context.palette.success
                           : full < item.minSeats / item.maxSeats
-                          ? AppColors.warning
-                          : AppColors.primary,
+                          ? context.palette.warning
+                          : context.palette.brand,
                     ),
                   ),
                 ),
@@ -148,10 +150,7 @@ class _ClassCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${item.seatsTaken} / ${item.maxSeats} kursi',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: theme.textTheme.labelSmall,
               ),
             ],
           ),
@@ -161,7 +160,9 @@ class _ClassCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   '${AppFormat.rupiah(item.pricePerSession)} / sesi',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall,
                 ),
               ),
               OutlinedButton(
@@ -169,10 +170,6 @@ class _ClassCard extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 36),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  textStyle: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
                 ),
                 child: const Text('Lihat detail'),
               ),
@@ -200,11 +197,13 @@ class _Meta extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontSize: 10.5),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       ],
     );

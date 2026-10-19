@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_view.dart';
@@ -16,6 +16,7 @@ class StatsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(myStatsProvider);
     final theme = Theme.of(context);
+    final palette = context.palette;
 
     return AsyncView<List<TopicStat>>(
       value: stats,
@@ -39,6 +40,8 @@ class StatsList extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 s.topicName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleSmall,
                               ),
                             ),
@@ -58,20 +61,27 @@ class StatsList extends ConsumerWidget {
                                 s.trend == 'naik'
                                     ? '↑ naik'
                                     : s.trend == 'turun'
-                                        ? '↓ turun'
-                                        : '→ stabil',
+                                    ? '↓ turun'
+                                    : '→ stabil',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: s.trend == 'naik'
-                                      ? AppColors.success
+                                      ? palette.success
+                                      // Warna: turun = perlu perhatian
+                                      // (warning), bukan vonis merah.
                                       : s.trend == 'turun'
-                                          ? AppColors.danger
-                                          : theme.colorScheme.onSurfaceVariant,
+                                      ? palette.warning
+                                      : theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                            const Spacer(),
-                            Text(
-                              '20 terakhir ${s.last20Correct}/${s.last20Total}',
-                              style: theme.textTheme.bodySmall,
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                '20 terakhir ${s.last20Correct}/${s.last20Total}',
+                                textAlign: TextAlign.right,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
                             ),
                           ],
                         ),
@@ -81,8 +91,9 @@ class StatsList extends ConsumerWidget {
                           child: LinearProgressIndicator(
                             value: s.accuracy / 100,
                             minHeight: 8,
-                            backgroundColor: theme.colorScheme.primary
-                                .withValues(alpha: 0.12),
+                            // Warna: progres belajar → reward.
+                            color: palette.reward,
+                            backgroundColor: palette.rewardSoft,
                           ),
                         ),
                       ],
@@ -101,10 +112,13 @@ class _KategoriChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (kategori) {
-      'KUAT' => AppColors.success,
-      'CUKUP' => AppColors.warning,
-      _ => AppColors.danger,
+    final palette = context.palette;
+    // Warna: lemah = warning (perlu perhatian), bukan danger supaya tidak
+    // menghakimi siswa; cukup = info netral.
+    final (color, soft) = switch (kategori) {
+      'KUAT' => (palette.success, palette.successSoft),
+      'CUKUP' => (palette.info, palette.infoSoft),
+      _ => (palette.warning, palette.warningSoft),
     };
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -112,14 +126,13 @@ class _KategoriChip extends StatelessWidget {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: soft,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         kategori,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
           color: color,
         ),
       ),

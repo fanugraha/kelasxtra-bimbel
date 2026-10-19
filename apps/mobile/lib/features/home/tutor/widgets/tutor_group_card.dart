@@ -36,11 +36,18 @@ class TutorGroupCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(first.subjectName, style: theme.textTheme.titleSmall),
+                    Text(
+                      first.subjectName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       '${sessionRows.length} siswa · ${first.mode == 'online' ? 'Online' : 'Offline'}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall,
                     ),
                   ],
                 ),

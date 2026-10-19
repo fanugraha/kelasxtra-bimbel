@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/booking/booking_providers.dart';
 import '../format.dart';
+import '../theme/app_palette.dart';
 import 'app_card.dart';
 
 /// Sakelar "pakai poin" untuk pemotongan pembayaran. Muncul hanya bila siswa
@@ -36,18 +37,12 @@ class CreditToggle extends ConsumerWidget {
       child: SwitchListTile(
         value: value,
         onChanged: onChanged,
-        secondary: Icon(
-          Icons.savings_rounded,
-          color: theme.colorScheme.primary,
-        ),
-        title: Text(
-          'Pakai poin',
-          style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
-        ),
+        secondary: Icon(Icons.savings_rounded, color: context.palette.reward),
+        title: Text('Pakai poin', style: theme.textTheme.titleSmall),
         subtitle: Text(
           'Saldo ${AppFormat.rupiah(balance)} · potong '
           '${AppFormat.rupiah(used)} dari tagihan',
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
+          style: theme.textTheme.bodySmall,
         ),
       ),
     );

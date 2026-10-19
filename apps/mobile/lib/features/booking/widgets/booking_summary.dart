@@ -28,7 +28,9 @@ class BookingSummary extends StatelessWidget {
               Expanded(
                 child: Text(
                   booking.tutorName,
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 16.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -39,14 +41,17 @@ class BookingSummary extends StatelessWidget {
           Text(
             '${booking.subjectName} · ${booking.jenjang} · '
             '${booking.durationMinutes} menit',
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: AppSpacing.md),
           Divider(height: 1, color: scheme.outline),
           const SizedBox(height: AppSpacing.md),
           _MetaRow(
             icon: Icons.event_rounded,
-            text: '${AppFormat.dateShort(booking.scheduledAt)} · '
+            text:
+                '${AppFormat.dateShort(booking.scheduledAt)} · '
                 '${AppFormat.timeRangeFrom(booking.scheduledAt, booking.durationMinutes)} WIB',
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -77,12 +82,16 @@ class _MetaRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 15, color: theme.colorScheme.onSurfaceVariant),
+        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
             text,
-            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+            // Info jadwal/alamat: ukuran sekunder, tapi warna utama agar
+            // tetap mudah dibaca.
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ),
       ],

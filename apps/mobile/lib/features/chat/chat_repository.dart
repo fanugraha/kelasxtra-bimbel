@@ -26,15 +26,14 @@ class Conversation {
   final int unread;
 
   factory Conversation.fromMap(Map<String, dynamic> m) => Conversation(
-        id: m['id'] as String,
-        peerId: m['peer_id'] as String,
-        peerName: (m['peer_name'] ?? 'Pengguna') as String,
-        peerAvatar: m['peer_avatar'] as String?,
-        lastBody: m['last_body'] as String?,
-        lastMessageAt:
-            DateTime.parse(m['last_message_at'] as String).toLocal(),
-        unread: (m['unread'] as num?)?.toInt() ?? 0,
-      );
+    id: m['id'] as String,
+    peerId: m['peer_id'] as String,
+    peerName: (m['peer_name'] ?? 'Pengguna') as String,
+    peerAvatar: m['peer_avatar'] as String?,
+    lastBody: m['last_body'] as String?,
+    lastMessageAt: DateTime.parse(m['last_message_at'] as String).toLocal(),
+    unread: (m['unread'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// Satu pesan di dalam percakapan.
@@ -101,9 +100,7 @@ class ChatRepository {
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at', ascending: true)
-        .map((rows) => [
-              for (final r in rows) ConversationMessage.fromMap(r),
-            ]);
+        .map((rows) => [for (final r in rows) ConversationMessage.fromMap(r)]);
   }
 
   /// Buka percakapan; server menolak bila belum ada sesi dengan orang ini.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/price_summary.dart';
@@ -26,27 +26,32 @@ class PaymentStatusHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final (icon, color, label) = switch (phase) {
+    final palette = context.palette;
+    final (icon, color, soft, label) = switch (phase) {
       PaymentPhase.checking => (
-          Icons.hourglass_top_rounded,
-          scheme.onSurfaceVariant,
-          'Total tagihan'
-        ),
+        Icons.hourglass_top_rounded,
+        scheme.onSurfaceVariant,
+        scheme.surfaceContainerHighest,
+        'Total tagihan',
+      ),
       PaymentPhase.success => (
-          Icons.check_circle_rounded,
-          AppColors.success,
-          'Dibayar'
-        ),
+        Icons.check_circle_rounded,
+        palette.success,
+        palette.successSoft,
+        'Dibayar',
+      ),
       PaymentPhase.waiting => (
-          Icons.schedule_rounded,
-          AppColors.warning,
-          'Total tagihan'
-        ),
+        Icons.schedule_rounded,
+        palette.warning,
+        palette.warningSoft,
+        'Total tagihan',
+      ),
       PaymentPhase.failed => (
-          Icons.error_rounded,
-          AppColors.danger,
-          'Tidak terbayar'
-        ),
+        Icons.error_rounded,
+        palette.danger,
+        palette.dangerSoft,
+        'Tidak terbayar',
+      ),
     };
 
     return AppCard(
@@ -59,10 +64,7 @@ class PaymentStatusHero extends StatelessWidget {
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: soft, shape: BoxShape.circle),
                 child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -70,22 +72,14 @@ class PaymentStatusHero extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
-                    ),
+                    Text(label, style: theme.textTheme.labelSmall),
                     const SizedBox(height: 2),
                     Text(
                       amount == null ? '—' : AppFormat.rupiah(amount!),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontSize: 25,
-                        height: 1.1,
-                        letterSpacing: -0.6,
-                        color: phase == PaymentPhase.success
-                            ? AppColors.success
-                            : phase == PaymentPhase.failed
-                                ? AppColors.danger
-                                : AppColors.primary,
+                      // Warna: nominal selalu netral tebal; status sudah
+                      // diwakili ikon berwarna di sebelahnya.
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        color: scheme.onSurface,
                       ),
                     ),
                   ],
@@ -104,9 +98,9 @@ class PaymentStatusHero extends StatelessWidget {
                 child: SelectableText(
                   orderId,
                   maxLines: 1,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -126,12 +120,10 @@ class PaymentDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppCard(
-        child: Column(
-          children: [
-            for (final r in rows) SummaryRow(label: r.$1, value: r.$2),
-          ],
-        ),
-      );
+    child: Column(
+      children: [for (final r in rows) SummaryRow(label: r.$1, value: r.$2)],
+    ),
+  );
 }
 
 /// Kartu petunjuk langkah berikutnya sesuai tahap pembayaran.
@@ -144,29 +136,30 @@ class PaymentNextStepCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final palette = context.palette;
     final (icon, color, text) = switch (phase) {
       PaymentPhase.checking => (
-          Icons.hourglass_top_rounded,
-          scheme.onSurfaceVariant,
-          'Status diperbarui otomatis beberapa detik setelah pembayaran masuk.'
-        ),
+        Icons.hourglass_top_rounded,
+        scheme.onSurfaceVariant,
+        'Status diperbarui otomatis beberapa detik setelah pembayaran masuk.',
+      ),
       PaymentPhase.success => (
-          Icons.celebration_rounded,
-          AppColors.success,
-          'Semua pertemuan sudah masuk ke menu Jadwal. Buka detail tiap sesi untuk '
-              'chat tutor, absen, atau minta jadwal ulang bila perlu.'
-        ),
+        Icons.celebration_rounded,
+        palette.success,
+        'Semua pertemuan sudah masuk ke menu Jadwal. Buka detail tiap sesi untuk '
+            'chat tutor, absen, atau minta jadwal ulang bila perlu.',
+      ),
       PaymentPhase.waiting => (
-          Icons.info_outline_rounded,
-          AppColors.warning,
-          'Jadwalmu ditahan 30 menit sejak tagihan dibuat. Bila lewat, pesanan '
-              'dibatalkan otomatis dan kamu bisa memilih jadwal lagi.'
-        ),
+        Icons.info_outline_rounded,
+        palette.warning,
+        'Jadwalmu ditahan 30 menit sejak tagihan dibuat. Bila lewat, pesanan '
+            'dibatalkan otomatis dan kamu bisa memilih jadwal lagi.',
+      ),
       PaymentPhase.failed => (
-          Icons.refresh_rounded,
-          AppColors.danger,
-          'Tidak ada dana yang terpotong. Silakan pilih ulang jadwal paketmu.'
-        ),
+        Icons.refresh_rounded,
+        palette.danger,
+        'Tidak ada dana yang terpotong. Silakan pilih ulang jadwal paketmu.',
+      ),
     };
 
     return AppCard(
@@ -176,15 +169,7 @@ class PaymentNextStepCard extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 12.5,
-                height: 1.45,
-              ),
-            ),
-          ),
+          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
         ],
       ),
     );

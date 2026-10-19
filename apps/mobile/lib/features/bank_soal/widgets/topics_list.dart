@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_view.dart';
@@ -14,6 +14,7 @@ class TopicList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final topics = ref.watch(topicsProvider);
     final sub = ref.watch(mySubscriptionProvider).asData?.value;
     final bisa = sub?.bisaLatihan ?? false;
@@ -32,12 +33,9 @@ class TopicList extends ConsumerWidget {
               ),
               onTap: bisa
                   ? () => context.push(
-                        '/latihan/${t['id']}',
-                        extra: {
-                          'name': t['name'],
-                          'jenjang': t['jenjang'],
-                        },
-                      )
+                      '/latihan/${t['id']}',
+                      extra: {'name': t['name'], 'jenjang': t['jenjang']},
+                    )
                   : null,
               child: Row(
                 children: [
@@ -45,10 +43,16 @@ class TopicList extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text((t['name'] ?? '-') as String,
-                            style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          (t['name'] ?? '-') as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         Text(
                           '${((t['subjects'] as Map?)?['name'] ?? '-')} · ${t['jenjang'] ?? '-'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -58,7 +62,10 @@ class TopicList extends ConsumerWidget {
                     bisa
                         ? Icons.play_circle_outline_rounded
                         : Icons.lock_outline_rounded,
-                    color: bisa ? AppColors.primary : Colors.grey,
+                    // Warna: latihan = tantangan → challenge.
+                    color: bisa
+                        ? context.palette.challenge
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),

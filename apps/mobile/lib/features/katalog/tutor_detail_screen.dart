@@ -37,8 +37,7 @@ class TutorDetailScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: detail.maybeWhen(
-        data: (d) =>
-            d == null ? null : TutorActionBar(detail: d),
+        data: (d) => d == null ? null : TutorActionBar(detail: d),
         orElse: () => null,
       ),
     );

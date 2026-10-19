@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Karusel kartu promo di home siswa (tryout, paket, kelas grup).
+///
+/// Warna: kartu tryout = CHALLENGE (ajakan menantang diri, ungu); kartu
+/// paket/kelas grup = PROMO (hemat/harga ringan, coral).
 class PromoCarousel extends StatefulWidget {
   const PromoCarousel({super.key});
 
@@ -35,7 +38,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
         action: 'Mulai tryout',
         icon: Icons.timer_outlined,
         onTap: () => context.push('/tryout'),
-        primary: true,
+        role: _PromoRole.challenge,
       ),
       _PromoData(
         kicker: 'Paket sesi',
@@ -57,9 +60,10 @@ class _PromoCarouselState extends State<PromoCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 154,
+          // Tinggi ikut skala teks agar judul 2 baris + meta 14 tidak terpotong.
+          height: 178 * MediaQuery.textScalerOf(context).scale(16) / 16,
           child: Padding(
-            padding: const EdgeInsets.only(left: 20),
+            padding: const EdgeInsets.only(left: 16),
             child: PageView.builder(
               controller: _controller,
               padEnds: false,
@@ -104,6 +108,8 @@ class _PromoCarouselState extends State<PromoCarousel> {
   }
 }
 
+enum _PromoRole { challenge, promo }
+
 class _PromoData {
   const _PromoData({
     required this.kicker,
@@ -112,7 +118,7 @@ class _PromoData {
     required this.action,
     required this.icon,
     this.onTap,
-    this.primary = false,
+    this.role = _PromoRole.promo,
   });
 
   final String kicker;
@@ -121,7 +127,10 @@ class _PromoData {
   final String action;
   final IconData icon;
   final VoidCallback? onTap;
-  final bool primary;
+  final _PromoRole role;
+
+  /// Kartu tantangan tampil penuh warna (hero); kartu promo bertonal.
+  bool get primary => role == _PromoRole.challenge;
 }
 
 class _PromoCard extends StatelessWidget {
@@ -134,11 +143,21 @@ class _PromoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final fg = data.primary ? Colors.white : scheme.onSurface;
+    final palette = context.palette;
+    final (strong, onStrong, soft) = switch (data.role) {
+      _PromoRole.challenge => (
+        palette.challenge,
+        palette.onChallenge,
+        palette.challengeSoft,
+      ),
+      _PromoRole.promo => (palette.promo, palette.onPromo, palette.promoSoft),
+    };
+    final fg = data.primary ? onStrong : scheme.onSurface;
     final muted = data.primary
-        ? Colors.white.withValues(alpha: 0.78)
+        // 0.9: kontras 4.84:1 di ungu challenge (0.78 hanya 4.07:1).
+        ? onStrong.withValues(alpha: 0.9)
         : scheme.onSurfaceVariant;
-    final accent = data.primary ? Colors.white : scheme.primary;
+    final accent = data.primary ? onStrong : strong;
 
     return Material(
       color: Colors.transparent,
@@ -146,98 +165,112 @@ class _PromoCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.card,
         child: Ink(
-          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: data.primary ? AppColors.gradient : null,
-            color: data.primary ? null : scheme.surface,
+            color: data.primary ? strong : scheme.surface,
             border: Border.all(
               color: data.primary ? Colors.transparent : scheme.outline,
             ),
             borderRadius: AppRadius.card,
+            boxShadow: [
+              BoxShadow(
+                color: (data.primary ? strong : Colors.black).withValues(
+                  alpha: data.primary ? 0.20 : 0.045,
+                ),
+                blurRadius: data.primary ? 24 : 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      data.kicker.toUpperCase(),
+              Positioned(
+                right: -34,
+                bottom: -50,
+                child: Container(
+                  width: 142,
+                  height: 142,
+                  decoration: BoxDecoration(
+                    color: data.primary
+                        ? onStrong.withValues(alpha: 0.10)
+                        : soft,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            data.kicker.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                              color: muted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: data.primary
+                                ? onStrong.withValues(alpha: 0.16)
+                                : soft,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(data.icon, size: 21, color: accent),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm + 2),
+                    Text(
+                      data.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(color: fg),
+                    ),
+                    const SizedBox(height: AppSpacing.xs + 2),
+                    Text(
+                      data.meta,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                        color: muted,
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: data.primary
-                          ? Colors.white.withValues(alpha: 0.18)
-                          : scheme.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Icon(data.icon, size: 16, color: accent),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm + 2),
-              Text(
-                data.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: fg,
-                  fontSize: 18,
-                  height: 1.18,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs + 2),
-              Text(
-                data.meta,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: muted),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: data.primary
-                      ? Colors.white
-                      : scheme.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      data.action,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: data.primary
-                            ? AppColors.primaryDark
-                            : scheme.primary,
+                      decoration: BoxDecoration(
+                        color: data.primary ? onStrong : soft,
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 13,
-                      color: data.primary
-                          ? AppColors.primaryDark
-                          : scheme.primary,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            data.action,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: strong,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 13,
+                            color: strong,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

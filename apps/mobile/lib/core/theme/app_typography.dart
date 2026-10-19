@@ -3,29 +3,72 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Tipografi Kelasxtra.
 ///
-/// Memakai **Nunito** — font bulat & ramah, nyaman dibaca remaja. Ukuran body
-/// sengaja >= 15sp agar mudah dibaca di HP saat mengerjakan soal.
+/// WorkSans dipakai agar sejalan dengan template acuan: tegas, bersih, dan
+/// tetap ramah. Ukuran body tetap >=15sp agar nyaman dibaca di HP.
 ///
 /// Catatan: google_fonts mengunduh font saat pertama dijalankan (perlu internet,
 /// lalu di-cache). Untuk rilis offline total, bundel file font lalu pakai
-/// `GoogleFonts.nunito(... asset:)` (ponytail: cukup runtime fetch untuk sekarang).
+/// `GoogleFonts.workSans(... asset:)`.
 abstract final class AppTypography {
   static TextTheme textTheme(Color textColor, Color mutedColor) {
-    final base = GoogleFonts.nunitoTextTheme().apply(
+    final base = GoogleFonts.workSansTextTheme().apply(
       bodyColor: textColor,
       displayColor: textColor,
     );
     return base.copyWith(
-      displaySmall: base.displaySmall?.copyWith(fontSize: 30, fontWeight: FontWeight.w800),
-      headlineMedium: base.headlineMedium?.copyWith(fontSize: 26, fontWeight: FontWeight.w800),
-      headlineSmall: base.headlineSmall?.copyWith(fontSize: 23, fontWeight: FontWeight.w800),
-      titleLarge: base.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w800),
-      titleMedium: base.titleMedium?.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
-      titleSmall: base.titleSmall?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
-      bodyLarge: base.bodyLarge?.copyWith(fontSize: 16, height: 1.4),
-      bodyMedium: base.bodyMedium?.copyWith(fontSize: 15, height: 1.4),
-      bodySmall: base.bodySmall?.copyWith(fontSize: 13, color: mutedColor),
-      labelLarge: base.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
+      displaySmall: base.displaySmall?.copyWith(
+        fontSize: 30,
+        fontWeight: FontWeight.w700,
+        height: 1.1,
+        letterSpacing: -0.8,
+      ),
+      headlineMedium: base.headlineMedium?.copyWith(
+        fontSize: 25,
+        fontWeight: FontWeight.w700,
+        height: 1.15,
+        letterSpacing: -0.6,
+      ),
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        height: 1.15,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: base.titleLarge?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+      titleMedium: base.titleMedium?.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
+      ),
+      titleSmall: base.titleSmall?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: base.bodyLarge?.copyWith(fontSize: 14, height: 1.45),
+      bodyMedium: base.bodyMedium?.copyWith(fontSize: 13, height: 1.45),
+      bodySmall: base.bodySmall?.copyWith(
+        fontSize: 11,
+        height: 1.4,
+        color: mutedColor,
+      ),
+      labelLarge: base.labelLarge?.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+      ),
+      labelMedium: base.labelMedium?.copyWith(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
+      labelSmall: base.labelSmall?.copyWith(
+        fontSize: 9,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.3,
+        color: mutedColor,
+      ),
     );
   }
 }

@@ -2,8 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'katalog_repository.dart';
 
-final katalogRepositoryProvider =
-    Provider<KatalogRepository>((ref) => KatalogRepository());
+final katalogRepositoryProvider = Provider<KatalogRepository>(
+  (ref) => KatalogRepository(),
+);
 
 /// Filter katalog: mapel, jenjang, mode, hari tersedia, dan rating minimum.
 ///
@@ -47,15 +48,14 @@ class KatalogFilter {
     bool clearJenjang = false,
     bool clearMode = false,
     bool clearRating = false,
-  }) =>
-      KatalogFilter(
-        subjectId: clearSubject ? null : (subjectId ?? this.subjectId),
-        jenjang: clearJenjang ? null : (jenjang ?? this.jenjang),
-        mode: clearMode ? null : (mode ?? this.mode),
-        days: days ?? this.days,
-        minRating: clearRating ? null : (minRating ?? this.minRating),
-        sort: sort ?? this.sort,
-      );
+  }) => KatalogFilter(
+    subjectId: clearSubject ? null : (subjectId ?? this.subjectId),
+    jenjang: clearJenjang ? null : (jenjang ?? this.jenjang),
+    mode: clearMode ? null : (mode ?? this.mode),
+    days: days ?? this.days,
+    minRating: clearRating ? null : (minRating ?? this.minRating),
+    sort: sort ?? this.sort,
+  );
 }
 
 class KatalogFilterNotifier extends Notifier<KatalogFilter> {
@@ -84,8 +84,8 @@ class KatalogFilterNotifier extends Notifier<KatalogFilter> {
 
 final katalogFilterProvider =
     NotifierProvider<KatalogFilterNotifier, KatalogFilter>(
-  KatalogFilterNotifier.new,
-);
+      KatalogFilterNotifier.new,
+    );
 
 /// Mapel aktif untuk dropdown filter.
 final subjectsProvider = FutureProvider<List<SubjectOption>>(
@@ -95,7 +95,9 @@ final subjectsProvider = FutureProvider<List<SubjectOption>>(
 /// Daftar tutor aktif sesuai filter.
 final tutorListProvider = FutureProvider<List<TutorCatalogItem>>((ref) {
   final f = ref.watch(katalogFilterProvider);
-  return ref.read(katalogRepositoryProvider).fetchTutors(
+  return ref
+      .read(katalogRepositoryProvider)
+      .fetchTutors(
         subjectId: f.subjectId,
         jenjang: f.jenjang,
         mode: f.mode,
@@ -111,7 +113,9 @@ final featuredTutorsProvider = FutureProvider<List<TutorCatalogItem>>(
 );
 
 /// Detail tutor (profil + mapel + ketersediaan).
-final tutorDetailProvider =
-    FutureProvider.family<TutorDetail?, String>((ref, id) {
+final tutorDetailProvider = FutureProvider.family<TutorDetail?, String>((
+  ref,
+  id,
+) {
   return ref.read(katalogRepositoryProvider).fetchTutorDetail(id);
 });

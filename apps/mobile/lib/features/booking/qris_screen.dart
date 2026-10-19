@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/format.dart';
 import '../../core/snap_result.dart';
 import '../../core/supabase_client.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_theme.dart';
 
 enum _QrisPhase { waiting, paid, failed, expired }
@@ -13,6 +15,10 @@ enum _QrisPhase { waiting, paid, failed, expired }
 /// Menampilkan QRIS dinamis (nominal sudah tertanam) dan memantau status
 /// tagihan sampai lunas. Webhook Midtrans menandai `payments` lunas beberapa
 /// detik setelah dibayar; layar ini lalu menutup sendiri dengan `pop(true)`.
+///
+/// Bila server belum bisa menerbitkan QR sendiri (kanal QRIS Core API belum
+/// aktif), yang datang hanya `snapUrl`: halaman Snap GoPay/QRIS ditampilkan di
+/// WebView, pemantauan status tetap sama.
 class QrisScreen extends StatefulWidget {
   const QrisScreen({super.key, required this.result});
 
@@ -34,7 +40,10 @@ class _QrisScreenState extends State<QrisScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _updateCountdown();
-    _tick = Timer.periodic(const Duration(seconds: 1), (_) => _updateCountdown());
+    _tick = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateCountdown(),
+    );
     _poll = Timer.periodic(const Duration(seconds: 3), (_) => _check());
   }
 
@@ -94,6 +103,11 @@ class _QrisScreenState extends State<QrisScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _phase = phase);
   }
 
+  bool get _useSnap =>
+      widget.result.qrString.isEmpty &&
+      widget.result.qrUrl.isEmpty &&
+      widget.result.snapUrl.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,66 +121,87 @@ class _QrisScreenState extends State<QrisScreen> with WidgetsBindingObserver {
           tooltip: 'Tutup',
           onPressed: () => Navigator.of(context).pop(true),
         ),
-        title: const Text('Bayar dengan QRIS', style: TextStyle(fontSize: 16)),
+        title: const Text('Bayar dengan QRIS'),
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, AppSpacing.md, 20, AppSpacing.xl),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
-                borderRadius: AppRadius.card,
-                border: Border.all(color: scheme.outlineVariant),
-              ),
-              child: Column(
+      body: _useSnap
+          ? Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: _StatusLine(phase: _phase, secondsLeft: _secondsLeft),
+                ),
+                Expanded(child: _SnapView(url: result.snapUrl)),
+              ],
+            )
+          : SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  AppSpacing.md,
+                  20,
+                  AppSpacing.xl,
+                ),
                 children: [
-                  Text(
-                    'Total bayar',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLow,
+                      borderRadius: AppRadius.card,
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Total bayar',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          AppFormat.rupiah(result.amount),
+                          // Warna: nominal netral tebal — informasi, bukan
+                          // ajakan; jangan saingi aksi bayar.
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        if (result.creditApplied > 0) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Sudah dipotong poin ${AppFormat.rupiah(result.creditApplied)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: context.palette.reward,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                        _QrBox(
+                          result: result,
+                          dimmed: _phase != _QrisPhase.waiting,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _StatusLine(phase: _phase, secondsLeft: _secondsLeft),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    AppFormat.rupiah(result.amount),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  if (result.creditApplied > 0) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Sudah dipotong poin ${AppFormat.rupiah(result.creditApplied)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
                   const SizedBox(height: AppSpacing.lg),
-                  _QrBox(result: result, dimmed: _phase != _QrisPhase.waiting),
-                  const SizedBox(height: AppSpacing.lg),
-                  _StatusLine(phase: _phase, secondsLeft: _secondsLeft),
+                  if (_phase == _QrisPhase.waiting) ...[
+                    const _Steps(),
+                    const SizedBox(height: AppSpacing.lg),
+                    OutlinedButton.icon(
+                      onPressed: _check,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Saya sudah bayar, cek status'),
+                    ),
+                  ] else if (_phase != _QrisPhase.paid)
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Kembali'),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            if (_phase == _QrisPhase.waiting) ...[
-              const _Steps(),
-              const SizedBox(height: AppSpacing.lg),
-              OutlinedButton.icon(
-                onPressed: _check,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Saya sudah bayar, cek status'),
-              ),
-            ] else if (_phase != _QrisPhase.paid)
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Kembali'),
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -223,28 +258,30 @@ class _StatusLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final palette = context.palette;
 
     final (IconData? icon, Color color, String text) = switch (phase) {
       _QrisPhase.waiting => (
-          null,
-          scheme.onSurfaceVariant,
-          'Menunggu pembayaran · ${AppFormat.clock(secondsLeft)}',
-        ),
+        null,
+        // Warna: hitung mundur netral; sisa < 5 menit jadi peringatan.
+        secondsLeft < 300 ? palette.warning : scheme.onSurfaceVariant,
+        'Menunggu pembayaran · ${AppFormat.clock(secondsLeft)}',
+      ),
       _QrisPhase.paid => (
-          Icons.check_circle_rounded,
-          Colors.green.shade600,
-          'Pembayaran berhasil',
-        ),
+        Icons.check_circle_rounded,
+        palette.success,
+        'Pembayaran berhasil',
+      ),
       _QrisPhase.expired => (
-          Icons.timer_off_rounded,
-          scheme.error,
-          'QR kedaluwarsa. Silakan buat tagihan baru.',
-        ),
+        Icons.timer_off_rounded,
+        palette.danger,
+        'QR kedaluwarsa. Silakan buat tagihan baru.',
+      ),
       _QrisPhase.failed => (
-          Icons.cancel_rounded,
-          scheme.error,
-          'Pembayaran dibatalkan.',
-        ),
+        Icons.cancel_rounded,
+        palette.danger,
+        'Pembayaran dibatalkan.',
+      ),
     };
 
     return Row(
@@ -263,10 +300,7 @@ class _StatusLine extends StatelessWidget {
           child: Text(
             text,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(color: color),
           ),
         ),
       ],
@@ -287,7 +321,7 @@ class _Steps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -300,14 +334,13 @@ class _Steps extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 10,
-                  backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                  radius: 11,
+                  backgroundColor: palette.brandSoft,
                   child: Text(
                     '${i + 1}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.primary,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: palette.brand,
                     ),
                   ),
                 ),
@@ -317,6 +350,46 @@ class _Steps extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Halaman Snap (GoPay/QRIS saja) untuk mode cadangan.
+class _SnapView extends StatefulWidget {
+  const _SnapView({required this.url});
+
+  final String url;
+
+  @override
+  State<_SnapView> createState() => _SnapViewState();
+}
+
+class _SnapViewState extends State<_SnapView> {
+  late final WebViewController _controller;
+  var _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(onProgress: (p) => setState(() => _progress = p)),
+      )
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        WebViewWidget(controller: _controller),
+        if (_progress < 100)
+          Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(value: _progress / 100),
           ),
       ],
     );

@@ -36,10 +36,11 @@ class ScreenHead extends StatelessWidget {
               style: IconButton.styleFrom(
                 minimumSize: const Size(44, 44),
                 backgroundColor: scheme.surface,
+                foregroundColor: scheme.onSurface,
                 side: BorderSide(color: scheme.outline),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                elevation: 2,
+                shadowColor: Colors.black.withValues(alpha: 0.12),
+                shape: const CircleBorder(),
               ),
             ),
             const SizedBox(width: 12),
@@ -48,29 +49,35 @@ class ScreenHead extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  eyebrow.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        eyebrow.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 25,
-                    height: 1.1,
-                    letterSpacing: -0.6,
-                  ),
-                ),
+                const SizedBox(height: 7),
+                Text(title, style: theme.textTheme.headlineMedium),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitle!,
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12.5),
-                  ),
+                  const SizedBox(height: 6),
+                  Text(subtitle!, style: theme.textTheme.bodySmall),
                 ],
               ],
             ),
@@ -82,7 +89,7 @@ class ScreenHead extends StatelessWidget {
   }
 }
 
-/// Tombol ikon 42px bergaya desain (notifikasi, tema).
+/// Tombol ikon 44px bergaya desain (notifikasi, tema).
 class IconAction extends StatelessWidget {
   const IconAction({
     super.key,
@@ -103,17 +110,16 @@ class IconAction extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: SizedBox(
-        width: 42,
-        height: 42,
+        width: 44,
+        height: 44,
         child: Material(
           color: scheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13),
-            side: BorderSide(color: scheme.outline),
-          ),
+          shape: CircleBorder(side: BorderSide(color: scheme.outline)),
+          elevation: 2,
+          shadowColor: Colors.black.withValues(alpha: 0.12),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(13),
+            customBorder: const CircleBorder(),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -151,31 +157,32 @@ class TextLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
         foregroundColor: primary,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         minimumSize: const Size(0, 40),
-        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+        textStyle: theme.textTheme.labelMedium,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label),
-          if (icon != null) ...[const SizedBox(width: 3), Icon(icon, size: 15)],
+          if (icon != null) ...[const SizedBox(width: 3), Icon(icon, size: 16)],
         ],
       ),
     );
   }
 }
 
-/// Padding standar isi layar (20px horizontal).
-const screenPadding = EdgeInsets.fromLTRB(20, 0, 20, 36);
+/// Padding standar isi layar (16px horizontal).
+const screenPadding = EdgeInsets.fromLTRB(16, 0, 16, 36);
 
-/// Padding sisi (20px) untuk anak ListView.
-const screenSide = EdgeInsets.symmetric(horizontal: 20);
+/// Padding sisi (16px) untuk anak ListView.
+const screenSide = EdgeInsets.symmetric(horizontal: 16);
 
 /// Bungkus anak ListView dengan padding sisi. Layar yang punya bagian
 /// menggeser mendatar (karusel, deretan chip) memakai

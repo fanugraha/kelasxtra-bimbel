@@ -7,6 +7,7 @@ class SnapResult {
     required this.reused,
     this.qrString = '',
     this.qrUrl = '',
+    this.snapUrl = '',
     this.expiresAt,
     this.bookingId,
     this.packageId,
@@ -22,6 +23,7 @@ class SnapResult {
       reused: (map['reused'] ?? false) as bool,
       qrString: (map['qr_string'] ?? '') as String,
       qrUrl: (map['qr_url'] ?? '') as String,
+      snapUrl: (map['snap_url'] ?? '') as String,
       expiresAt: expires == null ? null : DateTime.tryParse(expires)?.toLocal(),
       bookingId: map['booking_id'] as String?,
       packageId: map['package_id'] as String?,
@@ -39,6 +41,10 @@ class SnapResult {
 
   /// URL gambar QR dari Midtrans, cadangan bila [qrString] kosong.
   final String qrUrl;
+
+  /// Halaman Snap (GoPay/QRIS saja) — cadangan bila kanal QRIS Core API belum
+  /// aktif; terisi hanya bila [qrString] & [qrUrl] kosong.
+  final String snapUrl;
 
   /// Batas waktu bayar QRIS.
   final DateTime? expiresAt;

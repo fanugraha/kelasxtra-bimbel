@@ -44,15 +44,15 @@ class _RefreshStream extends ChangeNotifier {
 }
 
 Widget _screenFor(String path) => switch (path) {
-      '/' => const HomeScreen(),
-      '/katalog' => const KatalogScreen(),
-      '/jadwal' => const JadwalScreen(),
-      '/absensi-grup' => const AbsensiGrupScreen(),
-      '/penghasilan' => const PenghasilanScreen(),
-      '/chat' => const ChatScreen(),
-      '/profil' => const ProfilScreen(),
-      _ => const HomeScreen(),
-    };
+  '/' => const HomeScreen(),
+  '/katalog' => const KatalogScreen(),
+  '/jadwal' => const JadwalScreen(),
+  '/absensi-grup' => const AbsensiGrupScreen(),
+  '/penghasilan' => const PenghasilanScreen(),
+  '/chat' => const ChatScreen(),
+  '/profil' => const ProfilScreen(),
+  _ => const HomeScreen(),
+};
 
 final routerProvider = Provider<GoRouter>((ref) {
   final flavor = ref.watch(appFlavorProvider);
@@ -105,10 +105,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(
-        path: '/notifikasi',
-        builder: (c, s) => const NotifikasiScreen(),
-      ),
+      GoRoute(path: '/notifikasi', builder: (c, s) => const NotifikasiScreen()),
       GoRoute(
         path: '/chat/room/:peerId',
         builder: (c, s) {
@@ -125,7 +122,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         GoRoute(path: '/profil', builder: (c, s) => const ProfilScreen()),
       GoRoute(
         path: '/sesi/:id',
-        builder: (c, s) => BookingDetailScreen(bookingId: s.pathParameters['id']!),
+        builder: (c, s) =>
+            BookingDetailScreen(bookingId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/paket', builder: (c, s) => const PaketScreen()),
       GoRoute(
@@ -139,7 +137,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/kelas-grup', builder: (c, s) => const KelasGrupScreen()),
       GoRoute(
         path: '/kelas-grup/:id',
-        builder: (c, s) => KelasGrupDetailScreen(classId: s.pathParameters['id']!),
+        builder: (c, s) =>
+            KelasGrupDetailScreen(classId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/bank-soal', builder: (c, s) => const BankSoalScreen()),
       GoRoute(

@@ -6,7 +6,8 @@ import '../theme/app_theme.dart';
 ///
 /// Dipakai seragam di wizard pesan sesi, beli paket, dan lembar filter supaya
 /// hierarki teks sama di seluruh aplikasi:
-/// judul langkah (25) → label kelompok (11, kapital) → pilihan (12) → catatan.
+/// judul langkah (headline) → label kelompok (labelSmall, kapital) → pilihan
+/// (labelMedium) → catatan (bodySmall).
 class FieldGroup extends StatelessWidget {
   const FieldGroup({
     super.key,
@@ -33,10 +34,8 @@ class FieldGroup extends StatelessWidget {
               child: Text(
                 label.toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
-                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -45,7 +44,7 @@ class FieldGroup extends StatelessWidget {
         ),
         if (hint != null) ...[
           const SizedBox(height: 2),
-          Text(hint!, style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5)),
+          Text(hint!, style: theme.textTheme.bodySmall),
         ],
         const SizedBox(height: AppSpacing.sm + 2),
         child,
@@ -62,11 +61,11 @@ class ChipRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-        spacing: AppSpacing.sm,
-        runSpacing: AppSpacing.sm,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: children,
-      );
+    spacing: AppSpacing.sm,
+    runSpacing: AppSpacing.sm,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: children,
+  );
 }
 
 /// Judul bagian berisi konten (bukan pilihan) — mis. "Tentang", "Jadwal".
@@ -76,11 +75,6 @@ class SectionTitle extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontSize: 16.5, letterSpacing: -0.2),
-      );
+  Widget build(BuildContext context) =>
+      Text(text, style: Theme.of(context).textTheme.titleMedium);
 }

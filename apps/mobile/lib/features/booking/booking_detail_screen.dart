@@ -548,7 +548,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             Text(
               'Hanya tautan zoom.us / zoom.com (https) yang diterima. '
               'Kosongkan untuk menghapus.',
-              style: Theme.of(c).textTheme.bodySmall?.copyWith(fontSize: 11.5),
+              style: Theme.of(c).textTheme.bodySmall,
             ),
           ],
         ),

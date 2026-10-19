@@ -34,12 +34,16 @@ class TutorSessionCard extends StatelessWidget {
                   children: [
                     Text(
                       '${booking.subjectName} · ${booking.studentName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${booking.jenjang} · ${booking.durationMinutes} menit',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall,
                     ),
                   ],
                 ),

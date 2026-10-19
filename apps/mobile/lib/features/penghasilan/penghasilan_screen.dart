@@ -21,10 +21,12 @@ class PenghasilanScreen extends ConsumerWidget {
     final bookings = ref.watch(jadwalProvider).value ?? const <BookingItem>[];
     final now = DateTime.now();
     final monthSessions = bookings
-        .where((b) =>
-            b.status == 'completed' &&
-            b.scheduledAt.year == now.year &&
-            b.scheduledAt.month == now.month)
+        .where(
+          (b) =>
+              b.status == 'completed' &&
+              b.scheduledAt.year == now.year &&
+              b.scheduledAt.month == now.month,
+        )
         .toList();
     final estimate = monthSessions.fold<int>(
       0,
@@ -50,11 +52,10 @@ class PenghasilanScreen extends ConsumerWidget {
               const SizedBox(height: 18),
               _MoneyCard(estimate: estimate, sessions: monthSessions.length),
               const SizedBox(height: 22),
-              Text('Slip terbaru',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: 17,
-                        letterSpacing: -0.3,
-                      )),
+              Text(
+                'Slip terbaru',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 9),
               AsyncView<List<PayoutItem>>(
                 value: payouts,
@@ -63,7 +64,8 @@ class PenghasilanScreen extends ConsumerWidget {
                 builder: (list) => list.isEmpty
                     ? const AppCard(
                         child: Text(
-                            'Belum ada slip. Slip muncul setelah admin membuat rekap payroll.'),
+                          'Belum ada slip. Slip muncul setelah admin membuat rekap payroll.',
+                        ),
                       )
                     : Column(
                         children: [
@@ -95,22 +97,25 @@ class _MoneyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ESTIMASI PERIODE BERJALAN',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-              )),
+          Text(
+            'ESTIMASI PERIODE BERJALAN',
+            // Eyebrow: labelSmall kapital.
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(AppFormat.rupiah(estimate),
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontSize: 27,
-                letterSpacing: -0.8,
-              )),
+          Text(
+            AppFormat.rupiah(estimate),
+            style: theme.textTheme.displayMedium,
+          ),
           const SizedBox(height: 5),
           Text(
             '${AppFormat.dateLong(DateTime(DateTime.now().year, DateTime.now().month, 1))} – sekarang · $sessions sesi selesai',
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
           ),
         ],
       ),
@@ -143,19 +148,27 @@ class _PayoutCard extends StatelessWidget {
                 Text(
                   '${AppFormat.dateShort(payout.periodStart)} – '
                   '${AppFormat.dateShort(payout.periodEnd)}',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   payout.bankName == null
                       ? payout.statusLabel
                       : '${payout.statusLabel} · ${payout.bankName}',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
                 if (payout.transferRef != null) ...[
                   const SizedBox(height: 2),
-                  Text('Ref: ${payout.transferRef}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 9.5)),
+                  Text(
+                    'Ref: ${payout.transferRef}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall,
+                  ),
                 ],
               ],
             ),
@@ -164,15 +177,20 @@ class _PayoutCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(AppFormat.rupiah(payout.amount),
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 12)),
+              Text(
+                AppFormat.rupiah(payout.amount),
+                style: theme.textTheme.titleSmall,
+              ),
               const SizedBox(height: 3),
               StatusBadge(label: payout.statusLabel, tone: tone),
             ],
           ),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded,
-              size: 18, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ],
       ),
     );

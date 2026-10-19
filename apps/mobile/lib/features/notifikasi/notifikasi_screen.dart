@@ -36,41 +36,42 @@ class _NotifikasiScreenState extends ConsumerState<NotifikasiScreen> {
     return Scaffold(
       body: SafeArea(
         child: AsyncView<List<AppNotification>>(
-        value: items,
-        errorTitle: 'Gagal memuat notifikasi',
-        onRetry: () => ref.invalidate(myNotificationsProvider),
-        builder: (list) {
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(myNotificationsProvider),
-            child: ListView(
-              padding: screenPadding,
-              children: [
-                const ScreenHead(
-                  showBack: true,
-                  eyebrow: 'Pesan masuk',
-                  title: 'Notifikasi',
-                  subtitle: 'Informasi sesi, pembayaran, dan aktivitas belajar.',
-                ),
-                const SizedBox(height: 18),
-                if (list.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: EmptyState(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Belum ada notifikasi',
-                      message:
-                          'Info sesi, pembayaran, dan payroll akan muncul di sini.',
-                    ),
-                  )
-                else
-                  for (final item in list) ...[
-                    _NotifCard(item: item),
-                    const SizedBox(height: 8),
-                  ],
-              ],
-            ),
-          );
-        },
+          value: items,
+          errorTitle: 'Gagal memuat notifikasi',
+          onRetry: () => ref.invalidate(myNotificationsProvider),
+          builder: (list) {
+            return RefreshIndicator(
+              onRefresh: () async => ref.invalidate(myNotificationsProvider),
+              child: ListView(
+                padding: screenPadding,
+                children: [
+                  const ScreenHead(
+                    showBack: true,
+                    eyebrow: 'Pesan masuk',
+                    title: 'Notifikasi',
+                    subtitle:
+                        'Informasi sesi, pembayaran, dan aktivitas belajar.',
+                  ),
+                  const SizedBox(height: 18),
+                  if (list.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: EmptyState(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Belum ada notifikasi',
+                        message:
+                            'Info sesi, pembayaran, dan payroll akan muncul di sini.',
+                      ),
+                    )
+                  else
+                    for (final item in list) ...[
+                      _NotifCard(item: item),
+                      const SizedBox(height: 8),
+                    ],
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -95,9 +96,14 @@ class _NotifCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   item.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: item.read ? FontWeight.w500 : FontWeight.w700,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  // Belum dibaca: Semibold tema; sudah dibaca: Medium.
+                  style: item.read
+                      ? theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        )
+                      : theme.textTheme.titleSmall,
                 ),
               ),
               if (!item.read)
@@ -124,8 +130,9 @@ class _NotifCard extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Text(
                   '· Ketuk untuk membalas',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.primary),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ],
             ],

@@ -16,6 +16,10 @@ class FeaturedTutors extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (tutors.isEmpty) return const SizedBox.shrink();
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    // 270: ruang untuk mapel (bodySmall 14) & harga titleMedium setelah
+    // tipografi dinaikkan dari 11/15.
+    final cardHeight = 270 + (textScale - 1).clamp(0.0, 1.2) * 130;
     return Column(
       children: [
         sidePad(
@@ -27,16 +31,16 @@ class FeaturedTutors extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         SizedBox(
-          height: 208,
+          height: cardHeight,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: tutors.take(6).length,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
             itemBuilder: (context, i) {
               final t = tutors[i];
               return SizedBox(
-                width: 212,
+                width: 220,
                 child: TutorShowcaseCard(
                   name: t.fullName,
                   rating: t.ratingAvg,

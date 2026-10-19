@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/format.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../katalog/katalog_repository.dart';
 import '../../paket_providers.dart';
@@ -40,22 +39,37 @@ class BarTotal extends ConsumerWidget {
     final net = discount <= 0 ? value : (value - discount).clamp(0, value);
     return Row(
       children: [
-        Text(
-          'Total bayar',
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  'Total bayar',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  '$size pertemuan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        Text(
-          '$size pertemuan',
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-        ),
-        const Spacer(),
         if (discount > 0) ...[
           Text(
             AppFormat.rupiah(value),
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant,
+            style: theme.textTheme.labelSmall?.copyWith(
+              // Warna: harga lama hanya pembanding → netral redup; warna promo
+              // cukup di baris diskon.
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               decoration: TextDecoration.lineThrough,
             ),
           ),
@@ -63,9 +77,11 @@ class BarTotal extends ConsumerWidget {
         ],
         Text(
           AppFormat.rupiah(net),
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontSize: 17,
-            color: AppColors.primary,
+          // Warna: total netral tebal — tombol bayar tetap satu-satunya
+          // elemen brand yang paling menonjol.
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       ],

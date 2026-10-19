@@ -7,8 +7,9 @@ import '../../core/supabase_client.dart';
 import '../auth/auth_providers.dart';
 import 'chat_repository.dart';
 
-final chatRepositoryProvider =
-    Provider<ChatRepository>((ref) => ChatRepository());
+final chatRepositoryProvider = Provider<ChatRepository>(
+  (ref) => ChatRepository(),
+);
 
 /// Detak perubahan pesan dari server (realtime). Setiap pesan baru/berubah
 /// memicu penyegaran daftar percakapan sehingga lencana belum dibaca ikut hidup.
@@ -20,12 +21,14 @@ final chatTickProvider = StreamProvider<int>((ref) {
   final controller = StreamController<int>();
   var tick = 0;
   final channel = supabase.channel('kx-chat-$userId');
-  channel.onPostgresChanges(
-    event: PostgresChangeEvent.all,
-    schema: 'public',
-    table: 'conversation_messages',
-    callback: (_) => controller.add(++tick),
-  ).subscribe();
+  channel
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'conversation_messages',
+        callback: (_) => controller.add(++tick),
+      )
+      .subscribe();
 
   ref.onDispose(() {
     controller.close();
@@ -49,8 +52,10 @@ final chatUnreadProvider = Provider<int>((ref) {
 });
 
 /// Percakapan dengan satu orang; dibuka (dibuat bila perlu) di server.
-final conversationIdProvider =
-    FutureProvider.family<String, String>((ref, peerId) {
+final conversationIdProvider = FutureProvider.family<String, String>((
+  ref,
+  peerId,
+) {
   ref.watch(authStateProvider);
   return ref.read(chatRepositoryProvider).ensureConversation(peerId);
 });
@@ -58,13 +63,15 @@ final conversationIdProvider =
 /// Pesan satu percakapan (realtime, urut waktu).
 final conversationMessagesProvider =
     StreamProvider.family<List<ConversationMessage>, String>((ref, id) {
-  ref.watch(authStateProvider);
-  return ref.read(chatRepositoryProvider).watchMessages(id);
-});
+      ref.watch(authStateProvider);
+      return ref.read(chatRepositoryProvider).watchMessages(id);
+    });
 
 /// Nama + foto lawan bicara, diambil dari view (bukan dari tabel profil).
-final conversationPeerProvider =
-    FutureProvider.family<Conversation?, String>((ref, peerId) {
+final conversationPeerProvider = FutureProvider.family<Conversation?, String>((
+  ref,
+  peerId,
+) {
   ref.watch(authStateProvider);
   ref.watch(chatTickProvider);
   return ref.read(chatRepositoryProvider).fetchWithPeer(peerId);
@@ -79,5 +86,6 @@ class OpenChatPeer extends Notifier<String?> {
   void set(String? peerId) => state = peerId;
 }
 
-final openChatPeerProvider =
-    NotifierProvider<OpenChatPeer, String?>(OpenChatPeer.new);
+final openChatPeerProvider = NotifierProvider<OpenChatPeer, String?>(
+  OpenChatPeer.new,
+);

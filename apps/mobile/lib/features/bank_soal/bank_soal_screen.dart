@@ -35,56 +35,63 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(mySubscriptionProvider);
-          ref.invalidate(myStatsProvider);
-          ref.invalidate(topicsProvider);
-          ref.invalidate(myProfileProvider);
-        },
-        child: ListView(
-          padding: screenPadding,
-          children: [
-            const ScreenHead(
-              showBack: true,
-              eyebrow: 'Latihan mandiri',
-              title: 'Bank Soal',
-              subtitle: 'Tryout dan latihan per topik, lengkap dengan pembahasan.',
-            ),
-            const SizedBox(height: 18),
-            AsyncView<SubscriptionInfo?>(
-              value: sub,
-              errorTitle: 'Gagal memuat langganan',
-              onRetry: () => ref.invalidate(mySubscriptionProvider),
-              builder: (s) => SubscriptionCard(
-                sub: s,
-                buying: _buying,
-                error: _error,
-                onBuy: _buy,
+          onRefresh: () async {
+            ref.invalidate(mySubscriptionProvider);
+            ref.invalidate(myStatsProvider);
+            ref.invalidate(topicsProvider);
+            ref.invalidate(myProfileProvider);
+          },
+          child: ListView(
+            padding: screenPadding,
+            children: [
+              const ScreenHead(
+                showBack: true,
+                eyebrow: 'Latihan mandiri',
+                title: 'Bank Soal',
+                subtitle:
+                    'Tryout dan latihan per topik, lengkap dengan pembahasan.',
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            TryoutHero(
-              enabled: bisa,
-              onTap: () => context.push(
-                '/tryout',
-                extra: {'jenjang': profile.asData?.value.jenjang},
+              const SizedBox(height: 18),
+              AsyncView<SubscriptionInfo?>(
+                value: sub,
+                errorTitle: 'Gagal memuat langganan',
+                onRetry: () => ref.invalidate(mySubscriptionProvider),
+                builder: (s) => SubscriptionCard(
+                  sub: s,
+                  buying: _buying,
+                  error: _error,
+                  onBuy: _buy,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('Latihan per topik', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.md),
-            const TopicList(),
-            const SizedBox(height: AppSpacing.xl),
-            Text('Fokus Perbaikimu', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Topik dengan akurasi terendah — mulai dari sini.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            const StatsList(),
-          ],
-        ),
+              const SizedBox(height: AppSpacing.lg),
+              TryoutHero(
+                enabled: bisa,
+                onTap: () => context.push(
+                  '/tryout',
+                  extra: {'jenjang': profile.asData?.value.jenjang},
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Latihan per topik',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const TopicList(),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Fokus Perbaikimu',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Topik dengan akurasi terendah — mulai dari sini.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const StatsList(),
+            ],
+          ),
         ),
       ),
     );
@@ -96,11 +103,13 @@ class _BankSoalScreenState extends ConsumerState<BankSoalScreen> {
       _error = null;
     });
     try {
-      final res = await ref.read(bankSoalRepositoryProvider).createSubscriptionSnap();
+      final res = await ref
+          .read(bankSoalRepositoryProvider)
+          .createSubscriptionSnap();
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => QrisScreen(result: res)),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => QrisScreen(result: res)));
       if (!mounted) return;
       ref.invalidate(mySubscriptionProvider);
     } catch (e) {

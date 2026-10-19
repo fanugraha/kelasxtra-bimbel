@@ -28,16 +28,29 @@ class SubscriptionCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final plan = ref.watch(planProvider).asData?.value;
     final aktif = sub?.bisaLatihan ?? false;
+    // Gradasi hanya saat aktif; mode gelap diredupkan 20% ke hitam. Teks putih
+    // di titik terterang (#007B9E) = 4.85:1 (terang) / 6.89:1 (gelap).
+    final gradient = theme.brightness == Brightness.dark
+        ? LinearGradient(
+            begin: AppColors.gradient.begin,
+            end: AppColors.gradient.end,
+            colors: [
+              for (final c in AppColors.gradient.colors)
+                Color.lerp(c, Colors.black, 0.2)!,
+            ],
+          )
+        : AppColors.gradient;
 
     return AppCard(
-      gradient: aktif ? AppColors.gradient : null,
+      gradient: aktif ? gradient : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             aktif ? 'Langganan ${sub!.label}' : 'Bank Soal',
-            style: theme.textTheme.titleLarge
-                ?.copyWith(color: aktif ? Colors.white : null),
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: aktif ? Colors.white : null,
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           if (aktif)
@@ -45,8 +58,8 @@ class SubscriptionCard extends ConsumerWidget {
               sub!.tenggang
                   ? 'Masa tenggang sampai ${AppFormat.dateShort(sub!.graceUntil!)} — segera perpanjang.'
                   : 'Berlaku sampai ${AppFormat.dateShort(sub!.currentPeriodEnd!)}.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+              // Putih penuh: putih 90% di #007B9E hanya 4.25:1.
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
             )
           else
             Text(
@@ -71,17 +84,14 @@ class SubscriptionCard extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.card_membership_rounded),
-            label: Text(
-              aktif ? 'Perpanjang langganan' : 'Langganan sekarang',
-            ),
+            label: Text(aktif ? 'Perpanjang langganan' : 'Langganan sekarang'),
           ),
           if (error != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
               error!,
-              style: TextStyle(
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: aktif ? Colors.white : theme.colorScheme.error,
-                fontSize: 13,
               ),
             ),
           ],

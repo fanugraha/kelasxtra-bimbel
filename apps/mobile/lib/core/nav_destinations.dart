@@ -20,68 +20,68 @@ class NavDest {
 /// Tab bottom-navigation per flavor. Urutan = urutan cabang di router.
 /// Maks 5 tab agar tetap nyaman dijangkau jempol.
 List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
-      AppFlavor.siswa => const [
-          NavDest(
-            path: '/',
-            label: 'Beranda',
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home_rounded,
-          ),
-          NavDest(
-            path: '/katalog',
-            label: 'Cari',
-            icon: Icons.search_outlined,
-            activeIcon: Icons.search_rounded,
-          ),
-          NavDest(
-            path: '/jadwal',
-            label: 'Jadwal',
-            icon: Icons.calendar_today_outlined,
-            activeIcon: Icons.calendar_month_rounded,
-          ),
-          NavDest(
-            path: '/chat',
-            label: 'Chat',
-            icon: Icons.forum_outlined,
-            activeIcon: Icons.forum_rounded,
-          ),
-          NavDest(
-            path: '/profil',
-            label: 'Profil',
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-          ),
-        ],
-      AppFlavor.tutor => const [
-          NavDest(
-            path: '/',
-            label: 'Beranda',
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home_rounded,
-          ),
-          NavDest(
-            path: '/jadwal',
-            label: 'Jadwal',
-            icon: Icons.calendar_today_outlined,
-            activeIcon: Icons.calendar_month_rounded,
-          ),
-          NavDest(
-            path: '/absensi-grup',
-            label: 'Absensi',
-            icon: Icons.groups_outlined,
-            activeIcon: Icons.groups_rounded,
-          ),
-          NavDest(
-            path: '/penghasilan',
-            label: 'Gaji',
-            icon: Icons.account_balance_wallet_outlined,
-            activeIcon: Icons.account_balance_wallet_rounded,
-          ),
-          NavDest(
-            path: '/chat',
-            label: 'Chat',
-            icon: Icons.forum_outlined,
-            activeIcon: Icons.forum_rounded,
-          ),
-        ],
-    };
+  AppFlavor.siswa => const [
+    NavDest(
+      path: '/',
+      label: 'Beranda',
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+    ),
+    NavDest(
+      path: '/katalog',
+      label: 'Cari',
+      icon: Icons.search_outlined,
+      activeIcon: Icons.search_rounded,
+    ),
+    NavDest(
+      path: '/jadwal',
+      label: 'Jadwal',
+      icon: Icons.calendar_today_outlined,
+      activeIcon: Icons.calendar_month_rounded,
+    ),
+    NavDest(
+      path: '/chat',
+      label: 'Chat',
+      icon: Icons.forum_outlined,
+      activeIcon: Icons.forum_rounded,
+    ),
+    NavDest(
+      path: '/profil',
+      label: 'Profil',
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+    ),
+  ],
+  AppFlavor.tutor => const [
+    NavDest(
+      path: '/',
+      label: 'Beranda',
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+    ),
+    NavDest(
+      path: '/jadwal',
+      label: 'Jadwal',
+      icon: Icons.calendar_today_outlined,
+      activeIcon: Icons.calendar_month_rounded,
+    ),
+    NavDest(
+      path: '/absensi-grup',
+      label: 'Absensi',
+      icon: Icons.groups_outlined,
+      activeIcon: Icons.groups_rounded,
+    ),
+    NavDest(
+      path: '/penghasilan',
+      label: 'Gaji',
+      icon: Icons.account_balance_wallet_outlined,
+      activeIcon: Icons.account_balance_wallet_rounded,
+    ),
+    NavDest(
+      path: '/chat',
+      label: 'Chat',
+      icon: Icons.forum_outlined,
+      activeIcon: Icons.forum_rounded,
+    ),
+  ],
+};

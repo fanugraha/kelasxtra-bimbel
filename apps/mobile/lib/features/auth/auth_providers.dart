@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/supabase_client.dart';
 import 'auth_repository.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository());
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => AuthRepository(),
+);
 
 final myProfileProvider = FutureProvider<MyProfile>((ref) {
   ref.watch(authStateProvider);
@@ -23,7 +25,9 @@ class AuthController extends AsyncNotifier<void> {
   Future<String?> signIn(String email, String password) async {
     state = const AsyncLoading();
     try {
-      await ref.read(authRepositoryProvider).signIn(email: email, password: password);
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(email: email, password: password);
       state = const AsyncData(null);
       return null;
     } catch (e) {
@@ -43,7 +47,11 @@ class AuthController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       final repo = ref.read(authRepositoryProvider);
-      await repo.signUpStudent(email: email, password: password, fullName: fullName);
+      await repo.signUpStudent(
+        email: email,
+        password: password,
+        fullName: fullName,
+      );
       // Bila konfirmasi email nonaktif, sesi langsung ada -> isi profil siswa.
       if (supabase.auth.currentSession != null) {
         await repo.completeStudentProfile(
@@ -70,5 +78,6 @@ class AuthController extends AsyncNotifier<void> {
       e is AuthException ? e.message : 'Terjadi kesalahan. Coba lagi.';
 }
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, void>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, void>(
+  AuthController.new,
+);

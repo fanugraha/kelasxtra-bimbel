@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_flavor.dart';
 import '../../core/providers.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_error_text.dart';
 import '../../core/widgets/screen_head.dart';
@@ -49,6 +50,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final flavor = ref.watch(appFlavorProvider);
     final theme = Theme.of(context);
     final tutor = flavor == AppFlavor.tutor;
+    // Gradasi hero: mode gelap diredupkan 20% ke hitam. Teks putih di titik
+    // terterang (#007B9E) = 4.85:1 (terang) / 6.89:1 (gelap).
+    final heroGradient = theme.brightness == Brightness.dark
+        ? LinearGradient(
+            begin: AppColors.gradient.begin,
+            end: AppColors.gradient.end,
+            colors: [
+              for (final c in AppColors.gradient.colors)
+                Color.lerp(c, Colors.black, 0.2)!,
+            ],
+          )
+        : AppColors.gradient;
 
     return Scaffold(
       body: SafeArea(
@@ -57,38 +70,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(14),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: heroGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 26,
+                      offset: const Offset(0, 12),
                     ),
-                    child: const Text('K',
-                        style: TextStyle(
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Text(
+                        'K',
+                        style: theme.textTheme.headlineSmall?.copyWith(
                           color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                        )),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Kelasxtra',
-                          style: theme.textTheme.titleLarge
-                              ?.copyWith(fontSize: 20)),
-                      Text(tutor ? 'Ruang tutor' : 'Ruang siswa',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontSize: 10)),
-                    ],
-                  ),
-                ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kelasxtra',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                          // Putih penuh: putih 70% hanya 3.17:1 di #007B9E.
+                          Text(
+                            tutor ? 'Ruang tutor' : 'Ruang siswa',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 26),
               ScreenHead(
                 eyebrow: 'Selamat datang',
                 title: tutor ? 'Masuk Tutor' : 'Masuk Siswa',

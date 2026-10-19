@@ -6,11 +6,11 @@ import '../../core/app_flavor.dart';
 import '../../core/format.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/theme_mode_provider.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/screen_head.dart';
-import '../../core/widgets/status_badge.dart';
 import '../bank_soal/bank_soal_providers.dart';
 import '../bank_soal/bank_soal_repository.dart';
 import '../booking/booking_providers.dart';
@@ -56,10 +56,7 @@ class ProfilScreen extends ConsumerWidget {
                   const SizedBox(height: 22),
                   Text(
                     'Data siswa',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 17,
-                      letterSpacing: -0.3,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 9),
                   _DataCard(
@@ -73,10 +70,7 @@ class ProfilScreen extends ConsumerWidget {
                   const SizedBox(height: 22),
                   Text(
                     'Langganan',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 17,
-                      letterSpacing: -0.3,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 9),
                   const _SubscriptionCard(),
@@ -84,10 +78,7 @@ class ProfilScreen extends ConsumerWidget {
                   const SizedBox(height: 22),
                   Text(
                     'Data tutor',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 17,
-                      letterSpacing: -0.3,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 9),
                   _DataCard(
@@ -101,10 +92,7 @@ class ProfilScreen extends ConsumerWidget {
                 const SizedBox(height: 22),
                 Text(
                   'Pengaturan',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: 17,
-                    letterSpacing: -0.3,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 9),
                 const _SettingsCard(),
@@ -115,15 +103,11 @@ class ProfilScreen extends ConsumerWidget {
                     onPressed: () =>
                         ref.read(authControllerProvider.notifier).signOut(),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
+                      foregroundColor: context.palette.danger,
                       side: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.error.withValues(alpha: 0.35),
+                        color: context.palette.danger.withValues(alpha: 0.35),
                       ),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.06),
+                      backgroundColor: context.palette.dangerSoft,
                     ),
                     icon: const Icon(Icons.logout_rounded, size: 18),
                     label: const Text('Keluar'),
@@ -148,40 +132,84 @@ class _ProfileCard extends StatelessWidget {
     final theme = Theme.of(context);
     final name = profile.fullName ?? profile.email ?? 'Pengguna';
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    // Gradasi kartu: mode gelap diredupkan 20% ke hitam. Teks putih di titik
+    // terterang (#007B9E) = 4.85:1 (terang) / 6.89:1 (gelap).
+    final gradient = theme.brightness == Brightness.dark
+        ? LinearGradient(
+            begin: AppColors.gradient.begin,
+            end: AppColors.gradient.end,
+            colors: [
+              for (final c in AppColors.gradient.colors)
+                Color.lerp(c, Colors.black, 0.2)!,
+            ],
+          )
+        : AppColors.gradient;
 
     return AppCard(
+      gradient: gradient,
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+          Container(
+            width: 58,
+            height: 58,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Text(
               initial,
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w800,
+                color: Colors.white,
               ),
             ),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
                 if (profile.email != null) ...[
                   const SizedBox(height: 2),
-                  Text(profile.email!, style: theme.textTheme.bodySmall),
+                  // Putih penuh: putih 70% hanya 3.17:1 di #007B9E.
+                  Text(
+                    profile.email!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
-                const SizedBox(height: 6),
-                StatusBadge(
-                  label: isSiswa
-                      ? 'Siswa ${profile.jenjang ?? ''}'.trim()
-                      : 'Tutor',
-                  tone: StatusTone.info,
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  // Overlay hitam 18% di belakang teks: putih di atasnya
+                  // 6.60:1 (overlay putih 16% sebelumnya hanya 3.69:1).
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    isSiswa ? 'Siswa ${profile.jenjang ?? ''}'.trim() : 'Tutor',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -208,7 +236,7 @@ class _TransaksiRow extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.12),
+              color: context.palette.brandSoft,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -222,10 +250,7 @@ class _TransaksiRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Riwayat transaksi',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
-                ),
+                Text('Riwayat transaksi', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 2),
                 Text(
                   'Paket, sesi, langganan, dan kelas grup.',
@@ -261,13 +286,14 @@ class _PoinCard extends ConsumerWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.12),
+              // Warna: poin = hadiah/kompensasi → reward (emas).
+              color: context.palette.rewardSoft,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Icons.savings_rounded,
               size: 19,
-              color: AppColors.success,
+              color: context.palette.reward,
             ),
           ),
           const SizedBox(width: 11),
@@ -275,10 +301,7 @@ class _PoinCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Poin saya',
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
-                ),
+                Text('Poin saya', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 2),
                 Text(
                   balance.hasValue
@@ -295,7 +318,6 @@ class _PoinCard extends ConsumerWidget {
             AppFormat.rupiah(saldo),
             style: theme.textTheme.titleMedium?.copyWith(
               color: scheme.onSurface,
-              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -326,22 +348,17 @@ class _DataCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      rows[i].$1,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: Text(rows[i].$1, style: theme.textTheme.bodySmall),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    rows[i].$2 ?? '—',
-                    textAlign: TextAlign.right,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: theme.colorScheme.onSurface,
+                  Flexible(
+                    flex: 2,
+                    child: Text(
+                      rows[i].$2 ?? '—',
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 ],
@@ -380,19 +397,19 @@ class _SubscriptionCard extends ConsumerWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color:
-                      (aktif
-                              ? AppColors.success
-                              : Theme.of(context).colorScheme.primary)
-                          .withValues(alpha: 0.12),
+                  // Warna: aktif = success; belum aktif = ajakan bank soal
+                  // → challenge.
+                  color: aktif
+                      ? context.palette.successSoft
+                      : context.palette.challengeSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   aktif ? Icons.menu_book_rounded : Icons.lock_outline_rounded,
                   size: 19,
                   color: aktif
-                      ? AppColors.success
-                      : Theme.of(context).colorScheme.primary,
+                      ? context.palette.success
+                      : context.palette.challenge,
                 ),
               ),
               const SizedBox(width: 11),
@@ -452,13 +469,10 @@ class _SettingsCard extends ConsumerWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 11),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Tema gelap',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                   Switch(
@@ -481,10 +495,10 @@ class _SettingsCard extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 11),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Bantuan & FAQ',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ),
                 Icon(
@@ -506,10 +520,10 @@ class _SettingsCard extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 11),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Kebijakan privasi',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ),
                 Icon(

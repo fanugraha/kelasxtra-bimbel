@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../bank_soal/bank_soal_repository.dart';
@@ -55,7 +55,11 @@ class _TopicRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = strong ? AppColors.success : AppColors.warning;
+    final palette = context.palette;
+    // Warna: kekuatan = REWARD (pencapaian belajar), kelemahan = WARNING
+    // (perlu perhatian).
+    final color = strong ? palette.reward : palette.warning;
+    final soft = strong ? palette.rewardSoft : palette.warningSoft;
     final pct = stat.accuracy.round();
 
     return AppCard(
@@ -66,7 +70,7 @@ class _TopicRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
+              color: soft,
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(
@@ -89,7 +93,9 @@ class _TopicRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${strong ? 'Kekuatan' : 'Kelemahan'} · akurasi $pct%',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall,
                 ),
                 const SizedBox(height: 6),
                 ClipRRect(
@@ -107,13 +113,12 @@ class _TopicRow extends StatelessWidget {
           const SizedBox(width: 10),
           OutlinedButton(
             onPressed: () => context.push('/bank-soal'),
+            // Ajakan latihan bank soal = CHALLENGE.
             style: OutlinedButton.styleFrom(
+              foregroundColor: palette.challenge,
               minimumSize: const Size(0, 34),
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              textStyle: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+              textStyle: theme.textTheme.labelMedium,
             ),
             child: Text(strong ? 'Lihat' : 'Latihan'),
           ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/form_group.dart';
@@ -31,8 +31,8 @@ class TutorDetailContent extends StatelessWidget {
           subtitle: (t.education != null && t.education!.isNotEmpty)
               ? t.education!
               : t.subjectLine.isEmpty
-                  ? 'Kenali tutor sebelum membeli paket.'
-                  : t.subjectLine,
+              ? 'Kenali tutor sebelum membeli paket.'
+              : t.subjectLine,
         ),
         const SizedBox(height: AppSpacing.xl),
         TutorIdentityCard(
@@ -49,7 +49,7 @@ class TutorDetailContent extends StatelessWidget {
                 value: t.ratingAvg.toStringAsFixed(1),
                 label: 'rating',
                 icon: Icons.star_rounded,
-                iconColor: AppColors.star,
+                iconColor: context.palette.reward, // Rating = REWARD.
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -74,10 +74,7 @@ class TutorDetailContent extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           const SectionTitle('Tentang'),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            t.bio!,
-            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5),
-          ),
+          Text(t.bio!, style: theme.textTheme.bodyMedium),
         ],
         const SizedBox(height: AppSpacing.xl),
         const SectionTitle('Mapel & jenjang'),
@@ -98,7 +95,7 @@ class TutorDetailContent extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           'Jadwal mingguan tutor. Pilih jam dan tanggal saat memesan sesi.',
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
+          style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.sm + 2),
         if (detail.availability.isEmpty)
@@ -118,7 +115,8 @@ class _TutorPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
@@ -126,16 +124,14 @@ class _TutorPill extends StatelessWidget {
         border: Border.all(color: scheme.outline),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
-      ),
+      child: Text(label, style: theme.textTheme.labelMedium),
     );
   }
 }
 
 class _TutorStatCard extends StatelessWidget {
-  const _TutorStatCard({required this.value,
+  const _TutorStatCard({
+    required this.value,
     required this.label,
     required this.icon,
     this.iconColor,
@@ -160,9 +156,11 @@ class _TutorStatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: theme.textTheme.titleMedium?.copyWith(fontSize: 17),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          Text(label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 10)),
+          Text(label, style: theme.textTheme.labelSmall),
         ],
       ),
     );

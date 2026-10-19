@@ -143,6 +143,7 @@ enum KatalogSort {
 
   /// Label pendek untuk tombol.
   final String label;
+
   /// Penjelasan singkat di lembar "Urutkan".
   final String description;
 }
@@ -189,15 +190,18 @@ class KatalogRepository {
     // Urutan kedua dipakai sebagai pemutus seri supaya daftar tidak berubah
     // posisi saat data diperbarui.
     final data = switch (sort) {
-      KatalogSort.rating => await query
-          .order('rating_avg', ascending: false)
-          .order('full_name', ascending: true),
-      KatalogSort.price => await query
-          .order('min_price', ascending: true, nullsFirst: false)
-          .order('rating_avg', ascending: false),
-      KatalogSort.name => await query
-          .order('full_name', ascending: true)
-          .order('rating_avg', ascending: false),
+      KatalogSort.rating =>
+        await query
+            .order('rating_avg', ascending: false)
+            .order('full_name', ascending: true),
+      KatalogSort.price =>
+        await query
+            .order('min_price', ascending: true, nullsFirst: false)
+            .order('rating_avg', ascending: false),
+      KatalogSort.name =>
+        await query
+            .order('full_name', ascending: true)
+            .order('rating_avg', ascending: false),
     };
     return data.map(TutorCatalogItem.fromMap).toList();
   }
@@ -232,7 +236,9 @@ class KatalogRepository {
 
     // Harga paket termurah (paket adalah satu-satunya cara memesan) di antara
     // kombinasi jenjang & mode yang diajar tutor ini.
-    final jenjangs = {for (final r in subjectRows) r['jenjang'] as String}.toList();
+    final jenjangs = {
+      for (final r in subjectRows) r['jenjang'] as String,
+    }.toList();
     final modeSet = {for (final r in availRows) r['mode'] as String}.toList();
     int? minPackagePrice;
     int? minPackageSesi;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/format.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/form_group.dart';
@@ -52,9 +52,9 @@ class VoucherField extends StatelessWidget {
               AppButton(
                 label: applied ? 'Hapus' : 'Terapkan',
                 expand: false,
-                variant: applied
-                    ? AppButtonVariant.secondary
-                    : AppButtonVariant.primary,
+                // Warna: bukan aksi utama layar → sekunder, agar tidak
+                // menyaingi tombol bayar.
+                variant: AppButtonVariant.secondary,
                 loading: c.checkingVoucher,
                 onPressed: applied ? onClear : onApply,
               ),
@@ -66,7 +66,7 @@ class VoucherField extends StatelessWidget {
               children: [
                 Icon(
                   Icons.error_outline_rounded,
-                  size: 15,
+                  size: 16,
                   color: theme.colorScheme.error,
                 ),
                 const SizedBox(width: 6),
@@ -75,7 +75,6 @@ class VoucherField extends StatelessWidget {
                     c.voucherError!,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.error,
-                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -85,18 +84,18 @@ class VoucherField extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_circle_outline_rounded,
-                  size: 15,
-                  color: AppColors.success,
+                  size: 16,
+                  color: context.palette.promo,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Diskon ${AppFormat.rupiah(c.voucherDiscount)} diterapkan.',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.success,
-                      fontSize: 12,
+                      // Warna: diskon voucher = peran promo.
+                      color: context.palette.promo,
                     ),
                   ),
                 ),

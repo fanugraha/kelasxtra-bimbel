@@ -18,12 +18,12 @@ class PlanItem {
   final int graceDays;
 
   factory PlanItem.fromMap(Map<String, dynamic> m) => PlanItem(
-        code: m['code'] as String,
-        name: (m['name'] ?? '') as String,
-        price: (m['price'] as num).toInt(),
-        periodDays: (m['period_days'] as num).toInt(),
-        graceDays: (m['grace_days'] as num).toInt(),
-      );
+    code: m['code'] as String,
+    name: (m['name'] ?? '') as String,
+    price: (m['price'] as num).toInt(),
+    periodDays: (m['period_days'] as num).toInt(),
+    graceDays: (m['grace_days'] as num).toInt(),
+  );
 }
 
 /// Langganan siswa.
@@ -43,23 +43,23 @@ class SubscriptionInfo {
   bool get bisaLatihan => status == 'active' || status == 'grace';
 
   String get label => switch (status) {
-        'active' => 'Aktif',
-        'grace' => 'Tenggang',
-        'pending' => 'Belum aktif',
-        'expired' => 'Kedaluwarsa',
-        'cancelled' => 'Dibatalkan',
-        _ => status,
-      };
+    'active' => 'Aktif',
+    'grace' => 'Tenggang',
+    'pending' => 'Belum aktif',
+    'expired' => 'Kedaluwarsa',
+    'cancelled' => 'Dibatalkan',
+    _ => status,
+  };
 
   factory SubscriptionInfo.fromMap(Map<String, dynamic> m) => SubscriptionInfo(
-        status: (m['status'] ?? '-') as String,
-        currentPeriodEnd: m['current_period_end'] == null
-            ? null
-            : DateTime.parse(m['current_period_end'] as String).toLocal(),
-        graceUntil: m['grace_until'] == null
-            ? null
-            : DateTime.parse(m['grace_until'] as String).toLocal(),
-      );
+    status: (m['status'] ?? '-') as String,
+    currentPeriodEnd: m['current_period_end'] == null
+        ? null
+        : DateTime.parse(m['current_period_end'] as String).toLocal(),
+    graceUntil: m['grace_until'] == null
+        ? null
+        : DateTime.parse(m['grace_until'] as String).toLocal(),
+  );
 }
 
 class QuestionOption {
@@ -68,9 +68,9 @@ class QuestionOption {
   final String text;
 
   factory QuestionOption.fromMap(Map<String, dynamic> m) => QuestionOption(
-        key: (m['key'] ?? '') as String,
-        text: (m['text'] ?? '') as String,
-      );
+    key: (m['key'] ?? '') as String,
+    text: (m['text'] ?? '') as String,
+  );
 }
 
 /// Soal saat latihan (TANPA kunci jawaban).
@@ -92,15 +92,15 @@ class PracticeQuestion {
   final String? imagePath;
 
   factory PracticeQuestion.fromMap(Map<String, dynamic> m) => PracticeQuestion(
-        id: m['id'] as String,
-        type: (m['type'] ?? 'pg') as String,
-        version: (m['version'] as num?)?.toInt() ?? 1,
-        body: (m['body'] ?? '') as String,
-        options: ((m['options'] as List?) ?? const [])
-            .map((o) => QuestionOption.fromMap(o as Map<String, dynamic>))
-            .toList(),
-        imagePath: m['image_url'] as String?,
-      );
+    id: m['id'] as String,
+    type: (m['type'] ?? 'pg') as String,
+    version: (m['version'] as num?)?.toInt() ?? 1,
+    body: (m['body'] ?? '') as String,
+    options: ((m['options'] as List?) ?? const [])
+        .map((o) => QuestionOption.fromMap(o as Map<String, dynamic>))
+        .toList(),
+    imagePath: m['image_url'] as String?,
+  );
 }
 
 class QuestionResult {
@@ -117,11 +117,11 @@ class QuestionResult {
   final String? explanation;
 
   factory QuestionResult.fromMap(Map<String, dynamic> m) => QuestionResult(
-        questionId: m['question_id'] as String,
-        isCorrect: (m['is_correct'] ?? false) as bool,
-        correctAnswer: (m['correct_answer'] ?? '') as String,
-        explanation: m['explanation'] as String?,
-      );
+    questionId: m['question_id'] as String,
+    isCorrect: (m['is_correct'] ?? false) as bool,
+    correctAnswer: (m['correct_answer'] ?? '') as String,
+    explanation: m['explanation'] as String?,
+  );
 }
 
 class AttemptResult {
@@ -138,13 +138,13 @@ class AttemptResult {
   final List<QuestionResult> results;
 
   factory AttemptResult.fromMap(Map<String, dynamic> m) => AttemptResult(
-        attemptId: m['attempt_id'] as String,
-        total: (m['total'] as num?)?.toInt() ?? 0,
-        correct: (m['correct'] as num?)?.toInt() ?? 0,
-        results: ((m['results'] as List?) ?? const [])
-            .map((r) => QuestionResult.fromMap(r as Map<String, dynamic>))
-            .toList(),
-      );
+    attemptId: m['attempt_id'] as String,
+    total: (m['total'] as num?)?.toInt() ?? 0,
+    correct: (m['correct'] as num?)?.toInt() ?? 0,
+    results: ((m['results'] as List?) ?? const [])
+        .map((r) => QuestionResult.fromMap(r as Map<String, dynamic>))
+        .toList(),
+  );
 }
 
 /// Statistik akurasi per topik.
@@ -171,10 +171,7 @@ class TopicStat {
     return 'LEMAH';
   }
 
-  factory TopicStat.fromMap(
-    Map<String, dynamic> m, {
-    String? topicName,
-  }) =>
+  factory TopicStat.fromMap(Map<String, dynamic> m, {String? topicName}) =>
       TopicStat(
         topicName: topicName ?? '-',
         attemptsCount: (m['attempts_count'] as num).toInt(),
@@ -195,7 +192,9 @@ class BankSoalRepository {
     return row == null ? null : PlanItem.fromMap(row);
   }
 
-  Future<SubscriptionInfo?> fetchMySubscription([String code = 'bank_soal']) async {
+  Future<SubscriptionInfo?> fetchMySubscription([
+    String code = 'bank_soal',
+  ]) async {
     final row = await supabase
         .from('subscriptions')
         .select('status, current_period_end, grace_until')
@@ -234,12 +233,15 @@ class BankSoalRepository {
     String? jenjang,
     int count = 10,
   }) async {
-    final data = await supabase.rpc('start_attempt', params: {
-      'p_mode': mode,
-      'p_topic': topicId,
-      'p_count': count,
-      'p_jenjang': jenjang,
-    });
+    final data = await supabase.rpc(
+      'start_attempt',
+      params: {
+        'p_mode': mode,
+        'p_topic': topicId,
+        'p_count': count,
+        'p_jenjang': jenjang,
+      },
+    );
     final map = data as Map<String, dynamic>;
     final questions = ((map['questions'] as List?) ?? const [])
         .map((q) => PracticeQuestion.fromMap(q as Map<String, dynamic>))
@@ -254,18 +256,20 @@ class BankSoalRepository {
     final payload = answers.entries
         .map((e) => {'question_id': e.key, 'answer': e.value})
         .toList();
-    final data = await supabase.rpc('submit_attempt', params: {
-      'p_attempt_id': attemptId,
-      'p_answers': payload,
-    });
+    final data = await supabase.rpc(
+      'submit_attempt',
+      params: {'p_attempt_id': attemptId, 'p_answers': payload},
+    );
     return AttemptResult.fromMap(data as Map<String, dynamic>);
   }
 
   Future<List<TopicStat>> fetchMyStats() async {
     final rows = await supabase
         .from('student_topic_stats')
-        .select('attempts_count, accuracy, last20_correct, last20_total, trend, '
-            'topics(name)')
+        .select(
+          'attempts_count, accuracy, last20_correct, last20_total, trend, '
+          'topics(name)',
+        )
         .order('accuracy');
     return [
       for (final r in rows)
@@ -278,7 +282,9 @@ class BankSoalRepository {
 
   /// URL sementara untuk gambar soal (bucket privat).
   Future<String?> signedImageUrl(String path) async {
-    final data = await supabase.storage.from('question-assets').createSignedUrl(path, 3600);
+    final data = await supabase.storage
+        .from('question-assets')
+        .createSignedUrl(path, 3600);
     return data;
   }
 }

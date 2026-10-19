@@ -34,24 +34,20 @@ class JadwalList extends StatelessWidget {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 26,
-                    child: Text(
-                      '${i + 1}.',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-                    ),
+                    width: 28,
+                    child: Text('${i + 1}.', style: theme.textTheme.labelSmall),
                   ),
                   Expanded(
                     child: Text(
                       AppFormat.dateLong(dates[i]),
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                   Text(
                     AppFormat.hhmm(startMinutes),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: theme.textTheme.titleSmall,
                   ),
                 ],
               ),

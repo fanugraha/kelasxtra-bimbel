@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_card.dart';
 import 'widgets/math_text.dart';
@@ -21,7 +21,10 @@ class HasilScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final pct = result.total == 0 ? 0 : (result.correct * 100 / result.total).round();
+    final palette = context.palette;
+    final pct = result.total == 0
+        ? 0
+        : (result.correct * 100 / result.total).round();
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -34,20 +37,40 @@ class HasilScreen extends StatelessWidget {
         ),
         children: [
           AppCard(
-            gradient: AppColors.gradient,
+            // Warna: nilai/skor = pencapaian → reward (emas), bukan brand.
+            // Ujung kedua selalu digelapkan (mode gelap jadi lebih redup).
+            // Kontras teks onReward di titik terterang (stop pertama):
+            // terang putih/#9B661A 4.87:1, gelap #2A1E05/#F2C14E 9.73:1.
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                palette.reward,
+                Color.lerp(palette.reward, Colors.black, 0.15)!,
+              ],
+            ),
             child: Column(
               children: [
-                Text('Nilaimu', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                Text(
+                  'Nilaimu',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: palette.onReward,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '$pct',
-                  style: theme.textTheme.displaySmall?.copyWith(color: Colors.white),
+                  style: theme.textTheme.displayLarge?.copyWith(
+                    color: palette.onReward,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${result.correct} benar dari ${result.total} soal',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+                  // Alpha penuh: putih 90% di #9B661A hanya 4.30:1.
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: palette.onReward,
+                  ),
                 ),
               ],
             ),
@@ -81,7 +104,8 @@ class _ReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = result.isCorrect ? AppColors.success : AppColors.danger;
+    final palette = context.palette;
+    final color = result.isCorrect ? palette.success : palette.danger;
 
     return AppCard(
       child: Column(
@@ -106,11 +130,15 @@ class _ReviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          if (question != null) MathText(question!.body, style: theme.textTheme.bodyLarge!),
+          if (question != null)
+            MathText(question!.body, style: theme.textTheme.bodyLarge!),
           const SizedBox(height: AppSpacing.sm),
-          Text('Kunci: ${result.correctAnswer}',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            'Kunci: ${result.correctAnswer}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           if (result.explanation != null && result.explanation!.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text('Pembahasan', style: theme.textTheme.bodySmall),
@@ -119,8 +147,7 @@ class _ReviewCard extends StatelessWidget {
           ],
           if (question?.imagePath != null) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text('(soal ini punya gambar)',
-                style: theme.textTheme.bodySmall),
+            Text('(soal ini punya gambar)', style: theme.textTheme.bodySmall),
           ],
         ],
       ),

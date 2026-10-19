@@ -5,8 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_card.dart';
 
-/// Kartu tutor untuk Beranda: nama, harga "mulai dari", mapel + jenjang, rating,
-/// dan hari tersedia — sinyal yang dibutuhkan siswa sebelum membuka profil.
+/// Kartu tutor untuk Beranda: foto besar di atas, lalu nama, harga, dan jadwal.
 class TutorShowcaseCard extends StatelessWidget {
   const TutorShowcaseCard({
     super.key,
@@ -34,61 +33,66 @@ class TutorShowcaseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final meta = subjectLine;
 
     return AppCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _TutorAvatar(name: name, photoUrl: photoUrl, radius: 21),
-              const Spacer(),
-              _RatingPill(rating: rating),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm + 2),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: AppRadius.card,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TutorPhoto(
+              name: name,
+              photoUrl: photoUrl,
+              subjectLine: subjectLine,
+              rating: rating,
+              height: 106,
             ),
-          ),
-          if (meta != null && meta.isNotEmpty) ...[
-            const SizedBox(height: 3),
-            Text(
-              meta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    if (subjectLine != null && subjectLine!.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subjectLine!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    _PriceLine(
+                      minPrice: minPrice,
+                      durationMinutes: durationMinutes,
+                    ),
+                    const Spacer(),
+                    if (days.isNotEmpty)
+                      _DayChips(days: days, maxDays: maxDays),
+                    const SizedBox(height: 8),
+                    const _ProfileCta(),
+                  ],
+                ),
+              ),
             ),
           ],
-          const SizedBox(height: AppSpacing.sm),
-          _PriceLine(
-            minPrice: minPrice,
-            durationMinutes: durationMinutes,
-            priceSize: 14.5,
-            unitSize: 10,
-          ),
-          const Spacer(),
-          if (days.isNotEmpty) _DayChips(days: days, maxDays: maxDays),
-          const SizedBox(height: AppSpacing.sm),
-          const _ProfileCta(),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Kartu tutor bentuk penuh untuk daftar "Cari Tutor". Informasinya sama
-/// dengan [TutorShowcaseCard], tapi disusun mendatar agar enak dipindai dari
-/// atas ke bawah (identitas → yang diajar → harga & jadwal → aksi).
+/// Kartu tutor untuk grid "Cari Tutor" — rasio produk marketplace:
+/// foto di atas, informasi ringkas di bawah.
 class TutorListCard extends StatelessWidget {
   const TutorListCard({
     super.key,
@@ -100,7 +104,7 @@ class TutorListCard extends StatelessWidget {
     this.photoUrl,
     this.minPrice,
     this.durationMinutes = 60,
-    this.maxDays = 4,
+    this.maxDays = 2,
     this.onTap,
   });
 
@@ -118,81 +122,190 @@ class TutorListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final meta = subjectLine;
+    final meta = (subjectLine != null && subjectLine!.isNotEmpty)
+        ? subjectLine
+        : education;
 
     return AppCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md + 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _TutorAvatar(name: name, photoUrl: photoUrl, radius: 22),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: AppRadius.card,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TutorPhoto(
+              name: name,
+              photoUrl: photoUrl,
+              subjectLine: meta,
+              rating: rating,
+              height: 132,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm + 2,
+                  10,
+                  AppSpacing.sm + 2,
+                  10,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        _RatingPill(rating: rating),
-                      ],
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      (education == null || education!.isEmpty)
+                      (meta == null || meta.isEmpty)
                           ? 'Tutor terverifikasi'
-                          : education!,
-                      maxLines: 1,
+                          : meta,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.25),
                     ),
+                    const Spacer(),
+                    _PriceLine(
+                      minPrice: minPrice,
+                      durationMinutes: durationMinutes,
+                      compact: true,
+                    ),
+                    const SizedBox(height: 6),
+                    if (days.isNotEmpty)
+                      _DayChips(days: days, maxDays: maxDays),
                   ],
                 ),
               ),
-            ],
-          ),
-          if (meta != null && meta.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              meta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-              ),
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          _PriceLine(
-            minPrice: minPrice,
-            durationMinutes: durationMinutes,
-            priceSize: 15,
-            unitSize: 10,
+        ),
+      ),
+    );
+  }
+}
+
+/// Bagian foto kartu: foto asli bila ada, atau ilustrasi gradien bila kosong.
+class _TutorPhoto extends StatelessWidget {
+  const _TutorPhoto({
+    required this.name,
+    required this.photoUrl,
+    required this.subjectLine,
+    required this.rating,
+    required this.height,
+  });
+
+  final String name;
+  final String? photoUrl;
+  final String? subjectLine;
+  final double rating;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = photoUrl != null && photoUrl!.trim().isNotEmpty;
+    final fallback = _PhotoFallback(name: name, subjectLine: subjectLine);
+
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (hasPhoto)
+            Image.network(
+              photoUrl!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) =>
+                  progress == null ? child : fallback,
+              errorBuilder: (context, error, stackTrace) => fallback,
+            )
+          else
+            fallback,
+          Positioned(
+            top: 8,
+            left: 8,
+            child: _VerifiedPill(compact: height < 120),
           ),
-          const SizedBox(height: AppSpacing.sm + 2),
-          Row(
-            children: [
-              Expanded(child: _DayChips(days: days, maxDays: maxDays)),
-              const SizedBox(width: AppSpacing.sm),
-              const _ProfileCta(),
-            ],
+          Positioned(top: 8, right: 8, child: _RatingPill(rating: rating)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotoFallback extends StatelessWidget {
+  const _PhotoFallback({required this.name, required this.subjectLine});
+
+  final String name;
+  final String? subjectLine;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    // Gradasi teal 2 warna bertetangga, digelapkan agar teks putih kecil
+    // (mapel · jenjang) lolos AA. Titik terterang #006986: putih 6.24:1, dan
+    // ±5.2:1 bila tertimpa gelembung putih 12%. Mode gelap lebih redup.
+    final dark = theme.brightness == Brightness.dark;
+    Color shade(double t) => Color.lerp(AppColors.primary, Colors.black, t)!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [shade(0.35), shade(0.55)]
+              : [shade(0.15), shade(0.35)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -28,
+            top: -34,
+            child: _Bubble(size: 104, opacity: 0.12),
+          ),
+          Positioned(
+            left: -26,
+            bottom: -36,
+            child: _Bubble(size: 92, opacity: 0.08),
+          ),
+          Center(
+            child: Icon(
+              _subjectIcon(subjectLine),
+              size: 86,
+              color: Colors.white.withValues(alpha: 0.14),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  initial,
+                  style: theme.textTheme.displayLarge?.copyWith(
+                    color: Colors.white,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    subjectLine ?? 'Tutor',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -200,35 +313,77 @@ class TutorListCard extends StatelessWidget {
   }
 }
 
-class _TutorAvatar extends StatelessWidget {
-  const _TutorAvatar({
-    required this.name,
-    required this.photoUrl,
-    required this.radius,
-  });
+IconData _subjectIcon(String? subject) {
+  final text = (subject ?? '').toLowerCase();
+  if (text.contains('matematika') || text.contains('math')) {
+    return Icons.functions_rounded;
+  }
+  if (text.contains('fisika') ||
+      text.contains('kimia') ||
+      text.contains('biologi') ||
+      text.contains('ipa')) {
+    return Icons.science_rounded;
+  }
+  if (text.contains('inggris') || text.contains('bahasa')) {
+    return Icons.translate_rounded;
+  }
+  return Icons.menu_book_rounded;
+}
 
-  final String name;
-  final String? photoUrl;
-  final double radius;
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.size, required this.opacity});
+
+  final double size;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: scheme.primary.withValues(alpha: 0.11),
-      backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
-      child: hasPhoto
-          ? null
-          : Text(
-              name.isEmpty ? '?' : name[0].toUpperCase(),
-              style: TextStyle(
-                color: scheme.primary,
-                fontWeight: FontWeight.w800,
-                fontSize: radius * 0.667,
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: opacity),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+class _VerifiedPill extends StatelessWidget {
+  const _VerifiedPill({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pil selalu putih → teal gelap tetap (bukan scheme.primary yang di
+          // mode gelap jadi terang). primaryDark di putih .94: ≥5.8:1.
+          const Icon(
+            Icons.verified_rounded,
+            size: 12,
+            color: AppColors.primaryDark,
+          ),
+          if (!compact) ...[
+            const SizedBox(width: 3),
+            Text(
+              'Terverifikasi',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryDark,
               ),
             ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -240,19 +395,22 @@ class _RatingPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.star.withValues(alpha: 0.14),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, size: 13, color: AppColors.star),
+          const Icon(Icons.star_rounded, size: 12, color: AppColors.star),
           const SizedBox(width: 3),
           Text(
             rating.toStringAsFixed(1),
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textLight,
+            ),
           ),
         ],
       ),
@@ -264,43 +422,52 @@ class _PriceLine extends StatelessWidget {
   const _PriceLine({
     required this.minPrice,
     required this.durationMinutes,
-    required this.priceSize,
-    required this.unitSize,
+    this.compact = false,
   });
 
   final int? minPrice;
   final int durationMinutes;
-  final double priceSize;
-  final double unitSize;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Harga = informasi → NETRAL (onSurface), tidak bersaing dengan aksi brand.
+    final priceStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: theme.colorScheme.onSurface,
+    );
+    final unitStyle = theme.textTheme.labelSmall;
     if (minPrice == null) {
       return Text(
         'Harga di detail tutor',
-        style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall,
       );
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text('Mulai ', style: theme.textTheme.bodySmall?.copyWith(fontSize: 10)),
-        Text(
-          AppFormat.rupiah(minPrice!),
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontSize: priceSize,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
+    if (compact) {
+      return Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: AppFormat.rupiah(minPrice!), style: priceStyle),
+            TextSpan(text: ' / $durationMinutes mnt', style: unitStyle),
+          ],
         ),
-        const SizedBox(width: 3),
-        Text(
-          '/ $durationMinutes mnt',
-          style: theme.textTheme.bodySmall?.copyWith(fontSize: unitSize),
-        ),
-      ],
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: 'Mulai ', style: unitStyle),
+          TextSpan(text: AppFormat.rupiah(minPrice!), style: priceStyle),
+          TextSpan(text: ' / $durationMinutes mnt', style: unitStyle),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
@@ -326,10 +493,9 @@ class _DayChips extends StatelessWidget {
         if (more > 0)
           Text(
             '+$more',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
       ],
     );
@@ -343,20 +509,26 @@ class _ProfileCta extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Lihat profil',
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
-            color: primary,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Lihat profil',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: primary,
+            ),
           ),
-        ),
-        const SizedBox(width: 3),
-        Icon(Icons.arrow_forward_rounded, size: 13, color: primary),
-      ],
+          const SizedBox(width: 3),
+          Icon(Icons.arrow_forward_rounded, size: 13, color: primary),
+        ],
+      ),
     );
   }
 }
@@ -376,9 +548,8 @@ class _DayChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
           color: scheme.primary,
         ),
       ),

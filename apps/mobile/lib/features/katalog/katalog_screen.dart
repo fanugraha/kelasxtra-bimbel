@@ -109,10 +109,9 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
                       child: SelectableChip(
                         label: 'Semua mapel',
                         selected: filter.subjectId == null,
-                        onTap: () =>
-                            ref.read(katalogFilterProvider.notifier).setSubject(
-                                  null,
-                                ),
+                        onTap: () => ref
+                            .read(katalogFilterProvider.notifier)
+                            .setSubject(null),
                       ),
                     ),
                     for (final s in subjects)
@@ -182,23 +181,44 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
                       children: [
                         Text(
                           '${list.length} tutor ditemukan',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontSize: 10.5),
+                          style: theme.textTheme.labelSmall,
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        for (final t in list) ...[
-                          TutorListCard(
-                            name: t.fullName,
-                            rating: t.ratingAvg,
-                            education: t.education,
-                            subjectLine: t.subjectLine,
-                            days: t.dayLabels,
-                            photoUrl: t.photoUrl,
-                            minPrice: t.minPrice,
-                            onTap: () => context.push('/tutor/${t.id}'),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                        ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            const gap = AppSpacing.md;
+                            final columns = constraints.maxWidth >= 560 ? 3 : 2;
+                            final cardWidth =
+                                (constraints.maxWidth - gap * (columns - 1)) /
+                                columns;
+                            final textScale =
+                                MediaQuery.textScalerOf(context).scale(16) / 16;
+                            final cardHeight =
+                                274 + (textScale - 1).clamp(0.0, 1.2) * 130;
+                            return Wrap(
+                              spacing: gap,
+                              runSpacing: gap,
+                              children: [
+                                for (final t in list)
+                                  SizedBox(
+                                    width: cardWidth,
+                                    height: cardHeight,
+                                    child: TutorListCard(
+                                      name: t.fullName,
+                                      rating: t.ratingAvg,
+                                      education: t.education,
+                                      subjectLine: t.subjectLine,
+                                      days: t.dayLabels,
+                                      photoUrl: t.photoUrl,
+                                      minPrice: t.minPrice,
+                                      onTap: () =>
+                                          context.push('/tutor/${t.id}'),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     );
                   },
@@ -217,7 +237,10 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
       (t.subjects ?? '').toLowerCase().contains(query);
 
   /// Chip "filter aktif" — satu chip yang bisa dilepas untuk tiap pilihan.
-  List<Widget> _activeChips(KatalogFilter filter, List<SubjectOption> subjects) {
+  List<Widget> _activeChips(
+    KatalogFilter filter,
+    List<SubjectOption> subjects,
+  ) {
     final notifier = ref.read(katalogFilterProvider.notifier);
     String? subjectName;
     for (final s in subjects) {
@@ -243,7 +266,8 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
           label: filter.mode == 'online' ? 'Online' : 'Offline',
           onRemove: () => notifier.setMode(null),
         ),
-      for (final day in (filter.days.toList()
+      for (final day
+          in (filter.days.toList()
             ..sort((a, b) => (a == 0 ? 7 : a).compareTo(b == 0 ? 7 : b))))
         SelectableChip(
           label: AppFormat.shortDayName(day),
@@ -268,23 +292,20 @@ class _FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final active = count > 0;
     return SizedBox(
-      height: 44,
+      height: 48,
       child: FilledButton.icon(
         onPressed: onTap,
         icon: const Icon(Icons.tune_rounded, size: 18),
         label: Text(active ? 'Filter ($count)' : 'Filter'),
         style: FilledButton.styleFrom(
-          backgroundColor: active
-              ? scheme.primary.withValues(alpha: 0.14)
-              : scheme.surfaceContainerHighest,
-          foregroundColor: active ? scheme.primary : scheme.onSurface,
-          side: BorderSide(
-            color: active ? scheme.primary.withValues(alpha: 0.35) : scheme.outline,
-          ),
-          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+          backgroundColor: active ? scheme.primary : scheme.surface,
+          foregroundColor: active ? scheme.onPrimary : scheme.onSurface,
+          side: BorderSide(color: active ? scheme.primary : scheme.outline),
+          textStyle: theme.textTheme.labelMedium,
         ),
       ),
     );
@@ -299,17 +320,20 @@ class _SortButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return SizedBox(
-      height: 44,
+      height: 48,
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: const Icon(Icons.swap_vert_rounded, size: 18),
         label: Text('Urutan: ${sort.label}'),
         style: OutlinedButton.styleFrom(
           foregroundColor: scheme.onSurface,
+          backgroundColor: scheme.surface,
           side: BorderSide(color: scheme.outline),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          textStyle: theme.textTheme.labelMedium,
         ),
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/format.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/theme_mode_provider.dart';
 import '../../../core/widgets/screen_head.dart';
 
@@ -25,6 +25,7 @@ class HomeHead extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
+    final palette = context.palette;
 
     return Padding(
       padding: const EdgeInsets.only(top: 20),
@@ -34,18 +35,20 @@ class HomeHead extends ConsumerWidget {
           InkWell(
             onTap: () =>
                 isSiswa ? context.go('/profil') : context.push('/profil'),
-            borderRadius: BorderRadius.circular(999),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: theme.colorScheme.primary.withValues(
-                alpha: 0.11,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              // Avatar inisial: tonal brand, bukan blok warna penuh.
+              decoration: BoxDecoration(
+                color: palette.brandSoft,
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 initial,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: palette.brand,
                 ),
               ),
             ),
@@ -56,26 +59,17 @@ class HomeHead extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppFormat.dateLong(DateTime.now()),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
                   'Hai, $name 👋',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 23,
-                    height: 1.12,
-                    letterSpacing: -0.6,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),

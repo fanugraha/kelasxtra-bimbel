@@ -7,14 +7,28 @@ import '../../../core/snap_result.dart';
 import '../../katalog/katalog_repository.dart';
 import '../paket_repository.dart';
 
-/// Judul tiap langkah wizard beli paket.
-const beliPaketStepTitles = <String>[
-  'Paket & durasi',
-  'Jadwal mingguan',
-  'Ringkasan & bayar',
-];
+/// Satu pilihan jadwal mingguan siap pakai, mis. "Sabtu · 11.00" mulai tanggal
+/// terdekat yang kosong untuk SEMUA pertemuan paket.
+class WeeklyOption {
+  const WeeklyOption({
+    required this.slot,
+    required this.date,
+    required this.startMinutes,
+    this.clash,
+  });
 
-/// State + logika wizard beli paket (4/8/12 pertemuan, seminggu sekali).
+  final TutorAvailabilityItem slot;
+  final DateTime date;
+  final int startMinutes;
+
+  /// Terisi bila bentrok dengan les siswa sendiri (pilihan dinonaktifkan).
+  final String? clash;
+}
+
+/// Sesi milik siswa sendiri yang tidak boleh ditabrak paket baru.
+typedef MySession = ({DateTime start, DateTime end, String label});
+
+/// State + logika beli paket satu halaman (4/8/12 pertemuan, seminggu sekali).
 ///
 /// Menyimpan pilihan siswa, perhitungan jadwal murni, dan panggilan jaringan
 /// (pratinjau voucher, buat Snap). Navigasi tetap di layar agar file ini tak
@@ -31,12 +45,10 @@ class BeliPaketController extends ChangeNotifier {
   final PaketRepository _repository;
   final void Function() _invalidateBusy;
 
-  /// Kolom teks langkah 3 — dimiliki controller supaya pengosongan saat
-  /// pilihan berubah (mapel/mode/jumlah) tidak perlu dikoordinasi layar.
+  /// Kolom teks — dimiliki controller supaya pengosongan saat pilihan berubah
+  /// (mapel/mode/jumlah) tidak perlu dikoordinasi layar.
   final address = TextEditingController();
   final voucher = TextEditingController();
-
-  int step = 0;
 
   TutorSubjectItem? subject;
   String? mode;
@@ -63,8 +75,6 @@ class BeliPaketController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get isLastStep => step == beliPaketStepTitles.length - 1;
-
   @override
   void dispose() {
     address.dispose();
@@ -75,15 +85,7 @@ class BeliPaketController extends ChangeNotifier {
   /// Memberi tahu layar untuk menggambar ulang (mis. saat alamat diketik).
   void refresh() => notifyListeners();
 
-  // --- Navigasi langkah ---------------------------------------------------
-
-  void goTo(int index) {
-    if (index < 0 || index >= beliPaketStepTitles.length) return;
-    step = index;
-    notifyListeners();
-  }
-
-  // --- Pilihan langkah 1 --------------------------------------------------
+  // --- Pilihan paket ------------------------------------------------------
 
   void selectSubject(TutorSubjectItem value) {
     subject = value;
@@ -101,36 +103,30 @@ class BeliPaketController extends ChangeNotifier {
 
   void selectDuration(int value) {
     duration = value;
-    startMinutes = null;
+    _resetSchedule();
     _resetVoucher();
     notifyListeners();
   }
 
   void selectSize(int value) {
     size = value;
+    // Jumlah pertemuan mengubah tanggal mana yang masih kosong.
+    _resetSchedule();
     _resetVoucher();
     notifyListeners();
   }
 
-  // --- Pilihan langkah 2 --------------------------------------------------
+  // --- Pilihan jadwal -----------------------------------------------------
 
-  void selectSlot(TutorAvailabilityItem value) {
-    slot = value;
-    date = null;
-    startMinutes = null;
+  void selectWeekly(WeeklyOption option) {
+    slot = option.slot;
+    date = option.date;
+    startMinutes = option.startMinutes;
     notifyListeners();
   }
 
-  void selectDate(DateTime value) {
-    date = value;
-    startMinutes = null;
-    notifyListeners();
-  }
-
-  void selectStartMinutes(int value) {
-    startMinutes = value;
-    notifyListeners();
-  }
+  bool isSelected(WeeklyOption o) =>
+      slot == o.slot && date == o.date && startMinutes == o.startMinutes;
 
   // --- Voucher ------------------------------------------------------------
 
@@ -224,6 +220,70 @@ class BeliPaketController extends ChangeNotifier {
 
   // --- Logika jadwal ------------------------------------------------------
 
+  /// Semua jam mulai di semua slot tutor untuk mode terpilih. Tiap jam memakai
+  /// tanggal terdekat yang kosong di jadwal tutor untuk seluruh pertemuan; jam
+  /// yang penuh disembunyikan, yang bentrok dengan les siswa sendiri ditandai.
+  List<WeeklyOption> weeklyOptions({
+    required List<TutorAvailabilityItem> availability,
+    required List<BusySlot> tutorBusy,
+    required List<MySession> mine,
+    DateTime? now,
+  }) {
+    final clock = now ?? DateTime.now();
+    final mineBusy = [
+      for (final m in mine) BusySlot(start: m.start, end: m.end),
+    ];
+    final options = <WeeklyOption>[];
+    for (final s in slotOptions(availability)) {
+      final start = AppFormat.minutesOfTime(s.startTime);
+      final end = AppFormat.minutesOfTime(s.endTime);
+      for (var m = start; m + duration <= end; m += 60) {
+        DateTime? first;
+        for (final d in nextDates(s.dayOfWeek, now: clock)) {
+          final past =
+              isSameDay(d, clock) && m <= clock.hour * 60 + clock.minute;
+          if (!past && meetingsFree(d, m, tutorBusy)) {
+            first = d;
+            break;
+          }
+        }
+        if (first == null) continue;
+        options.add(
+          WeeklyOption(
+            slot: s,
+            date: first,
+            startMinutes: m,
+            clash: meetingsFree(first, m, mineBusy)
+                ? null
+                : _clashLabel(first, m, mine),
+          ),
+        );
+      }
+    }
+    options.sort((a, b) {
+      final byDay = a.date.weekday.compareTo(b.date.weekday);
+      return byDay != 0 ? byDay : a.startMinutes.compareTo(b.startMinutes);
+    });
+    return options;
+  }
+
+  String _clashLabel(DateTime date, int startMinutes, List<MySession> mine) {
+    for (var i = 0; i < size; i++) {
+      final start = DateTime(
+        date.year,
+        date.month,
+        date.day,
+      ).add(Duration(days: i * 7, minutes: startMinutes));
+      final end = start.add(Duration(minutes: duration));
+      for (final s in mine) {
+        if (start.isBefore(s.end) && end.isAfter(s.start)) {
+          return 'Bentrok dengan les ${s.label}';
+        }
+      }
+    }
+    return 'Bentrok dengan jadwalmu';
+  }
+
   /// Tanggal seluruh pertemuan: pertemuan pertama + 7 hari berikutnya.
   List<DateTime> meetingDates() {
     if (date == null) return const [];
@@ -247,27 +307,6 @@ class BeliPaketController extends ChangeNotifier {
     return [for (var i = 0; i < 4; i++) first.add(Duration(days: i * 7))];
   }
 
-  /// Jam mulai yang muat durasi di slot, belum lewat bila hari ini, dan tidak
-  /// bentrok dengan sesi lain untuk SEMUA pertemuan mingguan paket.
-  List<int> startTimes({
-    required DateTime date,
-    required TutorAvailabilityItem slot,
-    required List<BusySlot> busy,
-    DateTime? now,
-  }) {
-    final clock = now ?? DateTime.now();
-    final start = AppFormat.minutesOfTime(slot.startTime);
-    final end = AppFormat.minutesOfTime(slot.endTime);
-    final isToday = isSameDay(date, clock);
-    final nowMinutes = clock.hour * 60 + clock.minute;
-    return [
-      for (var m = start; m + duration <= end; m += 60)
-        if ((!isToday || m > nowMinutes) &&
-            meetingsFree(date, m, busy, now: clock))
-          m,
-    ];
-  }
-
   /// Semua pertemuan (tiap 7 hari) bebas dari rentang sibuk.
   bool meetingsFree(
     DateTime date,
@@ -289,13 +328,6 @@ class BeliPaketController extends ChangeNotifier {
     }
     return true;
   }
-
-  bool dateHasSlot(
-    DateTime date,
-    TutorAvailabilityItem slot,
-    List<BusySlot> busy, {
-    DateTime? now,
-  }) => startTimes(date: date, slot: slot, busy: busy, now: now).isNotEmpty;
 
   void _resetSchedule() {
     slot = null;

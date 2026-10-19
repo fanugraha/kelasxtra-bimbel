@@ -31,17 +31,17 @@ class AppButton extends StatelessWidget {
 
     final button = switch (variant) {
       AppButtonVariant.primary => FilledButton(
-          onPressed: disabled ? null : onPressed,
-          child: child,
-        ),
+        onPressed: disabled ? null : onPressed,
+        child: child,
+      ),
       AppButtonVariant.secondary => OutlinedButton(
-          onPressed: disabled ? null : onPressed,
-          child: child,
-        ),
+        onPressed: disabled ? null : onPressed,
+        child: child,
+      ),
       AppButtonVariant.ghost => TextButton(
-          onPressed: disabled ? null : onPressed,
-          child: child,
-        ),
+        onPressed: disabled ? null : onPressed,
+        child: child,
+      ),
     };
 
     return expand ? SizedBox(width: double.infinity, child: button) : button;

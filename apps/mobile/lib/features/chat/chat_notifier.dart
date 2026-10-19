@@ -60,9 +60,9 @@ class _ChatInboxWatcherState extends ConsumerState<ChatInboxWatcher> {
         return;
       }
 
-      final peer = await ref.read(chatRepositoryProvider).fetchPeerOfConversation(
-            row['conversation_id'] as String,
-          );
+      final peer = await ref
+          .read(chatRepositoryProvider)
+          .fetchPeerOfConversation(row['conversation_id'] as String);
       if (peer == null || peer == ref.read(openChatPeerProvider) || !mounted) {
         return;
       }
@@ -88,10 +88,8 @@ class _ChatInboxWatcherState extends ConsumerState<ChatInboxWatcher> {
           ),
           action: SnackBarAction(
             label: 'Buka',
-            onPressed: () => context.push(
-              '/chat/room/$peer',
-              extra: {'name': name},
-            ),
+            onPressed: () =>
+                context.push('/chat/room/$peer', extra: {'name': name}),
           ),
         ),
       );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/empty_state.dart';
@@ -51,8 +52,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             final filtered = _query.isEmpty
                 ? list
                 : list
-                    .where((c) => c.peerName.toLowerCase().contains(_query))
-                    .toList();
+                      .where((c) => c.peerName.toLowerCase().contains(_query))
+                      .toList();
 
             return RefreshIndicator(
               onRefresh: () async {
@@ -96,10 +97,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     )
                   else
                     for (final conv in filtered) ...[
-                      _ConversationCard(
-                        conv: conv,
-                        onTap: () => _open(conv),
-                      ),
+                      _ConversationCard(conv: conv, onTap: () => _open(conv)),
                       const SizedBox(height: 8),
                     ],
                 ],
@@ -155,7 +153,9 @@ class _ConversationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final unread = conv.unread > 0;
-    final initial = conv.peerName.isEmpty ? '?' : conv.peerName[0].toUpperCase();
+    final initial = conv.peerName.isEmpty
+        ? '?'
+        : conv.peerName[0].toUpperCase();
     final hasPhoto = conv.peerAvatar != null && conv.peerAvatar!.isNotEmpty;
 
     return AppCard(
@@ -165,16 +165,14 @@ class _ConversationCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: scheme.primary.withValues(alpha: 0.11),
+            backgroundColor: context.palette.brandSoft,
             backgroundImage: hasPhoto ? NetworkImage(conv.peerAvatar!) : null,
             child: hasPhoto
                 ? null
                 : Text(
                     initial,
-                    style: TextStyle(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       color: scheme.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
                     ),
                   ),
           ),
@@ -187,10 +185,7 @@ class _ConversationCard extends StatelessWidget {
                   conv.peerName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontSize: 13.5,
-                    fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
-                  ),
+                  style: theme.textTheme.titleSmall,
                 ),
                 const SizedBox(height: 3),
                 Row(
@@ -203,11 +198,12 @@ class _ConversationCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11.5,
                           color: unread
                               ? scheme.onSurface
                               : scheme.onSurfaceVariant,
-                          fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: unread
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ),
@@ -215,9 +211,10 @@ class _ConversationCard extends StatelessWidget {
                     Text(
                       AppFormat.chatStamp(conv.lastMessageAt),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 10,
-                        fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
-                        color: unread ? scheme.primary : scheme.onSurfaceVariant,
+                        fontWeight: unread ? FontWeight.w600 : null,
+                        color: unread
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -238,10 +235,12 @@ class _ConversationCard extends StatelessWidget {
               ),
               child: Text(
                 conv.unread > 99 ? '99+' : '${conv.unread}',
-                style: TextStyle(
+                // Pengecualian ukuran: angka di lencana 22px muat "99+"
+                // hanya pada 11; bukan teks informatif utama.
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: scheme.onPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

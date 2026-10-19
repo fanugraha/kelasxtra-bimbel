@@ -46,7 +46,7 @@ class RiwayatScreen extends ConsumerWidget {
                         'Pembelian paket, langganan, dan kelas grup akan tercatat di sini.',
                   )
                 else
-                  ..._groupedByMonth(list),
+                  ..._groupedByMonth(Theme.of(context), list),
               ],
             ),
           ),
@@ -56,7 +56,7 @@ class RiwayatScreen extends ConsumerWidget {
   }
 
   /// Dikelompokkan per bulan (terbaru dulu) agar mudah ditelusuri.
-  List<Widget> _groupedByMonth(List<TransaksiItem> list) {
+  List<Widget> _groupedByMonth(ThemeData theme, List<TransaksiItem> list) {
     final groups = <String, List<TransaksiItem>>{};
     for (final item in list) {
       groups.putIfAbsent(AppFormat.monthLabel(item.at), () => []).add(item);
@@ -66,7 +66,7 @@ class RiwayatScreen extends ConsumerWidget {
       for (final group in groups.values) ...[
         Text(
           AppFormat.monthLabel(group.first.at),
-          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+          style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: AppSpacing.sm),
         for (final item in group) ...[

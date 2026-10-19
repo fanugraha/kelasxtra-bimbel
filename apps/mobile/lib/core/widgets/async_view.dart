@@ -25,7 +25,8 @@ class AsyncView<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return value.when(
-      loading: () => loading ?? const Center(child: CircularProgressIndicator()),
+      loading: () =>
+          loading ?? const Center(child: CircularProgressIndicator()),
       error: (error, _) => EmptyState(
         icon: Icons.cloud_off_rounded,
         title: errorTitle,

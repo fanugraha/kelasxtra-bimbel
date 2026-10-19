@@ -221,8 +221,7 @@ class _SortSheet extends ConsumerWidget {
               },
               title: Text(
                 sort.label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
+                style: theme.textTheme.titleSmall?.copyWith(
                   color: sort == current
                       ? theme.colorScheme.primary
                       : theme.colorScheme.onSurface,
@@ -230,7 +229,7 @@ class _SortSheet extends ConsumerWidget {
               ),
               subtitle: Text(
                 sort.description,
-                style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                style: theme.textTheme.bodySmall,
               ),
               trailing: sort == current
                   ? Icon(
@@ -264,18 +263,13 @@ class _Group extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
-              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
-            Text(
-              subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
-            ),
+            Text(subtitle!, style: theme.textTheme.bodySmall),
           ],
           const SizedBox(height: AppSpacing.sm + 2),
           Wrap(

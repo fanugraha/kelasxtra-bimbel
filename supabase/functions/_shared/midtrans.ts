@@ -14,6 +14,13 @@ export const json = (body: unknown, status = 200) =>
     headers: { ...cors, 'Content-Type': 'application/json' },
   })
 
+/// Basis halaman Snap (cadangan bila kanal QRIS Core API belum aktif).
+function snapBase(): string {
+  return Deno.env.get('MIDTRANS_IS_SANDBOX') === 'true'
+    ? 'https://app.sandbox.midtrans.com'
+    : 'https://app.midtrans.com'
+}
+
 /// Basis API Core Midtrans (charge QRIS & status transaksi).
 export function apiBase(): string {
   return Deno.env.get('MIDTRANS_IS_SANDBOX') === 'true'
@@ -56,6 +63,8 @@ export type Qris = {
   qr_string: string
   qr_url: string
   expires_at: string
+  /// Terisi hanya pada mode cadangan Snap (QR & URL gambar kosong).
+  snap_url?: string
 }
 
 /// QRIS yang sudah tersimpan untuk order ini. Midtrans menolak charge ulang
@@ -63,7 +72,7 @@ export type Qris = {
 /// sama dengan kunci tagihan (LOCK_MINUTES).
 export function cachedQris(raw: unknown): Qris | null {
   const q = raw as Partial<Qris> | null
-  return q?.qr_string && q.expires_at ? (q as Qris) : null
+  return (q?.qr_string || q?.qr_url || q?.snap_url) && q.expires_at ? (q as Qris) : null
 }
 
 /// Field respons Edge Function untuk QRIS. `redirect_url` tetap diisi URL gambar
@@ -72,17 +81,54 @@ export const qrisFields = (q: Qris) => ({
   qr_string: q.qr_string,
   qr_url: q.qr_url,
   expires_at: q.expires_at,
-  redirect_url: q.qr_url,
+  snap_url: q.snap_url ?? '',
+  redirect_url: q.snap_url || q.qr_url,
 })
 
 /// Buat QRIS dinamis (nominal sudah tertanam di QR) lewat Core API.
-/// Melempar bila Midtrans menolak.
+/// Coba `qris` dulu; bila kanal itu belum diaktifkan Midtrans untuk akun ini,
+/// pakai `gopay` — QR dinamis GoPay juga berstandar QRIS (bisa dipindai semua
+/// e-wallet & m-banking). Bila keduanya belum diaktifkan untuk Core API, jatuh ke
+/// Snap yang hanya menampilkan QRIS. Melempar bila Midtrans menolak.
 export async function createQris(
   orderId: string,
   amount: number,
   itemName: string,
   customer: { first_name: string; email?: string },
 ): Promise<Qris> {
+  const base = {
+    transaction_details: { order_id: orderId, gross_amount: amount },
+    item_details: [{ id: orderId, price: amount, quantity: 1, name: itemName.slice(0, 50) }],
+    customer_details: customer,
+    custom_expiry: { expiry_duration: LOCK_MINUTES, unit: 'minute' },
+  }
+  let r = await charge({ ...base, payment_type: 'qris', qris: { acquirer: 'gopay' } })
+  if (!r.ok && /not activated/i.test(r.message)) {
+    r = await charge({ ...base, payment_type: 'gopay' })
+  }
+  if (!r.ok && /not activated/i.test(r.message)) {
+    return await createQrisSnap(orderId, amount, itemName, customer)
+  }
+  if (!r.ok) {
+    console.error('createQris gagal', orderId, r.message)
+    throw new Error(r.message)
+  }
+  const data = r.data
+  const qrUrl =
+    (data.actions as { name: string; url: string }[] | undefined)
+      ?.find((a) => a.name === 'generate-qr-code')?.url ?? ''
+  if (!data.qr_string && !qrUrl) throw new Error('Midtrans tidak mengirim kode QR')
+  // expiry_time dari Midtrans dalam WIB tanpa zona: "2026-10-19 13:30:00".
+  const expiresAt = data.expiry_time
+    ? new Date(`${String(data.expiry_time).replace(' ', 'T')}+07:00`).toISOString()
+    : new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
+  return { qr_string: data.qr_string ?? '', qr_url: qrUrl, expires_at: expiresAt }
+}
+
+// deno-lint-ignore no-explicit-any
+type ChargeResult = { ok: true; data: any } | { ok: false; message: string }
+
+async function charge(body: Record<string, unknown>): Promise<ChargeResult> {
   const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY')!
   const res = await fetch(`${apiBase()}/v2/charge`, {
     method: 'POST',
@@ -91,42 +137,51 @@ export async function createQris(
       Accept: 'application/json',
       Authorization: `Basic ${btoa(`${serverKey}:`)}`,
     },
-    body: JSON.stringify({
-      payment_type: 'qris',
-      transaction_details: { order_id: orderId, gross_amount: amount },
-      item_details: [{ id: orderId, price: amount, quantity: 1, name: itemName.slice(0, 50) }],
-      customer_details: customer,
-      qris: { acquirer: 'gopay' },
-      custom_expiry: { expiry_duration: LOCK_MINUTES, unit: 'minute' },
-    }),
+    body: JSON.stringify(body),
   })
   // Core API bisa membalas HTTP 200 dengan status_code gagal di body.
   const data = await res.json().catch(() => null)
   const code = String(data?.status_code ?? res.status)
-  if (!res.ok || !code.startsWith('2') || !data?.qr_string) {
-    throw new Error(data?.status_message ?? 'Gagal membuat QRIS Midtrans')
-  }
-  const qrUrl =
-    (data.actions as { name: string; url: string }[] | undefined)
-      ?.find((a) => a.name === 'generate-qr-code')?.url ?? ''
-  // expiry_time dari Midtrans dalam WIB tanpa zona: "2026-10-19 13:30:00".
-  const expiresAt = data.expiry_time
-    ? new Date(`${String(data.expiry_time).replace(' ', 'T')}+07:00`).toISOString()
-    : new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
-  return { qr_string: data.qr_string, qr_url: qrUrl, expires_at: expiresAt }
+  if (res.ok && code.startsWith('2')) return { ok: true, data }
+  const detail = (data?.validation_messages as string[] | undefined)?.join('; ')
+  const msg = data?.status_message ?? 'Gagal membuat QRIS Midtrans'
+  return { ok: false, message: detail ? `${msg} (${detail})` : msg }
 }
 
-/// Ambil user dari header Authorization; null bila tidak sah.
-export async function callerUser(
-  supabaseUrl: string,
-  anonKey: string,
-  authHeader: string | null,
-) {
-  const { createClient } = await import('npm:@supabase/supabase-js@2')
-  const client = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader ?? '' } },
+/// Cadangan: Snap berisi QRIS saja. Aplikasi menampilkannya di WebView.
+async function createQrisSnap(
+  orderId: string,
+  amount: number,
+  itemName: string,
+  customer: { first_name: string; email?: string },
+): Promise<Qris> {
+  const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY')!
+  const res = await fetch(`${snapBase()}/snap/v1/transactions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Basic ${btoa(`${serverKey}:`)}`,
+    },
+    body: JSON.stringify({
+      transaction_details: { order_id: orderId, gross_amount: amount },
+      item_details: [{ id: orderId, price: amount, quantity: 1, name: itemName.slice(0, 50) }],
+      customer_details: customer,
+      // Satu metode saja → Snap langsung membuka halaman QR tanpa menu pilihan.
+      enabled_payments: ['other_qris'],
+      expiry: { unit: 'minutes', duration: LOCK_MINUTES },
+    }),
   })
-  const { data, error } = await client.auth.getUser()
-  if (error || !data.user) return null
-  return data.user
+  const data = await res.json().catch(() => null)
+  if (!res.ok || !data?.redirect_url) {
+    const msg = data?.error_messages?.join(', ') ?? 'Gagal membuat transaksi Midtrans'
+    console.error('createQrisSnap gagal', orderId, msg)
+    throw new Error(msg)
+  }
+  return {
+    qr_string: '',
+    qr_url: '',
+    snap_url: data.redirect_url,
+    expires_at: new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString(),
+  }
 }

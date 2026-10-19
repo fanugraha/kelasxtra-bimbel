@@ -245,7 +245,8 @@ Deno.serve(async (req) => {
           address: mode === 'offline' ? address : null,
           lock_expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
         })
-        .select('id')
+        // Kolom lengkap: harga & detail dipakai untuk nominal dan nama item Midtrans.
+        .select(pkgCols)
         .single()
       if (pErr || !inserted) {
         if (redemptionId) {

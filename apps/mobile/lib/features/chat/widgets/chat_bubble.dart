@@ -12,9 +12,6 @@ class ChatBubble extends StatelessWidget {
     required this.lastMine,
   });
 
-  /// Warna centang "sudah dibaca" — kontras di atas balon ungu.
-  static const _tickRead = Color(0xFF9AE6FF);
-
   final ConversationMessage message;
   final bool mine;
   final bool lastMine;
@@ -43,14 +40,13 @@ class ChatBubble extends StatelessWidget {
           border: mine ? null : Border.all(color: scheme.outline),
         ),
         child: Column(
-          crossAxisAlignment:
-              mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: mine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Text(
               message.body,
               style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 13.5,
-                height: 1.35,
                 color: mine ? scheme.onPrimary : scheme.onSurface,
               ),
             ),
@@ -62,19 +58,16 @@ class ChatBubble extends StatelessWidget {
                   Text(
                     'Dibaca',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,
-                      color: _tickRead,
+                      color: scheme.onPrimary,
                     ),
                   ),
                   const SizedBox(width: 4),
                 ],
                 Text(
                   AppFormat.hm(message.createdAt),
+                  // onPrimary penuh: putih 75% di brand terang hanya ±3.5:1.
                   style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
-                    color: mine
-                        ? scheme.onPrimary.withValues(alpha: 0.75)
-                        : scheme.onSurfaceVariant,
+                    color: mine ? scheme.onPrimary : scheme.onSurfaceVariant,
                   ),
                 ),
                 if (mine) ...[
@@ -82,8 +75,10 @@ class ChatBubble extends StatelessWidget {
                   Icon(
                     message.read ? Icons.done_all_rounded : Icons.done_rounded,
                     size: 13,
+                    // Warna: centang dibaca = onPrimary penuh agar kontras
+                    // di balon brand pada mode terang & gelap.
                     color: message.read
-                        ? _tickRead
+                        ? scheme.onPrimary
                         : scheme.onPrimary.withValues(alpha: 0.65),
                   ),
                 ],

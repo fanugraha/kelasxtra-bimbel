@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../auth/auth_providers.dart';
+
 import 'kelas_grup_repository.dart';
 
 final kelasGrupRepositoryProvider = Provider<KelasGrupRepository>(
@@ -15,16 +17,22 @@ final groupClassProvider = FutureProvider.family<GroupClassItem?, String>(
   (ref, id) => ref.read(kelasGrupRepositoryProvider).fetchClass(id),
 );
 
-final groupSessionsProvider = FutureProvider.family<List<GroupSessionItem>, String>(
-  (ref, id) => ref.read(kelasGrupRepositoryProvider).fetchSessions(id),
-);
+final groupSessionsProvider =
+    FutureProvider.family<List<GroupSessionItem>, String>(
+      (ref, id) => ref.read(kelasGrupRepositoryProvider).fetchSessions(id),
+    );
 
 /// Kursi siswa (semua program).
-final myGroupSeatsProvider = FutureProvider<List<GroupSeatItem>>(
-  (ref) => ref.read(kelasGrupRepositoryProvider).fetchMySeats(),
-);
+final myGroupSeatsProvider = FutureProvider<List<GroupSeatItem>>((ref) {
+  ref.watch(authStateProvider);
+  return ref.read(kelasGrupRepositoryProvider).fetchMySeats();
+});
 
 /// Kursi siswa di satu program (null bila belum ambil).
-final myGroupSeatProvider = FutureProvider.family<GroupSeatItem?, String>(
-  (ref, id) => ref.read(kelasGrupRepositoryProvider).fetchMySeat(id),
-);
+final myGroupSeatProvider = FutureProvider.family<GroupSeatItem?, String>((
+  ref,
+  id,
+) {
+  ref.watch(authStateProvider);
+  return ref.read(kelasGrupRepositoryProvider).fetchMySeat(id);
+});

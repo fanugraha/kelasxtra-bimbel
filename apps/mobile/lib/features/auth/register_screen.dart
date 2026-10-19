@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_error_text.dart';
-import '../../widgets/screen_head.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_error_text.dart';
+import '../../core/widgets/screen_head.dart';
 import 'auth_providers.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {

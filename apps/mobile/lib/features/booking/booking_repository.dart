@@ -9,6 +9,8 @@ import '../../core/supabase_client.dart';
 class BookingItem {
   const BookingItem({
     required this.id,
+    required this.tutorId,
+    required this.studentId,
     required this.tutorName,
     required this.studentName,
     required this.subjectName,
@@ -18,9 +20,13 @@ class BookingItem {
     required this.scheduledAt,
     required this.status,
     required this.price,
+    this.tutorPhotoUrl,
+    this.meetingUrl,
   });
 
   final String id;
+  final String tutorId;
+  final String studentId;
   final String tutorName;
   final String studentName;
   final String subjectName;
@@ -31,20 +37,45 @@ class BookingItem {
   final String status;
   final int price;
 
+  /// Foto tentor untuk kartu Lapis 1 di Jadwal (boleh null → inisial).
+  final String? tutorPhotoUrl;
+
+  /// Tautan Zoom sesi daring (null bila belum diisi tentor).
+  final String? meetingUrl;
+
   String get statusLabel => switch (status) {
-        'pending_payment' => 'Menunggu bayar',
-        'confirmed' => 'Terkonfirmasi',
-        'in_progress' => 'Berlangsung',
-        'completed' => 'Selesai',
-        'cancelled' => 'Dibatalkan',
-        'expired' => 'Kedaluwarsa',
-        'no_show_tutor' => 'Tutor tidak hadir',
-        'no_show_student' => 'Siswa tidak hadir',
-        'disputed' => 'Sengketa',
-        'refunded' => 'Dana dikembalikan',
-        'rescheduled' => 'Dijadwalkan ulang',
-        _ => status,
-      };
+    'pending_payment' => 'Menunggu bayar',
+    'confirmed' => 'Terkonfirmasi',
+    'in_progress' => 'Berlangsung',
+    'completed' => 'Selesai',
+    'cancelled' => 'Dibatalkan',
+    'expired' => 'Kedaluwarsa',
+    'no_show_tutor' => 'Tutor tidak hadir',
+    'no_show_student' => 'Siswa tidak hadir',
+    'disputed' => 'Sengketa',
+    'refunded' => 'Dana dikembalikan',
+    'rescheduled' => 'Dijadwalkan ulang',
+    _ => status,
+  };
+}
+
+/// Catatan tentor untuk satu sesi (materi wajib; sisanya opsional).
+class SessionNote {
+  const SessionNote({
+    required this.material,
+    this.progress,
+    this.nextStep,
+    this.updatedAt,
+  });
+
+  final String material;
+  final String? progress;
+
+  /// Tugas atau saran berikutnya untuk siswa.
+  final String? nextStep;
+  final DateTime? updatedAt;
+
+  bool get hasAssignment => nextStep != null && nextStep!.trim().isNotEmpty;
 }
 
 /// Detail satu sesi untuk layar aksi (absensi, reschedule, komplain, chat).
@@ -61,18 +92,23 @@ class BookingDetail {
     required this.scheduledAt,
     required this.status,
     required this.price,
+    this.studentName = '-',
     this.address,
     this.checkinAt,
     this.studentAttendedAt,
     this.completedAt,
     this.refundAmount = 0,
     this.rescheduleCount = 0,
+    this.hasReview = false,
+    this.meetingUrl,
+    this.note,
   });
 
   final String id;
   final String studentId;
   final String tutorId;
   final String tutorName;
+  final String studentName;
   final String subjectName;
   final String jenjang;
   final int durationMinutes;
@@ -86,20 +122,56 @@ class BookingDetail {
   final DateTime? completedAt;
   final int refundAmount;
   final int rescheduleCount;
+  final bool hasReview;
+
+  /// Tautan Zoom (hanya terbaca pasca-bayar) dan catatan tentor, bila ada.
+  final String? meetingUrl;
+  final SessionNote? note;
 
   String get statusLabel => switch (status) {
-        'pending_payment' => 'Menunggu bayar',
-        'confirmed' => 'Terkonfirmasi',
-        'in_progress' => 'Berlangsung',
-        'completed' => 'Selesai',
-        'cancelled' => 'Dibatalkan',
-        'expired' => 'Kedaluwarsa',
-        'no_show_tutor' => 'Tutor tidak hadir',
-        'no_show_student' => 'Siswa tidak hadir',
-        'disputed' => 'Sengketa',
-        'refunded' => 'Dana dikembalikan',
-        _ => status,
-      };
+    'pending_payment' => 'Menunggu bayar',
+    'confirmed' => 'Terkonfirmasi',
+    'in_progress' => 'Berlangsung',
+    'completed' => 'Selesai',
+    'cancelled' => 'Dibatalkan',
+    'expired' => 'Kedaluwarsa',
+    'no_show_tutor' => 'Tutor tidak hadir',
+    'no_show_student' => 'Siswa tidak hadir',
+    'disputed' => 'Sengketa',
+    'refunded' => 'Dana dikembalikan',
+    _ => status,
+  };
+}
+
+/// Permintaan ganti hari berpasangan untuk satu sesi.
+class RescheduleRequest {
+  const RescheduleRequest({
+    required this.id,
+    required this.bookingId,
+    required this.requestedBy,
+    required this.fromAt,
+    required this.toAt,
+    required this.status,
+    required this.createdAt,
+    this.reason,
+    this.responseNote,
+    this.respondBy,
+  });
+
+  final String id;
+  final String bookingId;
+  final String requestedBy;
+  final DateTime fromAt;
+  final DateTime toAt;
+  final String status;
+  final String? reason;
+  final String? responseNote;
+  final DateTime? respondBy;
+  final DateTime createdAt;
+
+  bool get isPending => status == 'pending';
+
+  bool isMine(String userId) => requestedBy == userId;
 }
 
 class ChatMessage {
@@ -161,6 +233,7 @@ class BookingRepository {
     required DateTime scheduledAt,
     String? address,
     String? voucherCode,
+    bool useCredits = false,
   }) async {
     final res = await supabase.functions.invoke(
       'create-snap',
@@ -172,20 +245,18 @@ class BookingRepository {
         'mode': mode,
         'scheduled_at': scheduledAt.toUtc().toIso8601String(),
         if (address != null && address.isNotEmpty) 'address': address,
-        if (voucherCode != null && voucherCode.isNotEmpty) 'voucher_code': voucherCode,
+        if (voucherCode != null && voucherCode.isNotEmpty)
+          'voucher_code': voucherCode,
+        if (useCredits) 'use_credits': true,
       },
     );
     final data = _decode(res);
     if (res.status != 200) {
-      throw Exception(data['error'] ?? 'Gagal memulai pembayaran (${res.status})');
+      throw Exception(
+        data['error'] ?? 'Gagal memulai pembayaran (${res.status})',
+      );
     }
-    return SnapResult(
-      orderId: data['order_id'] as String,
-      bookingId: data['booking_id'] as String?,
-      redirectUrl: data['redirect_url'] as String,
-      amount: (data['amount'] as num).toInt(),
-      reused: (data['reused'] ?? false) as bool,
-    );
+    return SnapResult.fromJson(data);
   }
 
   Future<List<BookingItem>> fetchMyBookings({bool asTutor = false}) async {
@@ -193,8 +264,10 @@ class BookingRepository {
     // hanya terbuka pasca-bayar, dan hanya baris milik sendiri.
     var query = supabase
         .from('bookings_visible')
-        .select('id, student_id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
-            'scheduled_at, status, price');
+        .select(
+          'id, student_id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
+          'scheduled_at, status, price, meeting_url',
+        );
     if (asTutor) {
       query = query.eq('tutor_id', supabase.auth.currentUser!.id);
     }
@@ -203,12 +276,16 @@ class BookingRepository {
     if (rows.isEmpty) return [];
 
     final tutorIds = {for (final r in rows) r['tutor_id'] as String}.toList();
-    final studentIds = {for (final r in rows) r['student_id'] as String}.toList();
-    final subjectIds = {for (final r in rows) r['subject_id'] as String}.toList();
+    final studentIds = {
+      for (final r in rows) r['student_id'] as String,
+    }.toList();
+    final subjectIds = {
+      for (final r in rows) r['subject_id'] as String,
+    }.toList();
 
     final tutorRows = await supabase
         .from('tutor_catalog')
-        .select('id, full_name')
+        .select('id, full_name, photo_url')
         .inFilter('id', tutorIds);
     final studentRows = await supabase
         .from('students')
@@ -220,19 +297,29 @@ class BookingRepository {
         .inFilter('id', subjectIds);
 
     final tutorNames = {
-      for (final r in tutorRows) r['id'] as String: (r['full_name'] ?? '-') as String,
+      for (final r in tutorRows)
+        r['id'] as String: (r['full_name'] ?? '-') as String,
+    };
+    final tutorPhotos = {
+      for (final r in tutorRows)
+        if ((r['photo_url'] as String?)?.isNotEmpty ?? false)
+          r['id'] as String: r['photo_url'] as String,
     };
     final studentNames = {
-      for (final r in studentRows) r['id'] as String: (r['full_name'] ?? '-') as String,
+      for (final r in studentRows)
+        r['id'] as String: (r['full_name'] ?? '-') as String,
     };
     final subjectNames = {
-      for (final r in subjectRows) r['id'] as String: (r['name'] ?? '-') as String,
+      for (final r in subjectRows)
+        r['id'] as String: (r['name'] ?? '-') as String,
     };
 
     return [
       for (final r in rows)
         BookingItem(
           id: r['id'] as String,
+          tutorId: r['tutor_id'] as String,
+          studentId: r['student_id'] as String,
           tutorName: tutorNames[r['tutor_id']] ?? '-',
           studentName: studentNames[r['student_id']] ?? '-',
           subjectName: subjectNames[r['subject_id']] ?? '-',
@@ -242,6 +329,8 @@ class BookingRepository {
           scheduledAt: DateTime.parse(r['scheduled_at'] as String).toLocal(),
           status: (r['status'] ?? '-') as String,
           price: (r['price'] as num).toInt(),
+          tutorPhotoUrl: tutorPhotos[r['tutor_id']],
+          meetingUrl: r['meeting_url'] as String?,
         ),
     ];
   }
@@ -249,9 +338,12 @@ class BookingRepository {
   Future<BookingDetail> fetchBookingDetail(String id) async {
     final r = await supabase
         .from('bookings_visible')
-        .select('id, student_id, tutor_id, subject_id, jenjang, duration_minutes, '
-            'mode, scheduled_at, status, price, address, checkin_at, '
-            'student_attended_at, completed_at, refund_amount, reschedule_count')
+        .select(
+          'id, student_id, tutor_id, subject_id, jenjang, duration_minutes, '
+          'mode, scheduled_at, status, price, address, checkin_at, '
+          'student_attended_at, completed_at, refund_amount, reschedule_count, '
+          'meeting_url',
+        )
         .eq('id', id)
         .single();
     final tutor = await supabase
@@ -264,11 +356,27 @@ class BookingRepository {
         .select('name')
         .eq('id', r['subject_id'] as String)
         .maybeSingle();
+    final student = await supabase
+        .from('students')
+        .select('full_name')
+        .eq('id', r['student_id'] as String)
+        .maybeSingle();
+    final review = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('booking_id', id)
+        .maybeSingle();
+    final note = await supabase
+        .from('session_notes')
+        .select('material, progress, next_step, updated_at')
+        .eq('booking_id', id)
+        .maybeSingle();
     return BookingDetail(
       id: r['id'] as String,
       studentId: r['student_id'] as String,
       tutorId: r['tutor_id'] as String,
       tutorName: (tutor?['full_name'] ?? '-') as String,
+      studentName: (student?['full_name'] ?? '-') as String,
       subjectName: (subject?['name'] ?? '-') as String,
       jenjang: (r['jenjang'] ?? '-') as String,
       durationMinutes: (r['duration_minutes'] as num).toInt(),
@@ -287,7 +395,19 @@ class BookingRepository {
           ? null
           : DateTime.parse(r['completed_at'] as String).toLocal(),
       refundAmount: (r['refund_amount'] as num?)?.toInt() ?? 0,
+      hasReview: review != null,
       rescheduleCount: (r['reschedule_count'] as num?)?.toInt() ?? 0,
+      meetingUrl: r['meeting_url'] as String?,
+      note: note == null
+          ? null
+          : SessionNote(
+              material: (note['material'] ?? '') as String,
+              progress: note['progress'] as String?,
+              nextStep: note['next_step'] as String?,
+              updatedAt: note['updated_at'] == null
+                  ? null
+                  : DateTime.parse(note['updated_at'] as String).toLocal(),
+            ),
     );
   }
 
@@ -299,12 +419,10 @@ class BookingRepository {
     }
   }
 
-  Future<void> checkin(String bookingId, {double? lat, double? lng}) =>
-      _rpc('tutor_checkin', {
-        'p_booking': bookingId,
-        'p_lat': lat,
-        'p_lng': lng,
-      });
+  Future<void> checkin(String bookingId, {double? lat, double? lng}) => _rpc(
+    'tutor_checkin',
+    {'p_booking': bookingId, 'p_lat': lat, 'p_lng': lng},
+  );
 
   Future<void> studentAttend(String bookingId) =>
       _rpc('student_attend', {'p_booking': bookingId});
@@ -312,44 +430,109 @@ class BookingRepository {
   Future<void> markNoShow(String bookingId, String who) =>
       _rpc('mark_no_show', {'p_booking': bookingId, 'p_who': who});
 
-  Future<void> saveNote(String bookingId, String material, String progress) =>
-      _rpc('save_session_note', {
+  /// Simpan catatan sesi. `material` wajib; sisanya boleh kosong.
+  Future<void> saveNote(
+    String bookingId,
+    String material,
+    String progress, {
+    String? nextStep,
+  }) => _rpc('save_session_note', {
+    'p_booking': bookingId,
+    'p_material': material,
+    'p_progress': progress,
+    'p_next_step': nextStep,
+  });
+
+  /// Isi/hapus tautan Zoom sesi (khusus tutor pemilik, sesi online).
+  Future<void> setMeetingUrl(String bookingId, String? url) =>
+      _rpc('set_session_meeting_url', {
         'p_booking': bookingId,
-        'p_material': material,
-        'p_progress': progress,
+        'p_url': (url == null || url.trim().isEmpty) ? null : url.trim(),
       });
 
   Future<void> complete(String bookingId) =>
       _rpc('complete_booking', {'p_booking': bookingId});
 
-  Future<void> reschedule(String bookingId, DateTime newAt, String reason) =>
-      _rpc('reschedule_booking', {
-        'p_booking': bookingId,
-        'p_new_at': newAt.toUtc().toIso8601String(),
-        'p_reason': reason,
-      });
+  /// Ajukan ganti hari (butuh persetujuan pihak lain). Melempar bila ditolak.
+  Future<void> requestReschedule(
+    String bookingId,
+    DateTime newAt,
+    String reason,
+  ) => _rpc('request_reschedule', {
+    'p_booking': bookingId,
+    'p_new_at': newAt.toUtc().toIso8601String(),
+    'p_reason': reason,
+  });
 
-  Future<Map<String, dynamic>> cancel(String bookingId, String reason) async {
-    final res = await _rpc('cancel_booking', {
-      'p_booking': bookingId,
-      'p_reason': reason,
-    });
-    return (res as Map).cast<String, dynamic>();
+  Future<void> respondReschedule(
+    String requestId, {
+    required bool accept,
+    String? note,
+  }) => _rpc('respond_reschedule', {
+    'p_request': requestId,
+    'p_accept': accept,
+    'p_note': (note == null || note.trim().isEmpty) ? null : note.trim(),
+  });
+
+  Future<void> cancelRescheduleRequest(String requestId) =>
+      _rpc('cancel_reschedule_request', {'p_request': requestId});
+
+  /// Tutor menjadwalkan ulang pertemuan paket yang gagal (no-show tutor).
+  Future<void> rescheduleNoShow(
+    String bookingId,
+    DateTime newAt,
+    String reason,
+  ) => _rpc('reschedule_no_show', {
+    'p_booking': bookingId,
+    'p_new_at': newAt.toUtc().toIso8601String(),
+    'p_reason': reason,
+  });
+
+  Future<List<RescheduleRequest>> fetchRescheduleRequests(
+    String bookingId,
+  ) async {
+    final rows = await supabase
+        .from('reschedule_requests')
+        .select(
+          'id, booking_id, requested_by, from_at, to_at, reason, status, '
+          'response_note, respond_by, created_at',
+        )
+        .eq('booking_id', bookingId)
+        .order('created_at', ascending: false);
+    return [
+      for (final r in rows)
+        RescheduleRequest(
+          id: r['id'] as String,
+          bookingId: r['booking_id'] as String,
+          requestedBy: r['requested_by'] as String,
+          fromAt: DateTime.parse(r['from_at'] as String).toLocal(),
+          toAt: DateTime.parse(r['to_at'] as String).toLocal(),
+          status: (r['status'] ?? '-') as String,
+          reason: r['reason'] as String?,
+          responseNote: r['response_note'] as String?,
+          respondBy: r['respond_by'] == null
+              ? null
+              : DateTime.parse(r['respond_by'] as String).toLocal(),
+          createdAt: DateTime.parse(r['created_at'] as String).toLocal(),
+        ),
+    ];
   }
 
-  Future<void> review(String bookingId, int rating, String comment) =>
-      _rpc('submit_review', {
-        'p_booking': bookingId,
-        'p_rating': rating,
-        'p_comment': comment,
-      });
+  /// Saldo poin siswa yang sedang masuk (1 poin = Rp1).
+  Future<int> myCreditBalance() async {
+    final data = await _rpc('my_credit_balance', const {});
+    return (data as num?)?.toInt() ?? 0;
+  }
 
-  Future<void> complain(String bookingId, String category, String body) =>
-      _rpc('open_complaint', {
-        'p_booking': bookingId,
-        'p_category': category,
-        'p_body': body,
-      });
+  Future<void> review(String bookingId, int rating, String comment) => _rpc(
+    'submit_review',
+    {'p_booking': bookingId, 'p_rating': rating, 'p_comment': comment},
+  );
+
+  Future<void> complain(String bookingId, String category, String body) => _rpc(
+    'open_complaint',
+    {'p_booking': bookingId, 'p_category': category, 'p_body': body},
+  );
 
   Future<List<ChatMessage>> fetchMessages(String bookingId) async {
     final thread = await supabase

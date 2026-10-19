@@ -40,6 +40,12 @@ List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
             activeIcon: Icons.calendar_month_rounded,
           ),
           NavDest(
+            path: '/chat',
+            label: 'Chat',
+            icon: Icons.forum_outlined,
+            activeIcon: Icons.forum_rounded,
+          ),
+          NavDest(
             path: '/profil',
             label: 'Profil',
             icon: Icons.person_outline_rounded,
@@ -72,10 +78,10 @@ List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
             activeIcon: Icons.account_balance_wallet_rounded,
           ),
           NavDest(
-            path: '/profil',
-            label: 'Profil',
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
+            path: '/chat',
+            label: 'Chat',
+            icon: Icons.forum_outlined,
+            activeIcon: Icons.forum_rounded,
           ),
         ],
     };

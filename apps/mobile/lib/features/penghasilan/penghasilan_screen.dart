@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/screen_head.dart';
-import '../../widgets/status_badge.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/screen_head.dart';
+import '../../core/widgets/status_badge.dart';
 import '../booking/booking_providers.dart';
 import '../booking/booking_repository.dart';
 import 'penghasilan_providers.dart';

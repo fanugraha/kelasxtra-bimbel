@@ -30,7 +30,16 @@ fi
 DEVICE="${1:-${DEVICE:-e68890180406}}"
 ENTRY="${ENTRY:-lib/main_siswa.dart}"
 
-CMD=(flutter run -d "$DEVICE" -t "$ENTRY"
+# Flavor Android ditentukan dari entry point (siswa/tutor), kecuali diisi manual.
+FLAVOR="${FLAVOR:-}"
+if [[ -z "$FLAVOR" ]]; then
+  case "$ENTRY" in
+    *tutor*) FLAVOR="tutor" ;;
+    *)       FLAVOR="siswa" ;;
+  esac
+fi
+
+CMD=(flutter run -d "$DEVICE" --flavor "$FLAVOR" -t "$ENTRY"
   --dart-define=SUPABASE_URL="$SUPABASE_URL"
   --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY")
 

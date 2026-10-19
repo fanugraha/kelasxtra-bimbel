@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/errors.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/math_text.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/empty_state.dart';
+import 'widgets/math_text.dart';
 import 'bank_soal_providers.dart';
 import 'bank_soal_repository.dart';
 import 'hasil_screen.dart';
@@ -120,7 +121,7 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
             return EmptyState(
               icon: Icons.error_outline_rounded,
               title: 'Tidak bisa mulai latihan',
-              message: snap.error.toString().replaceFirst('Exception: ', ''),
+              message: cleanError(snap.error),
               action: OutlinedButton.icon(
                 onPressed: () => setState(() => _future = _start()),
                 icon: const Icon(Icons.refresh_rounded),
@@ -242,7 +243,7 @@ class _LatihanScreenState extends ConsumerState<LatihanScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(cleanError(e))),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

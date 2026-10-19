@@ -5,11 +5,27 @@
 abstract final class AppFormat {
   static const _dayShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
   static const _dayLong = [
-    'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu',
+    'Minggu',
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    'Jumat',
+    'Sabtu',
   ];
   static const _monthShort = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   /// 75000 -> "Rp75.000"
@@ -55,9 +71,16 @@ abstract final class AppFormat {
   /// Nama hari panjang dari jam ketersediaan (0 = Minggu … 6 = Sabtu).
   static String longDayName(int dayOfWeek) => _dayLong[dayOfWeek % 7];
 
+  /// Nama hari pendek (0 = Minggu … 6 = Sabtu), mis. "Sen".
+  static String shortDayName(int dayOfWeek) => _dayShort[dayOfWeek % 7];
+
   /// "Sen, 5 Okt" dari DateTime.
   static String dateShort(DateTime d) =>
       '${_dayShort[d.weekday % 7]}, ${d.day} ${_monthShort[d.month - 1]}';
+
+  /// "5 Okt" dari DateTime — untuk blok jam yang sudah memuat nama hari.
+  static String dateNumber(DateTime d) =>
+      '${d.day} ${_monthShort[d.month - 1]}';
 
   /// "Sen, 5 Okt · 16:00" dari DateTime.
   static String dateTimeShort(DateTime d) =>
@@ -68,9 +91,36 @@ abstract final class AppFormat {
       '${_dayLong[d.weekday % 7]}, ${d.day} ${_monthLong[d.month - 1]}';
 
   static const _monthLong = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
+
+  /// "Oktober 2026" dari DateTime — judul kelompok riwayat.
+  static String monthLabel(DateTime d) =>
+      '${_monthLong[d.month - 1]} ${d.year}';
+
+  /// Label waktu untuk daftar chat: "09.30" (hari ini), "Kemarin",
+  /// "Sen" (beberapa hari lalu), atau "18 Okt".
+  static String chatStamp(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(d.year, d.month, d.day);
+    final diff = today.difference(day).inDays;
+    if (diff <= 0) return hm(d);
+    if (diff == 1) return 'Kemarin';
+    if (diff < 7) return _dayShort[d.weekday % 7];
+    return '${d.day} ${_monthShort[d.month - 1]}';
+  }
 
   /// "19.00" dari DateTime.
   static String hm(DateTime d) =>

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/errors.dart';
 
 import '../../core/format.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/screen_head.dart';
-import '../../widgets/status_badge.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/screen_head.dart';
+import '../../core/widgets/status_badge.dart';
 import 'absensi_grup_providers.dart';
 import 'absensi_grup_repository.dart';
 
@@ -96,7 +97,7 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(content: Text(cleanError(e))),
         );
       }
     } finally {

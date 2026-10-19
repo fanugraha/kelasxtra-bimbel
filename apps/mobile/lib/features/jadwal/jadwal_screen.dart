@@ -5,14 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_flavor.dart';
 import '../../core/format.dart';
 import '../../core/providers.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/screen_head.dart';
-import '../../widgets/status_badge.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/screen_head.dart';
 import '../booking/booking_providers.dart';
 import '../booking/booking_repository.dart';
+import 'widgets/session_card.dart';
 
+/// Agenda sesi siswa/tutor: yang akan datang dan yang sudah selesai.
+/// Riwayat uang (paket, sesi, langganan) ada di halaman Riwayat transaksi.
 class JadwalScreen extends ConsumerStatefulWidget {
   const JadwalScreen({super.key});
 
@@ -22,6 +25,31 @@ class JadwalScreen extends ConsumerStatefulWidget {
 
 class _JadwalScreenState extends ConsumerState<JadwalScreen> {
   var _completed = false;
+
+  /// Kelompok Lapis 1 yang sedang ditutup (per id tentor/siswa).
+  final _collapsed = <String>{};
+
+  /// Sesi mendatang: semua yang belum tuntas/dibatalkan. Sesi lampau:
+  /// yang sudah selesai — dipisah agar agenda tetap ringkas.
+  List<BookingItem> _agenda(List<BookingItem> all) {
+    final list =
+        all
+            .where(
+              (b) => _completed
+                  ? b.status == 'completed'
+                  : b.status != 'completed' &&
+                        b.status != 'cancelled' &&
+                        b.status != 'refunded' &&
+                        b.status != 'expired',
+            )
+            .toList()
+          ..sort(
+            (a, b) => _completed
+                ? b.scheduledAt.compareTo(a.scheduledAt)
+                : a.scheduledAt.compareTo(b.scheduledAt),
+          );
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +63,7 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
           errorTitle: 'Gagal memuat jadwal',
           onRetry: () => ref.invalidate(jadwalProvider),
           builder: (all) {
-            final list = all
-                .where((b) =>
-                    _completed
-                        ? b.status == 'completed' || b.status == 'refunded'
-                        : b.status != 'completed' &&
-                            b.status != 'cancelled' &&
-                            b.status != 'refunded' &&
-                            b.status != 'expired')
-                .toList()
-              ..sort((a, b) => _completed
-                  ? b.scheduledAt.compareTo(a.scheduledAt)
-                  : a.scheduledAt.compareTo(b.scheduledAt));
+            final list = _agenda(all);
 
             return RefreshIndicator(
               onRefresh: () async => ref.invalidate(jadwalProvider),
@@ -57,8 +74,8 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                     eyebrow: isSiswa ? 'Agenda' : 'Agenda mengajar',
                     title: 'Jadwal',
                     subtitle: isSiswa
-                        ? 'Sesi terbaru selalu muncul paling atas. Waktu memakai WIB.'
-                        : 'Sesi privat dan kelas grup yang harus kamu ajar.',
+                        ? 'Dikelompokkan per tentor. Ketuk untuk buka daftar sesinya. Waktu memakai WIB.'
+                        : 'Dikelompokkan per siswa. Sesi privat dan kelas grup yang harus kamu ajar.',
                   ),
                   const SizedBox(height: 18),
                   _Segmented(
@@ -71,11 +88,15 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                   if (list.isEmpty)
                     EmptyState(
                       icon: Icons.event_busy_rounded,
-                      title: _completed ? 'Belum ada sesi selesai' : 'Belum ada sesi',
-                      message: isSiswa
-                          ? 'Yuk cari tutor dan pesan sesi pertamamu.'
+                      title: _completed
+                          ? 'Belum ada sesi selesai'
+                          : 'Belum ada sesi',
+                      message: _completed
+                          ? 'Sesi yang sudah berjalan akan tampil di sini.'
+                          : isSiswa
+                          ? 'Pilih tutor favoritmu, lalu beli paket pertemuannya.'
                           : 'Belum ada sesi yang dijadwalkan untukmu.',
-                      action: isSiswa
+                      action: isSiswa && !_completed
                           ? FilledButton.icon(
                               onPressed: () => context.go('/katalog'),
                               icon: const Icon(Icons.search_rounded),
@@ -84,10 +105,7 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
                           : null,
                     )
                   else
-                    for (final b in list) ...[
-                      _BookingCard(booking: b, isSiswa: isSiswa),
-                      const SizedBox(height: 9),
-                    ],
+                    ..._grouped(list, isSiswa),
                 ],
               ),
             );
@@ -96,135 +114,138 @@ class _JadwalScreenState extends ConsumerState<JadwalScreen> {
       ),
     );
   }
+
+  /// Dua lapis: Lapis 1 kartu tentor (atau siswa, bila kita tutor) dan
+  /// Lapis 2 daftar jadwal milik orang itu. Urutan sesi tetap kronologis.
+  List<Widget> _grouped(List<BookingItem> list, bool isSiswa) {
+    final groups = <String, _PersonGroup>{};
+    for (final b in list) {
+      final key = isSiswa ? b.tutorId : b.studentId;
+      final group = groups.putIfAbsent(
+        key,
+        () => _PersonGroup(
+          id: key,
+          name: isSiswa ? b.tutorName : b.studentName,
+          photoUrl: isSiswa ? b.tutorPhotoUrl : null,
+        ),
+      );
+      group.items.add(b);
+    }
+
+    return [
+      for (final group in groups.values) ...[
+        _PersonCard(
+          group: group,
+          isSiswa: isSiswa,
+          collapsed: _collapsed.contains(group.id),
+          onToggle: () => setState(() {
+            if (!_collapsed.remove(group.id)) _collapsed.add(group.id);
+          }),
+        ),
+        if (!_collapsed.contains(group.id))
+          for (final b in group.items)
+            Padding(
+              padding: const EdgeInsets.only(left: 14, top: AppSpacing.sm + 2),
+              child: SessionCard(booking: b, isSiswa: isSiswa),
+            ),
+        const SizedBox(height: AppSpacing.md),
+      ],
+    ];
+  }
 }
 
-class _BookingCard extends StatelessWidget {
-  const _BookingCard({required this.booking, required this.isSiswa});
-  final BookingItem booking;
+/// Satu kelompok Lapis 1: tentor (dilihat siswa) atau siswa (dilihat tutor).
+class _PersonGroup {
+  _PersonGroup({required this.id, required this.name, this.photoUrl});
+
+  final String id;
+  final String name;
+  final String? photoUrl;
+  final items = <BookingItem>[];
+}
+
+/// Kartu Lapis 1: foto/inisial, nama, ringkasan mapel & jumlah sesi, lalu
+/// tombol buka-tutup daftar jadwalnya.
+class _PersonCard extends StatelessWidget {
+  const _PersonCard({
+    required this.group,
+    required this.isSiswa,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  final _PersonGroup group;
   final bool isSiswa;
+  final bool collapsed;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final person = isSiswa ? booking.tutorName : booking.studentName;
-    final initial = person.isEmpty ? '?' : person[0].toUpperCase();
+    final initial = group.name.isEmpty ? '?' : group.name[0].toUpperCase();
+    final subjects = <String>{
+      for (final b in group.items) b.subjectName,
+    }.join(', ');
+    final photo = group.photoUrl;
+    final nearest = group.items.first.scheduledAt;
 
     return AppCard(
-      onTap: () => context.push('/sesi/${booking.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onToggle,
+      padding: const EdgeInsets.all(AppSpacing.md + 2),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(AppFormat.dayLabel(booking.scheduledAt),
-                        style: TextStyle(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w800,
-                            color: scheme.primary)),
-                    const SizedBox(height: 1),
-                    Text(AppFormat.hm(booking.scheduledAt),
-                        style: TextStyle(
-                            fontSize: 17,
-                            height: 1,
-                            fontWeight: FontWeight.w800,
-                            color: scheme.primary)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 11),
-              CircleAvatar(
-                radius: 19,
-                backgroundColor: scheme.primary.withValues(alpha: 0.10),
-                child: Text(initial,
+          CircleAvatar(
+            radius: 21,
+            backgroundColor: scheme.primary.withValues(alpha: 0.12),
+            backgroundImage: photo == null ? null : NetworkImage(photo),
+            child: photo == null
+                ? Text(
+                    initial,
                     style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.primary)),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(person,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${booking.subjectName} · ${booking.jenjang} · ${booking.durationMinutes} menit',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.primary,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              BookingBadge(status: booking.status),
-            ],
+                  )
+                : null,
           ),
-          const SizedBox(height: 11),
-          Row(
-            children: [
-              Icon(
-                booking.mode == 'online'
-                    ? Icons.videocam_outlined
-                    : Icons.place_outlined,
-                size: 16,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                booking.mode == 'online' ? 'Online' : 'Offline',
-                style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-              ),
-              const SizedBox(width: 14),
-              const Icon(Icons.schedule_rounded, size: 16),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  '${AppFormat.timeRangeFrom(booking.scheduledAt, booking.durationMinutes)} WIB',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${isSiswa ? 'Tutor' : 'Siswa'} ${group.name}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 14.5),
                 ),
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  '${group.items.length} sesi · $subjects',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  '${collapsed ? 'Berikutnya' : 'Mulai'}: ${AppFormat.dateShort(nearest)} · '
+                  '${AppFormat.hm(nearest)} WIB',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 11),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => context.push('/sesi/${booking.id}'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w800),
-                  ),
-                  child: Text(booking.status == 'completed' ? 'Beri ulasan' : 'Detail sesi'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextButton(
-                  onPressed: () => context.push('/sesi/${booking.id}'),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w800),
-                  ),
-                  child: const Text('Chat'),
-                ),
-              ),
-            ],
+          Icon(
+            collapsed ? Icons.expand_more_rounded : Icons.expand_less_rounded,
+            color: scheme.onSurfaceVariant,
           ),
         ],
       ),

@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_flavor.dart';
 import '../../core/providers.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_error_text.dart';
-import '../../widgets/screen_head.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_error_text.dart';
+import '../../core/widgets/screen_head.dart';
 import 'auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {

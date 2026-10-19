@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/screen_head.dart';
+import '../../core/format.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/screen_head.dart';
+import '../../core/widgets/selectable_chip.dart';
+import 'widgets/tutor_showcase_card.dart';
+import 'katalog_filter_sheet.dart';
 import 'katalog_providers.dart';
 import 'katalog_repository.dart';
 
@@ -28,10 +32,17 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
     super.dispose();
   }
 
+  void _clearAll() {
+    ref.read(katalogFilterProvider.notifier).reset();
+    _search.clear();
+    setState(() => _query = '');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final filter = ref.watch(katalogFilterProvider);
-    final subjects = ref.watch(subjectsProvider);
+    final subjects = ref.watch(subjectsProvider).value ?? const [];
     final tutors = ref.watch(tutorListProvider);
 
     return Scaffold(
@@ -39,124 +50,159 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(tutorListProvider),
           child: ListView(
-            padding: screenPadding,
+            padding: const EdgeInsets.only(bottom: 36),
             children: [
-              const ScreenHead(
-                eyebrow: 'Katalog',
-                title: 'Cari Tutor',
-                subtitle: 'Pilih mapel atau mode belajar. Semua tutor sudah diverifikasi.',
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _search,
-                onChanged: (v) => setState(() => _query = v.toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama atau mapel',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () {
-                            _search.clear();
-                            setState(() => _query = '');
-                          },
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                        ),
+              sidePad(
+                const ScreenHead(
+                  eyebrow: 'Katalog',
+                  title: 'Cari Tutor',
+                  subtitle:
+                      'Pilih mapel, jenjang, dan jadwal yang cocok. Semua tutor sudah diverifikasi.',
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 38,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _Chip(
-                      label: 'Semua',
-                      selected: filter.subjectId == null && filter.mode == null,
-                      onTap: () {
-                        ref.read(katalogFilterProvider.notifier).setSubject(null);
-                        ref.read(katalogFilterProvider.notifier).setMode(null);
-                      },
-                    ),
-                    ...subjects.value?.map(
-                          (s) => _Chip(
-                            label: s.name,
-                            selected: filter.subjectId == s.id,
-                            onTap: () => ref
-                                .read(katalogFilterProvider.notifier)
-                                .setSubject(filter.subjectId == s.id ? null : s.id),
+              const SizedBox(height: AppSpacing.lg),
+              sidePad(
+                TextField(
+                  controller: _search,
+                  onChanged: (v) => setState(() => _query = v.toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama atau mapel',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              _search.clear();
+                              setState(() => _query = '');
+                            },
+                            icon: const Icon(Icons.close_rounded, size: 18),
                           ),
-                        ) ??
-                        const [],
-                    _Chip(
-                      label: 'Online',
-                      selected: filter.mode == 'online',
-                      onTap: () => ref
-                          .read(katalogFilterProvider.notifier)
-                          .setMode(filter.mode == 'online' ? null : 'online'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              sidePad(
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FilterButton(
+                        count: filter.activeCount,
+                        onTap: () => showKatalogFilterSheet(context),
+                      ),
                     ),
-                    _Chip(
-                      label: 'Offline',
-                      selected: filter.mode == 'offline',
-                      onTap: () => ref
-                          .read(katalogFilterProvider.notifier)
-                          .setMode(filter.mode == 'offline' ? null : 'offline'),
+                    const SizedBox(width: AppSpacing.sm),
+                    _SortButton(
+                      sort: filter.sort,
+                      onTap: () => showKatalogSortSheet(context),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
-              AsyncView<List<TutorCatalogItem>>(
-                value: tutors,
-                errorTitle: 'Gagal memuat katalog',
-                onRetry: () => ref.invalidate(tutorListProvider),
-                loading: const _LoadingList(),
-                builder: (all) {
-                  final list = _query.isEmpty
-                      ? all
-                      : all
-                          .where((t) =>
-                              t.fullName.toLowerCase().contains(_query) ||
-                              (t.education ?? '')
-                                  .toLowerCase()
-                                  .contains(_query))
-                          .toList();
-                  if (list.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 40),
-                      child: EmptyState(
-                        icon: Icons.search_off_rounded,
-                        title: 'Tidak ada tutor yang cocok',
-                        message:
-                            'Coba kata kunci lain, atau kembalikan filter ke semua tutor.',
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                height: 38,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: screenSide,
+                  children: [
+                    Center(
+                      child: SelectableChip(
+                        label: 'Semua mapel',
+                        selected: filter.subjectId == null,
+                        onTap: () =>
+                            ref.read(katalogFilterProvider.notifier).setSubject(
+                                  null,
+                                ),
                       ),
-                    );
-                  }
-                  return Column(
+                    ),
+                    for (final s in subjects)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: AppSpacing.sm),
+                          child: SelectableChip(
+                            label: s.name,
+                            selected: filter.subjectId == s.id,
+                            onTap: () => ref
+                                .read(katalogFilterProvider.notifier)
+                                .setSubject(
+                                  filter.subjectId == s.id ? null : s.id,
+                                ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (filter.isFiltered) ...[
+                const SizedBox(height: AppSpacing.md),
+                sidePad(
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Text('${list.length} tutor ditemukan',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(fontSize: 10.5)),
-                          const Spacer(),
-                          Text('Rating tertinggi',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(fontSize: 10.5)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      for (final t in list) ...[
-                        _TutorRow(tutor: t),
-                        const SizedBox(height: 8),
-                      ],
+                      ..._activeChips(filter, subjects),
+                      SelectableChip(label: 'Hapus semua', onTap: _clearAll),
                     ],
-                  );
-                },
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              sidePad(
+                AsyncView<List<TutorCatalogItem>>(
+                  value: tutors,
+                  errorTitle: 'Gagal memuat katalog',
+                  onRetry: () => ref.invalidate(tutorListProvider),
+                  loading: const _LoadingList(),
+                  builder: (all) {
+                    final list = _query.isEmpty
+                        ? all
+                        : all.where((t) => _matches(t, _query)).toList();
+                    if (list.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.xxl),
+                        child: EmptyState(
+                          icon: Icons.search_off_rounded,
+                          title: 'Tidak ada tutor yang cocok',
+                          message: filter.isFiltered || _query.isNotEmpty
+                              ? 'Coba hapus sebagian filter, atau lihat lagi semua tutor.'
+                              : 'Katalog tutor belum tersedia saat ini.',
+                          action: filter.isFiltered || _query.isNotEmpty
+                              ? OutlinedButton.icon(
+                                  onPressed: _clearAll,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Hapus semua filter'),
+                                )
+                              : null,
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${list.length} tutor ditemukan',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(fontSize: 10.5),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        for (final t in list) ...[
+                          TutorListCard(
+                            name: t.fullName,
+                            rating: t.ratingAvg,
+                            education: t.education,
+                            subjectLine: t.subjectLine,
+                            days: t.dayLabels,
+                            photoUrl: t.photoUrl,
+                            minPrice: t.minPrice,
+                            onTap: () => context.push('/tutor/${t.id}'),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                        ],
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -164,123 +210,107 @@ class _KatalogScreenState extends ConsumerState<KatalogScreen> {
       ),
     );
   }
+
+  bool _matches(TutorCatalogItem t, String query) =>
+      t.fullName.toLowerCase().contains(query) ||
+      (t.education ?? '').toLowerCase().contains(query) ||
+      (t.subjects ?? '').toLowerCase().contains(query);
+
+  /// Chip "filter aktif" — satu chip yang bisa dilepas untuk tiap pilihan.
+  List<Widget> _activeChips(KatalogFilter filter, List<SubjectOption> subjects) {
+    final notifier = ref.read(katalogFilterProvider.notifier);
+    String? subjectName;
+    for (final s in subjects) {
+      if (s.id == filter.subjectId) {
+        subjectName = s.name;
+        break;
+      }
+    }
+
+    return [
+      if (filter.subjectId != null)
+        SelectableChip(
+          label: subjectName ?? 'Mapel',
+          onRemove: () => notifier.setSubject(null),
+        ),
+      if (filter.jenjang != null)
+        SelectableChip(
+          label: filter.jenjang!,
+          onRemove: () => notifier.setJenjang(null),
+        ),
+      if (filter.mode != null)
+        SelectableChip(
+          label: filter.mode == 'online' ? 'Online' : 'Offline',
+          onRemove: () => notifier.setMode(null),
+        ),
+      for (final day in (filter.days.toList()
+            ..sort((a, b) => (a == 0 ? 7 : a).compareTo(b == 0 ? 7 : b))))
+        SelectableChip(
+          label: AppFormat.shortDayName(day),
+          onRemove: () => notifier.toggleDay(day),
+        ),
+      if (filter.minRating != null)
+        SelectableChip(
+          label: 'Rating ${filter.minRating!.toStringAsFixed(1)}+',
+          onRemove: () => notifier.setMinRating(null),
+        ),
+    ];
+  }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+/// Tombol utama filter: menyebut jumlah filter aktif supaya siswa tahu ada
+/// pilihan yang sedang berlaku walau hasilnya tak terlihat berubah.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.count, required this.onTap});
 
-  final String label;
-  final bool selected;
+  final int count;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(right: 7),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected
-                ? scheme.primary.withValues(alpha: 0.11)
-                : scheme.surface,
-            border: Border.all(
-              color: selected
-                  ? scheme.primary.withValues(alpha: 0.35)
-                  : scheme.outline,
-            ),
-            borderRadius: BorderRadius.circular(999),
+    final active = count > 0;
+    return SizedBox(
+      height: 44,
+      child: FilledButton.icon(
+        onPressed: onTap,
+        icon: const Icon(Icons.tune_rounded, size: 18),
+        label: Text(active ? 'Filter ($count)' : 'Filter'),
+        style: FilledButton.styleFrom(
+          backgroundColor: active
+              ? scheme.primary.withValues(alpha: 0.14)
+              : scheme.surfaceContainerHighest,
+          foregroundColor: active ? scheme.primary : scheme.onSurface,
+          side: BorderSide(
+            color: active ? scheme.primary.withValues(alpha: 0.35) : scheme.outline,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-          ),
+          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
         ),
       ),
     );
   }
 }
 
-class _TutorRow extends StatelessWidget {
-  const _TutorRow({required this.tutor});
-  final TutorCatalogItem tutor;
+class _SortButton extends StatelessWidget {
+  const _SortButton({required this.sort, required this.onTap});
+
+  final KatalogSort sort;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final initial = tutor.fullName.isEmpty ? '?' : tutor.fullName[0].toUpperCase();
-
-    return AppCard(
-      onTap: () => context.push('/tutor/${tutor.id}'),
-      padding: const EdgeInsets.all(13),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.11),
-            child: Text(initial,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: theme.colorScheme.primary)),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(tutor.fullName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall),
-                const SizedBox(height: 2),
-                Text(
-                  tutor.education ?? 'Tutor terverifikasi',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, size: 14, color: AppColors.star),
-                    const SizedBox(width: 3),
-                    Text(tutor.ratingAvg.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontSize: 10.5, fontWeight: FontWeight.w700)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('Lihat',
-                  style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      color: theme.colorScheme.primary)),
-              const SizedBox(height: 2),
-              Icon(Icons.chevron_right_rounded,
-                  size: 18, color: theme.colorScheme.onSurfaceVariant),
-            ],
-          ),
-        ],
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 44,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: const Icon(Icons.swap_vert_rounded, size: 18),
+        label: Text('Urutan: ${sort.label}'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outline),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }
@@ -296,25 +326,35 @@ class _LoadingList extends StatelessWidget {
         children: [
           for (var i = 0; i < 4; i++) ...[
             const AppCard(
-              padding: EdgeInsets.all(13),
-              child: Row(
+              padding: EdgeInsets.all(AppSpacing.md + 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(radius: 24),
-                  SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Nama Tutor Contoh'),
-                        SizedBox(height: 4),
-                        Text('Universitas Contoh'),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      CircleAvatar(radius: 22),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Nama Tutor Contoh'),
+                            SizedBox(height: 4),
+                            Text('Universitas Contoh'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  SizedBox(height: AppSpacing.md),
+                  Text('Matematika · SMP, SMA'),
+                  SizedBox(height: AppSpacing.md),
+                  Text('Mulai Rp75000'),
+                  SizedBox(height: AppSpacing.sm),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       ),

@@ -216,13 +216,7 @@ class BankSoalRepository {
           : 'Gagal memulai pembayaran (${res.status})';
       throw Exception(msg);
     }
-    final map = data as Map<String, dynamic>;
-    return SnapResult(
-      orderId: map['order_id'] as String,
-      redirectUrl: map['redirect_url'] as String,
-      amount: (map['amount'] as num).toInt(),
-      reused: (map['reused'] ?? false) as bool,
-    );
+    return SnapResult.fromJson(data as Map<String, dynamic>);
   }
 
   Future<List<Map<String, dynamic>>> fetchTopics() async {

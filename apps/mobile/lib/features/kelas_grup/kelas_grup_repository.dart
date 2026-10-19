@@ -46,29 +46,30 @@ class GroupClassItem {
   bool get penuh => seatsTaken >= maxSeats;
 
   factory GroupClassItem.fromMap(Map<String, dynamic> m) => GroupClassItem(
-        id: m['id'] as String,
-        jenjang: (m['jenjang'] ?? '-') as String,
-        mode: (m['mode'] ?? '-') as String,
-        durationMinutes: (m['duration_minutes'] as num).toInt(),
-        totalSesi: (m['total_sesi'] as num).toInt(),
-        discountPercent: (m['discount_percent'] as num).toInt(),
-        pricePerSession: (m['price_per_session'] as num).toInt(),
-        priceTotal: (m['price_total'] as num).toInt(),
-        minSeats: (m['min_seats'] as num).toInt(),
-        maxSeats: (m['max_seats'] as num).toInt(),
-        seatsTaken: (m['seats_taken'] as num).toInt(),
-        status: (m['status'] ?? '-') as String,
-        minConfirmDeadline:
-            DateTime.parse(m['min_confirm_deadline'] as String).toLocal(),
-        tutorName: m['tutor_name'] as String?,
-        subjectName: m['subject_name'] as String?,
-        firstSession: m['first_session'] == null
-            ? null
-            : DateTime.parse(m['first_session'] as String).toLocal(),
-        lastSession: m['last_session'] == null
-            ? null
-            : DateTime.parse(m['last_session'] as String).toLocal(),
-      );
+    id: m['id'] as String,
+    jenjang: (m['jenjang'] ?? '-') as String,
+    mode: (m['mode'] ?? '-') as String,
+    durationMinutes: (m['duration_minutes'] as num).toInt(),
+    totalSesi: (m['total_sesi'] as num).toInt(),
+    discountPercent: (m['discount_percent'] as num).toInt(),
+    pricePerSession: (m['price_per_session'] as num).toInt(),
+    priceTotal: (m['price_total'] as num).toInt(),
+    minSeats: (m['min_seats'] as num).toInt(),
+    maxSeats: (m['max_seats'] as num).toInt(),
+    seatsTaken: (m['seats_taken'] as num).toInt(),
+    status: (m['status'] ?? '-') as String,
+    minConfirmDeadline: DateTime.parse(
+      m['min_confirm_deadline'] as String,
+    ).toLocal(),
+    tutorName: m['tutor_name'] as String?,
+    subjectName: m['subject_name'] as String?,
+    firstSession: m['first_session'] == null
+        ? null
+        : DateTime.parse(m['first_session'] as String).toLocal(),
+    lastSession: m['last_session'] == null
+        ? null
+        : DateTime.parse(m['last_session'] as String).toLocal(),
+  );
 }
 
 class GroupSessionItem {
@@ -77,9 +78,9 @@ class GroupSessionItem {
   final DateTime scheduledAt;
 
   factory GroupSessionItem.fromMap(Map<String, dynamic> m) => GroupSessionItem(
-        seq: (m['seq'] as num).toInt(),
-        scheduledAt: DateTime.parse(m['scheduled_at'] as String).toLocal(),
-      );
+    seq: (m['seq'] as num).toInt(),
+    scheduledAt: DateTime.parse(m['scheduled_at'] as String).toLocal(),
+  );
 }
 
 /// Kursi siswa di sebuah program.
@@ -99,21 +100,21 @@ class GroupSeatItem {
   final int? refundAmount;
 
   String get statusLabel => switch (status) {
-        'pending_payment' => 'Menunggu bayar',
-        'active' => 'Aktif',
-        'refund_pending' => 'Menunggu refund',
-        'refunded' => 'Dana dikembalikan',
-        'cancelled' => 'Dibatalkan',
-        _ => status,
-      };
+    'pending_payment' => 'Menunggu bayar',
+    'active' => 'Aktif',
+    'refund_pending' => 'Menunggu refund',
+    'refunded' => 'Dana dikembalikan',
+    'cancelled' => 'Dibatalkan',
+    _ => status,
+  };
 
   factory GroupSeatItem.fromMap(Map<String, dynamic> m) => GroupSeatItem(
-        id: m['id'] as String,
-        groupClassId: m['group_class_id'] as String,
-        pricePaid: (m['price_paid'] as num).toInt(),
-        status: (m['status'] ?? '-') as String,
-        refundAmount: (m['refund_amount'] as num?)?.toInt(),
-      );
+    id: m['id'] as String,
+    groupClassId: m['group_class_id'] as String,
+    pricePaid: (m['price_paid'] as num).toInt(),
+    status: (m['status'] ?? '-') as String,
+    refundAmount: (m['refund_amount'] as num?)?.toInt(),
+  );
 }
 
 class KelasGrupRepository {
@@ -168,10 +169,16 @@ class KelasGrupRepository {
   }
 
   /// Beli kursi: ambil kursi (kunci) + transaksi Snap.
-  Future<SnapResult> createSeatSnap({required String groupClassId}) async {
+  Future<SnapResult> createSeatSnap({
+    required String groupClassId,
+    bool useCredits = false,
+  }) async {
     final res = await supabase.functions.invoke(
       'create-group-seat-snap',
-      body: {'group_class_id': groupClassId},
+      body: {
+        'group_class_id': groupClassId,
+        if (useCredits) 'use_credits': true,
+      },
     );
     final data = res.data;
     if (res.status != 200) {
@@ -180,12 +187,6 @@ class KelasGrupRepository {
           : 'Gagal memulai pembayaran (${res.status})';
       throw Exception(msg);
     }
-    final map = data as Map<String, dynamic>;
-    return SnapResult(
-      orderId: map['order_id'] as String,
-      redirectUrl: map['redirect_url'] as String,
-      amount: (map['amount'] as num).toInt(),
-      reused: (map['reused'] ?? false) as bool,
-    );
+    return SnapResult.fromJson(data as Map<String, dynamic>);
   }
 }

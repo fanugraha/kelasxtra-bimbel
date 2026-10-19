@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_theme.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/screen_head.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/screen_head.dart';
+import '../chat/chat_providers.dart';
 import 'notifikasi_providers.dart';
 import 'notifikasi_repository.dart';
 
-class NotifikasiScreen extends ConsumerWidget {
+class NotifikasiScreen extends ConsumerStatefulWidget {
   const NotifikasiScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotifikasiScreen> createState() => _NotifikasiScreenState();
+}
+
+class _NotifikasiScreenState extends ConsumerState<NotifikasiScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Selalu ambil yang terbaru saat layar dibuka.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(myNotificationsProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final items = ref.watch(myNotificationsProvider);
 
     return Scaffold(
@@ -70,12 +86,7 @@ class _NotifCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return AppCard(
-      onTap: item.read
-          ? null
-          : () async {
-              await ref.read(notificationRepositoryProvider).markRead(item.id);
-              ref.invalidate(myNotificationsProvider);
-            },
+      onTap: () => _open(context, ref),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -103,12 +114,42 @@ class _NotifCard extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(item.body, style: theme.textTheme.bodyMedium),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            AppFormat.dateTimeShort(item.createdAt),
-            style: theme.textTheme.labelSmall,
+          Row(
+            children: [
+              Text(
+                AppFormat.dateTimeShort(item.createdAt),
+                style: theme.textTheme.labelSmall,
+              ),
+              if (item.isChat) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '· Ketuk untuk membalas',
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: theme.colorScheme.primary),
+                ),
+              ],
+            ],
           ),
         ],
       ),
     );
+  }
+
+  /// Tandai terbaca, lalu buka ruang chat bila ini notifikasi pesan.
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(notificationRepositoryProvider);
+    if (!item.read) {
+      await repo.markRead(item.id);
+      ref.invalidate(myNotificationsProvider);
+    }
+
+    final conversationId = item.conversationId;
+    if (conversationId == null || !context.mounted) return;
+
+    final peer = await ref
+        .read(chatRepositoryProvider)
+        .fetchPeerOfConversation(conversationId);
+    if (peer == null || !context.mounted) return;
+    context.push('/chat/room/$peer');
   }
 }

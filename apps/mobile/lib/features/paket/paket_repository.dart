@@ -1,7 +1,10 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/format.dart';
 import '../../core/snap_result.dart';
 import '../../core/supabase_client.dart';
 
-/// Paket sesi milik siswa.
+/// Paket pertemuan milik siswa (4/8/12 pertemuan, seminggu sekali).
 class PackageItem {
   const PackageItem({
     required this.id,
@@ -11,12 +14,12 @@ class PackageItem {
     required this.mode,
     required this.durationMinutes,
     required this.totalSesi,
-    required this.sesiTerpakai,
-    required this.pricePerSession,
-    required this.discountPercent,
     required this.priceTotal,
     required this.status,
     this.expiresAt,
+    this.scheduleDay,
+    this.scheduleStartTime,
+    this.scheduleStartDate,
     this.tutorName,
     this.subjectName,
   });
@@ -28,57 +31,100 @@ class PackageItem {
   final String mode;
   final int durationMinutes;
   final int totalSesi;
-  final int sesiTerpakai;
-  final int pricePerSession;
-  final int discountPercent;
   final int priceTotal;
   final String status;
   final DateTime? expiresAt;
+
+  /// Jadwal mingguan yang dipilih saat membeli (0 = Minggu).
+  final int? scheduleDay;
+  final String? scheduleStartTime;
+  final DateTime? scheduleStartDate;
+
   final String? tutorName;
   final String? subjectName;
 
-  int get sisaSesi => totalSesi - sesiTerpakai;
-  bool get aktif => status == 'active' && sisaSesi > 0;
+  bool get aktif => status == 'active';
+
+  /// "Sabtu 09:00" — jadwal pertemuan tiap minggu.
+  String get jadwalLabel {
+    if (scheduleDay == null || scheduleStartTime == null) return '—';
+    final jam = AppFormat.hhmm(AppFormat.minutesOfTime(scheduleStartTime!));
+    return '${AppFormat.longDayName(scheduleDay!)}, $jam';
+  }
+
+  String get mulaiLabel =>
+      scheduleStartDate == null ? '—' : AppFormat.dateLong(scheduleStartDate!);
+
+  String get masaBerlakuLabel =>
+      expiresAt == null ? '—' : AppFormat.dateLong(expiresAt!);
 
   String get statusLabel => switch (status) {
-        'pending_payment' => 'Menunggu bayar',
-        'active' => sisaSesi > 0 ? 'Aktif' : 'Kuota habis',
-        'expired' => 'Kedaluwarsa',
-        'refunded' => 'Dana dikembalikan',
-        'cancelled' => 'Dibatalkan',
-        _ => status,
-      };
+    'pending_payment' => 'Menunggu bayar',
+    'active' => 'Aktif',
+    'expired' => 'Kedaluwarsa',
+    'refunded' => 'Dana dikembalikan',
+    'cancelled' => 'Dibatalkan',
+    _ => status,
+  };
 
   factory PackageItem.fromMap(
     Map<String, dynamic> m, {
     String? tutorName,
     String? subjectName,
-  }) =>
-      PackageItem(
-        id: m['id'] as String,
-        tutorId: m['tutor_id'] as String,
-        subjectId: m['subject_id'] as String,
-        jenjang: (m['jenjang'] ?? '-') as String,
-        mode: (m['mode'] ?? '-') as String,
-        durationMinutes: (m['duration_minutes'] as num).toInt(),
-        totalSesi: (m['total_sesi'] as num).toInt(),
-        sesiTerpakai: (m['sesi_terpakai'] as num).toInt(),
-        pricePerSession: (m['price_per_session'] as num).toInt(),
-        discountPercent: (m['discount_percent'] as num).toInt(),
-        priceTotal: (m['price_total'] as num).toInt(),
-        status: (m['status'] ?? '-') as String,
-        expiresAt: m['expires_at'] == null
-            ? null
-            : DateTime.parse(m['expires_at'] as String).toLocal(),
-        tutorName: tutorName,
-        subjectName: subjectName,
-      );
+  }) => PackageItem(
+    id: m['id'] as String,
+    tutorId: m['tutor_id'] as String,
+    subjectId: m['subject_id'] as String,
+    jenjang: (m['jenjang'] ?? '-') as String,
+    mode: (m['mode'] ?? '-') as String,
+    durationMinutes: (m['duration_minutes'] as num).toInt(),
+    totalSesi: (m['total_sesi'] as num).toInt(),
+    priceTotal: (m['price_total'] as num).toInt(),
+    status: (m['status'] ?? '-') as String,
+    expiresAt: m['expires_at'] == null
+        ? null
+        : DateTime.parse(m['expires_at'] as String).toLocal(),
+    scheduleDay: m['schedule_day'] == null
+        ? null
+        : (m['schedule_day'] as num).toInt(),
+    scheduleStartTime: m['schedule_start_time'] as String?,
+    scheduleStartDate: m['schedule_start_date'] == null
+        ? null
+        : DateTime.parse(m['schedule_start_date'] as String),
+    tutorName: tutorName,
+    subjectName: subjectName,
+  );
+}
+
+/// Rentang waktu yang sudah terisi (dipakai menyaring pilihan jadwal).
+class BusySlot {
+  const BusySlot({required this.start, required this.end});
+
+  final DateTime start;
+  final DateTime end;
 }
 
 class PaketRepository {
-  static const _cols = 'id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
-      'total_sesi, sesi_terpakai, price_per_session, discount_percent, '
-      'price_total, status, expires_at';
+  static const _cols =
+      'id, tutor_id, subject_id, jenjang, duration_minutes, mode, '
+      'total_sesi, price_total, status, expires_at, schedule_day, '
+      'schedule_start_time, schedule_start_date';
+
+  /// Interval waktu yang sudah terisi (tutor & milik siswa) — untuk menyaring
+  /// pilihan jadwal agar siswa tidak memilih slot yang bentrok.
+  Future<List<BusySlot>> fetchBusySlots(String tutorId) async {
+    final rows = await supabase.rpc(
+      'tutor_busy_slots',
+      params: {'p_tutor_id': tutorId},
+    );
+    return [
+      for (final r in (rows as List))
+        BusySlot(
+          start: DateTime.parse((r as Map)['busy_start'] as String).toLocal(),
+          end: DateTime.parse(r['busy_end'] as String).toLocal(),
+        ),
+    ];
+  }
 
   Future<List<PackageItem>> fetchMyPackages() async {
     final rows = await supabase
@@ -88,22 +134,32 @@ class PaketRepository {
     return _withNames(rows);
   }
 
-  /// Paket aktif untuk tutor tertentu (dipakai saat booking pakai kuota).
-  Future<List<PackageItem>> fetchActiveForTutor(String tutorId) async {
-    final rows = await supabase
-        .from('package_purchases')
-        .select(_cols)
-        .eq('tutor_id', tutorId)
-        .eq('status', 'active')
-        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
-        .order('created_at', ascending: false);
-    return _withNames(rows);
+  /// Harga paket aktif (ditetapkan admin). Null bila kombinasi belum diset.
+  Future<int?> fetchPackagePrice({
+    required String jenjang,
+    required int durationMinutes,
+    required String mode,
+    required int totalSesi,
+  }) async {
+    final row = await supabase
+        .from('package_prices')
+        .select('price')
+        .eq('jenjang', jenjang)
+        .eq('duration_minutes', durationMinutes)
+        .eq('mode', mode)
+        .eq('total_sesi', totalSesi)
+        .eq('active', true)
+        .maybeSingle();
+    if (row == null) return null;
+    return (row['price'] as num).toInt();
   }
 
   Future<List<PackageItem>> _withNames(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return [];
     final tutorIds = {for (final r in rows) r['tutor_id'] as String}.toList();
-    final subjectIds = {for (final r in rows) r['subject_id'] as String}.toList();
+    final subjectIds = {
+      for (final r in rows) r['subject_id'] as String,
+    }.toList();
 
     final tutorRows = await supabase
         .from('tutor_catalog')
@@ -115,10 +171,12 @@ class PaketRepository {
         .inFilter('id', subjectIds);
 
     final tutorNames = {
-      for (final r in tutorRows) r['id'] as String: (r['full_name'] ?? '-') as String,
+      for (final r in tutorRows)
+        r['id'] as String: (r['full_name'] ?? '-') as String,
     };
     final subjectNames = {
-      for (final r in subjectRows) r['id'] as String: (r['name'] ?? '-') as String,
+      for (final r in subjectRows)
+        r['id'] as String: (r['name'] ?? '-') as String,
     };
 
     return [
@@ -131,7 +189,20 @@ class PaketRepository {
     ];
   }
 
-  /// Buat transaksi Snap untuk pembelian paket.
+  /// Pratinjau diskon voucher (tanpa mengunci kuota). Melempar bila kode ditolak.
+  Future<int> checkVoucher({required String code, required int price}) async {
+    try {
+      final data = await supabase.rpc(
+        'check_voucher',
+        params: {'p_code': code, 'p_price': price},
+      );
+      return (data as num).toInt();
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    }
+  }
+
+  /// Buat tagihan Snap untuk paket: pilih jumlah pertemuan + jadwal mingguan.
   Future<SnapResult> createPackageSnap({
     required String tutorId,
     required String subjectId,
@@ -139,17 +210,37 @@ class PaketRepository {
     required int durationMinutes,
     required String mode,
     required int totalSesi,
-  }) async {
+    required DateTime scheduleStartDate,
+    required String scheduleStartTime,
+    String? address,
+    String? voucherCode,
+    bool useCredits = false,
+  }) {
+    return _snap({
+      'tutor_id': tutorId,
+      'subject_id': subjectId,
+      'jenjang': jenjang,
+      'duration_minutes': durationMinutes,
+      'mode': mode,
+      'total_sesi': totalSesi,
+      'schedule_start_date': _isoDate(scheduleStartDate),
+      'schedule_start_time': scheduleStartTime,
+      if (address != null && address.isNotEmpty) 'address': address,
+      if (voucherCode != null && voucherCode.isNotEmpty)
+        'voucher_code': voucherCode,
+      if (useCredits) 'use_credits': true,
+    });
+  }
+
+  /// Lanjutkan pembayaran paket yang masih menunggu bayar (jadwal tersimpan).
+  Future<SnapResult> resumePackageSnap(String packageId) {
+    return _snap({'resume_package_id': packageId});
+  }
+
+  Future<SnapResult> _snap(Map<String, dynamic> body) async {
     final res = await supabase.functions.invoke(
       'create-package-snap',
-      body: {
-        'tutor_id': tutorId,
-        'subject_id': subjectId,
-        'jenjang': jenjang,
-        'duration_minutes': durationMinutes,
-        'mode': mode,
-        'total_sesi': totalSesi,
-      },
+      body: body,
     );
     final data = res.data;
     if (res.status != 200) {
@@ -158,37 +249,10 @@ class PaketRepository {
           : 'Gagal memulai pembelian paket (${res.status})';
       throw Exception(msg);
     }
-    final map = data as Map<String, dynamic>;
-    return SnapResult(
-      orderId: map['order_id'] as String,
-      packageId: map['package_id'] as String?,
-      redirectUrl: map['redirect_url'] as String,
-      amount: (map['amount'] as num).toInt(),
-      reused: (map['reused'] ?? false) as bool,
-    );
+    return SnapResult.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Booking yang dibayar dengan kuota paket (tanpa pembayaran per sesi).
-  Future<int> bookWithPackage({
-    required String packageId,
-    required DateTime scheduledAt,
-    String? address,
-  }) async {
-    final res = await supabase.functions.invoke(
-      'book-with-package',
-      body: {
-        'package_id': packageId,
-        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
-        if (address != null && address.isNotEmpty) 'address': address,
-      },
-    );
-    final data = res.data;
-    if (res.status != 200) {
-      final msg = (data is Map && data['error'] != null)
-          ? data['error'] as String
-          : 'Gagal memakai kuota paket (${res.status})';
-      throw Exception(msg);
-    }
-    return ((data as Map)['sesi_terpakai'] as num).toInt();
-  }
+  String _isoDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 }

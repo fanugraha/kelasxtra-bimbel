@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../auth/auth_providers.dart';
+
 import 'paket_repository.dart';
 
 final paketRepositoryProvider = Provider<PaketRepository>(
@@ -7,21 +9,55 @@ final paketRepositoryProvider = Provider<PaketRepository>(
 );
 
 /// Semua paket milik siswa (untuk layar "Paket Saya").
-final myPackagesProvider = FutureProvider<List<PackageItem>>(
-  (ref) => ref.read(paketRepositoryProvider).fetchMyPackages(),
-);
-
-/// Paket aktif untuk tutor tertentu (dipakai booking pakai-kuota).
-final activePackagesForTutorProvider =
-    FutureProvider.family<List<PackageItem>, String>((ref, tutorId) {
-  return ref.read(paketRepositoryProvider).fetchActiveForTutor(tutorId);
+final myPackagesProvider = FutureProvider<List<PackageItem>>((ref) {
+  ref.watch(authStateProvider);
+  return ref.read(paketRepositoryProvider).fetchMyPackages();
 });
 
-/// Ukuran paket yang tersedia beserta diskonnya.
-const paketSizes = <int, int>{4: 0, 8: 5, 12: 10};
+/// Slot sibuk tutor (dan milik siswa) untuk menyaring pilihan jadwal.
+final tutorBusyProvider = FutureProvider.family<List<BusySlot>, String>((
+  ref,
+  tutorId,
+) {
+  return ref.read(paketRepositoryProvider).fetchBusySlots(tutorId);
+});
 
-/// Total harga paket (dibulatkan ke bawah, integer rupiah).
-int paketTotal({required int pricePerSession, required int totalSesi}) {
-  final diskon = paketSizes[totalSesi] ?? 0;
-  return (pricePerSession * totalSesi * (100 - diskon)) ~/ 100;
-}
+/// Jumlah pertemuan yang bisa dibeli (seminggu sekali).
+const paketSizeOptions = [4, 8, 12];
+
+/// Label panjang: "8 pertemuan · 2 bulan".
+String paketSizeLabel(int totalSesi) =>
+    '$totalSesi pertemuan · ${paketMasaBerlaku(totalSesi)}';
+
+/// Masa berlaku paket mengikuti jumlah pertemuan.
+String paketMasaBerlaku(int totalSesi) => switch (totalSesi) {
+  4 => '1 bulan',
+  8 => '2 bulan',
+  _ => '3 bulan',
+};
+
+/// Harga paket untuk satu kombinasi (ditetapkan admin). Null bila belum diset.
+typedef PackagePriceArgs = ({
+  String jenjang,
+  int duration,
+  String mode,
+  int totalSesi,
+});
+
+final packagePriceProvider = FutureProvider.family<int?, PackagePriceArgs>((
+  ref,
+  args,
+) {
+  return ref
+      .read(paketRepositoryProvider)
+      .fetchPackagePrice(
+        jenjang: args.jenjang,
+        durationMinutes: args.duration,
+        mode: args.mode,
+        totalSesi: args.totalSesi,
+      );
+});
+
+/// Harga paket per pertemuan (untuk info "setara Rp …/pertemuan").
+int? paketPerSesi(int? hargaPaket, int totalSesi) =>
+    hargaPaket == null ? null : hargaPaket ~/ totalSesi;

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/math_text.dart';
+import '../../core/widgets/app_card.dart';
+import 'widgets/math_text.dart';
 import 'bank_soal_repository.dart';
 
 class HasilScreen extends StatelessWidget {

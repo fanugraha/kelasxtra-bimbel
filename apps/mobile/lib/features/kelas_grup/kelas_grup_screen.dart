@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/async_view.dart';
-import '../../widgets/empty_state.dart';
-import '../../widgets/screen_head.dart';
-import '../../widgets/status_badge.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/async_view.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/screen_head.dart';
+import '../../core/widgets/status_badge.dart';
 import 'kelas_grup_providers.dart';
 import 'kelas_grup_repository.dart';
 
@@ -77,11 +77,11 @@ class _ClassCard extends StatelessWidget {
     final badge = item.seatsTaken >= item.maxSeats
         ? const StatusBadge(label: 'Penuh', tone: StatusTone.success)
         : item.seatsTaken / item.maxSeats >= 0.7
-            ? const StatusBadge(label: 'Hampir penuh', tone: StatusTone.warning)
-            : StatusBadge(
-                label: item.dibuka ? 'Dibuka' : 'Terkonfirmasi',
-                tone: item.dibuka ? StatusTone.info : StatusTone.success,
-              );
+        ? const StatusBadge(label: 'Hampir penuh', tone: StatusTone.warning)
+        : StatusBadge(
+            label: item.dibuka ? 'Dibuka' : 'Terkonfirmasi',
+            tone: item.dibuka ? StatusTone.info : StatusTone.success,
+          );
 
     return AppCard(
       onTap: () => context.push('/kelas-grup/${item.id}'),
@@ -95,12 +95,16 @@ class _ClassCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.subjectName ?? 'Kelas grup',
-                        style: theme.textTheme.titleSmall?.copyWith(fontSize: 15)),
+                    Text(
+                      item.subjectName ?? 'Kelas grup',
+                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 15),
+                    ),
                     const SizedBox(height: 3),
                     Text(
                       '${item.tutorName ?? 'Tutor'} · ${item.jenjang} · ${item.mode == 'online' ? 'Online' : 'Offline'}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10.5),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10.5,
+                      ),
                     ),
                   ],
                 ),
@@ -116,7 +120,8 @@ class _ClassCard extends StatelessWidget {
               _Meta(icon: Icons.calendar_today_outlined, label: jadwal),
               _Meta(
                 icon: Icons.schedule_rounded,
-                label: '${item.totalSesi} pertemuan · ${item.durationMinutes} menit',
+                label:
+                    '${item.totalSesi} pertemuan · ${item.durationMinutes} menit',
               ),
             ],
           ),
@@ -134,18 +139,20 @@ class _ClassCard extends StatelessWidget {
                       full >= 1
                           ? AppColors.success
                           : full < item.minSeats / item.maxSeats
-                              ? AppColors.warning
-                              : AppColors.primary,
+                          ? AppColors.warning
+                          : AppColors.primary,
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text('${item.seatsTaken} / ${item.maxSeats} kursi',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                  )),
+              Text(
+                '${item.seatsTaken} / ${item.maxSeats} kursi',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -163,7 +170,9 @@ class _ClassCard extends StatelessWidget {
                   minimumSize: const Size(0, 36),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   textStyle: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w800),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 child: const Text('Lihat detail'),
               ),
@@ -185,13 +194,18 @@ class _Meta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 14,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 4),
-        Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontSize: 10.5)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontSize: 10.5),
+        ),
       ],
     );
   }

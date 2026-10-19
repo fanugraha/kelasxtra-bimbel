@@ -11,7 +11,9 @@ import '../features/auth/register_screen.dart';
 import '../features/bank_soal/bank_soal_screen.dart';
 import '../features/bank_soal/latihan_screen.dart';
 import '../features/booking/booking_detail_screen.dart';
-import '../features/booking/booking_screen.dart';
+import '../features/booking/payment_status_screen.dart';
+import '../features/chat/chat_room_screen.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/jadwal/jadwal_screen.dart';
 import '../features/kelas_grup/kelas_grup_detail_screen.dart';
@@ -19,10 +21,11 @@ import '../features/kelas_grup/kelas_grup_screen.dart';
 import '../features/katalog/katalog_screen.dart';
 import '../features/notifikasi/notifikasi_screen.dart';
 import '../features/katalog/tutor_detail_screen.dart';
-import '../features/paket/beli_paket_screen.dart';
+import '../features/paket/beli_paket/beli_paket_screen.dart';
 import '../features/penghasilan/penghasilan_screen.dart';
+import '../features/riwayat/riwayat_screen.dart';
 import '../features/paket/paket_screen.dart';
-import '../widgets/app_shell.dart';
+import 'app_shell.dart';
 import 'nav_destinations.dart';
 import 'providers.dart';
 import 'supabase_client.dart';
@@ -46,6 +49,7 @@ Widget _screenFor(String path) => switch (path) {
       '/jadwal' => const JadwalScreen(),
       '/absensi-grup' => const AbsensiGrupScreen(),
       '/penghasilan' => const PenghasilanScreen(),
+      '/chat' => const ChatScreen(),
       '/profil' => const ProfilScreen(),
       _ => const HomeScreen(),
     };
@@ -87,19 +91,47 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/tutor/:id',
         builder: (c, s) => TutorDetailScreen(tutorId: s.pathParameters['id']!),
       ),
+      // Hasil pembayaran paket — dibuka setelah Snap ditutup.
       GoRoute(
-        path: '/booking/:id',
-        builder: (c, s) => BookingScreen(tutorId: s.pathParameters['id']!),
+        path: '/pembayaran',
+        builder: (c, s) {
+          final extra = (s.extra as Map?) ?? const {};
+          return PaymentStatusScreen(
+            orderId: (extra['orderId'] ?? '') as String,
+            amount: (extra['amount'] as num?)?.toInt(),
+            bookingId: extra['bookingId'] as String?,
+            packageId: extra['packageId'] as String?,
+            retry: extra['retry'] as PaymentRetry?,
+          );
+        },
       ),
       GoRoute(
         path: '/notifikasi',
         builder: (c, s) => const NotifikasiScreen(),
       ),
       GoRoute(
+        path: '/chat/room/:peerId',
+        builder: (c, s) {
+          final extra = (s.extra as Map?) ?? const {};
+          return ChatRoomScreen(
+            peerId: s.pathParameters['peerId']!,
+            peerName: extra['name'] as String?,
+            peerAvatar: extra['avatar'] as String?,
+          );
+        },
+      ),
+      // Flavor tutor tidak menaruh Profil di menu bawah: dibuka dari beranda.
+      if (!destinations.any((d) => d.path == '/profil'))
+        GoRoute(path: '/profil', builder: (c, s) => const ProfilScreen()),
+      GoRoute(
         path: '/sesi/:id',
         builder: (c, s) => BookingDetailScreen(bookingId: s.pathParameters['id']!),
       ),
       GoRoute(path: '/paket', builder: (c, s) => const PaketScreen()),
+      GoRoute(
+        path: '/riwayat-transaksi',
+        builder: (c, s) => const RiwayatScreen(),
+      ),
       GoRoute(
         path: '/paket/beli/:id',
         builder: (c, s) => BeliPaketScreen(tutorId: s.pathParameters['id']!),

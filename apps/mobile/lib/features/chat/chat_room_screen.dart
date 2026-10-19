@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/supabase_client.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/person_photo.dart';
 import 'chat_providers.dart';
 import 'widgets/chat_bubble.dart';
-import 'widgets/peer_avatar.dart';
 import 'widgets/safety_note.dart';
 
 /// Ruang obrolan 1:1 dengan satu tutor/siswa.
@@ -130,8 +131,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         titleSpacing: 0,
         title: Row(
           children: [
-            PeerAvatar(name: name, avatar: avatar, radius: 17),
-            const SizedBox(width: 10),
+            PersonPhoto(name: name, photoUrl: avatar, size: 44, radius: 12),
+            const SizedBox(width: AppSpacing.sm + 2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,9 +141,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  Text('Percakapan privat', style: theme.textTheme.labelSmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Percakapan privat',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -229,10 +239,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
         decoration: BoxDecoration(
           color: scheme.surface,
-          border: Border(top: BorderSide(color: scheme.outline)),
+          border: Border(top: BorderSide(color: scheme.outlineVariant)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -248,20 +258,28 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                   filled: true,
                   fillColor: scheme.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: 16,
                     vertical: 12,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(22),
                     borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide(color: scheme.primary),
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             SizedBox(
-              width: 46,
-              height: 46,
+              width: 48,
+              height: 48,
               child: FilledButton(
                 onPressed: _sending ? null : () => _send(conversationId),
                 style: FilledButton.styleFrom(

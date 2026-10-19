@@ -167,6 +167,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // Paket soal berurutan tetap (paket coba gratis tanpa langganan).
+      GoRoute(
+        path: '/paket-soal/:id',
+        builder: (c, s) {
+          final extra = (s.extra as Map?) ?? const {};
+          return LatihanScreen(
+            topicId: null,
+            topicName: (extra['name'] ?? 'Paket soal') as String,
+            packId: s.pathParameters['id']!,
+          );
+        },
+      ),
       GoRoute(
         path: '/latihan/:topicId',
         builder: (c, s) {

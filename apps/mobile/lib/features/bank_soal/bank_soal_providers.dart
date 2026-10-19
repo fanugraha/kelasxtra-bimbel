@@ -17,13 +17,19 @@ final mySubscriptionProvider = FutureProvider<SubscriptionInfo?>((ref) {
   return ref.read(bankSoalRepositoryProvider).fetchMySubscription();
 });
 
-/// Topik yang bisa dilatih.
-final topicsProvider = FutureProvider<List<Map<String, dynamic>>>(
-  (ref) => ref.read(bankSoalRepositoryProvider).fetchTopics(),
-);
-
 /// Statistik akurasi per topik milik siswa.
 final myStatsProvider = FutureProvider<List<TopicStat>>((ref) {
   ref.watch(authStateProvider);
   return ref.read(bankSoalRepositoryProvider).fetchMyStats();
+});
+
+/// Katalog topik Bank Soal + jumlah soal per topik.
+final catalogProvider = FutureProvider<List<CatalogTopic>>(
+  (ref) => ref.read(bankSoalRepositoryProvider).fetchCatalog(),
+);
+
+/// Paket soal (termasuk paket coba gratis) + nilai terakhir siswa.
+final packsProvider = FutureProvider<List<QuestionPack>>((ref) {
+  ref.watch(authStateProvider);
+  return ref.read(bankSoalRepositoryProvider).fetchPacks();
 });

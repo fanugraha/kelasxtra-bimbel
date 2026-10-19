@@ -202,6 +202,74 @@ class TopicStat {
   );
 }
 
+/// Satu topik di katalog Bank Soal + jumlah soal terbit (RPC
+/// `bank_soal_catalog`; siswa tidak membaca tabel soal langsung).
+class CatalogTopic {
+  const CatalogTopic({
+    required this.topicId,
+    required this.topicName,
+    required this.subjectId,
+    required this.subjectName,
+    required this.jenjang,
+    required this.questionCount,
+  });
+
+  final String topicId;
+  final String topicName;
+  final String subjectId;
+  final String subjectName;
+  final String jenjang;
+  final int questionCount;
+
+  factory CatalogTopic.fromMap(Map<String, dynamic> m) => CatalogTopic(
+    topicId: m['topic_id'] as String,
+    topicName: (m['topic_name'] ?? '-') as String,
+    subjectId: m['subject_id'] as String,
+    subjectName: (m['subject_name'] ?? '-') as String,
+    jenjang: (m['jenjang'] ?? '-') as String,
+    questionCount: (m['question_count'] as num?)?.toInt() ?? 0,
+  );
+}
+
+/// Paket soal berurutan tetap (mis. paket coba gratis) + nilai terakhir siswa.
+class QuestionPack {
+  const QuestionPack({
+    required this.id,
+    required this.title,
+    required this.subjectName,
+    required this.jenjang,
+    required this.isFree,
+    required this.questionCount,
+    this.topicName,
+    this.lastCorrect,
+    this.lastTotal,
+  });
+
+  final String id;
+  final String title;
+  final String subjectName;
+  final String? topicName;
+  final String jenjang;
+  final bool isFree;
+  final int questionCount;
+  final int? lastCorrect;
+  final int? lastTotal;
+
+  bool get tried => lastTotal != null && lastTotal! > 0;
+
+  factory QuestionPack.fromMap(Map<String, dynamic> m) => QuestionPack(
+    id: m['id'] as String,
+    title: (m['title'] ?? '-') as String,
+    subjectName: (m['subject_name'] ?? '-') as String,
+    topicName: m['topic_name'] as String?,
+    jenjang: (m['jenjang'] ?? '-') as String,
+    isFree: (m['is_free'] ?? false) as bool,
+    questionCount: (m['question_count'] as num?)?.toInt() ?? 0,
+    lastCorrect: (m['last_correct'] as num?)?.toInt(),
+    lastTotal: (m['last_total'] as num?)?.toInt(),
+  );
+}
+
 class BankSoalRepository {
   Future<PlanItem?> fetchPlan([String code = 'bank_soal']) async {
     final row = await supabase
@@ -238,12 +306,34 @@ class BankSoalRepository {
     return SnapResult.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<List<Map<String, dynamic>>> fetchTopics() async {
-    return supabase
-        .from('topics')
-        .select('id, name, jenjang, subjects(name)')
-        .eq('active', true)
-        .order('name');
+  /// Katalog topik aktif + jumlah soal terbit, urut mapel lalu topik.
+  Future<List<CatalogTopic>> fetchCatalog() async {
+    final rows = await supabase.rpc('bank_soal_catalog') as List;
+    return [
+      for (final r in rows) CatalogTopic.fromMap(r as Map<String, dynamic>),
+    ];
+  }
+
+  /// Paket soal aktif (paket gratis lebih dulu) + nilai terakhir siswa.
+  Future<List<QuestionPack>> fetchPacks() async {
+    final rows = await supabase.rpc('my_question_packs') as List;
+    return [
+      for (final r in rows) QuestionPack.fromMap(r as Map<String, dynamic>),
+    ];
+  }
+
+  /// Mulai satu paket soal. Paket gratis tidak butuh langganan.
+  Future<({String attemptId, List<PracticeQuestion> questions})>
+  startPackAttempt(String packId) async {
+    final data = await supabase.rpc(
+      'start_pack_attempt',
+      params: {'p_pack': packId},
+    );
+    final map = data as Map<String, dynamic>;
+    final questions = ((map['questions'] as List?) ?? const [])
+        .map((q) => PracticeQuestion.fromMap(q as Map<String, dynamic>))
+        .toList();
+    return (attemptId: map['attempt_id'] as String, questions: questions);
   }
 
   /// Mulai latihan/tryout. Kunci jawaban tidak dikirim ke client.

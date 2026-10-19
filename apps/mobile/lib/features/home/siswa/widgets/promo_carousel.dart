@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,6 +7,10 @@ import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Karusel kartu promo di home siswa (tryout, paket, kelas grup).
+///
+/// Bergeser otomatis tiap [_interval] lalu kembali ke kartu pertama. Jeda saat
+/// siswa menggeser sendiri (timer diulang dari awal), tidak berjalan saat tab
+/// Beranda tersembunyi, dan mati bila animasi dimatikan di pengaturan HP.
 ///
 /// Warna: kartu tryout = CHALLENGE (ajakan menantang diri, ungu); kartu
 /// paket/kelas grup = PROMO (hemat/harga ringan, coral).
@@ -21,11 +27,42 @@ class _PromoCarouselState extends State<PromoCarousel> {
   /// terpotong di batas margin.
   final _controller = PageController(viewportFraction: 0.94);
   var _page = 0;
+  Timer? _timer;
+
+  static const _interval = Duration(seconds: 4);
+
+  /// Jumlah kartu, diisi saat build (dipakai untuk kembali ke kartu pertama).
+  var _count = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _restart();
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _restart() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_interval, (_) => _advance());
+  }
+
+  void _advance() {
+    if (!mounted || !_controller.hasClients) return;
+    // Tab tersembunyi (IndexedStack) atau animasi dimatikan → diam.
+    if (!TickerMode.of(context)) return;
+    if (MediaQuery.of(context).disableAnimations) return;
+    final next = (_page + 1) % _count;
+    _controller.animateToPage(
+      next,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOutCubic,
+    );
   }
 
   @override
@@ -57,6 +94,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
       ),
     ];
 
+    _count = cards.length;
     return Column(
       children: [
         SizedBox(
@@ -64,23 +102,31 @@ class _PromoCarouselState extends State<PromoCarousel> {
           height: 178 * MediaQuery.textScalerOf(context).scale(16) / 16,
           child: Padding(
             padding: const EdgeInsets.only(left: 16),
-            child: PageView.builder(
-              controller: _controller,
-              padEnds: false,
-              itemCount: cards.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (context, i) {
-                final card = cards[i];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: i == cards.length - 1 ? 0 : AppSpacing.sm,
-                  ),
-                  child: _PromoCard(
-                    data: card,
-                    onTap: card.onTap ?? () => context.push('/kelas-grup'),
-                  ),
-                );
+            // Siswa menggeser sendiri → ulang hitungan supaya kartu tidak
+            // langsung bergeser saat sedang dibaca.
+            child: NotificationListener<UserScrollNotification>(
+              onNotification: (_) {
+                _restart();
+                return false;
               },
+              child: PageView.builder(
+                controller: _controller,
+                padEnds: false,
+                itemCount: cards.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (context, i) {
+                  final card = cards[i];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: i == cards.length - 1 ? 0 : AppSpacing.sm,
+                    ),
+                    child: _PromoCard(
+                      data: card,
+                      onTap: card.onTap ?? () => context.push('/kelas-grup'),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

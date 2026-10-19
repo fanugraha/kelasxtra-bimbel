@@ -27,10 +27,6 @@ class HomeSiswaView extends ConsumerWidget {
         const PromoCarousel(),
         const SizedBox(height: AppSpacing.xl),
         sidePad(
-          StudentFocus(stats: ref.watch(myStatsProvider).value ?? const []),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        sidePad(
           SectionHead(
             title: 'Jadwal berikutnya',
             actionLabel: 'Semua',
@@ -58,6 +54,10 @@ class HomeSiswaView extends ConsumerWidget {
                   ),
                 )
               : StudentSessionCard(booking: upcoming.first),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        sidePad(
+          StudentFocus(stats: ref.watch(myStatsProvider).value ?? const []),
         ),
         const SizedBox(height: AppSpacing.xl),
         FeaturedTutors(

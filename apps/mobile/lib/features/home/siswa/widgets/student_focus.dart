@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../bank_soal/bank_soal_repository.dart';
 import '../../widgets/section_head.dart';
 import '../mastery_data.dart';
+import '../../../../core/mastery.dart';
 import 'strength_chart.dart';
 
 /// Beranda › Kekuatan & kelemahan (dari hasil latihan soal):

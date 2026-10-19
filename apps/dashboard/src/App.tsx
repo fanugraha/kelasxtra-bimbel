@@ -10,15 +10,18 @@ import { ModulePlaceholder } from './components/ModulePlaceholder'
 import { Tutors } from './pages/Tutors'
 import { Activate } from './pages/Activate'
 import { Pricing } from './pages/Pricing'
+import { PackagePricing } from './pages/PackagePricing'
 import { Vouchers } from './pages/Vouchers'
 import { Packages } from './pages/Packages'
 import { Rooms } from './pages/Rooms'
 import { GroupClasses } from './pages/GroupClasses'
 import { QuestionCms } from './pages/QuestionCms'
 import { Disputes } from './pages/Disputes'
+import { Moderation } from './pages/Moderation'
 import { Payroll } from './pages/Payroll'
 import { Monitoring } from './pages/Monitoring'
 import { Finance } from './pages/Finance'
+import { PaymentReviews } from './pages/PaymentReviews'
 import { AuditLog } from './pages/AuditLog'
 import { modules } from './modules/registry'
 import type { ModuleDef } from './modules/registry'
@@ -27,15 +30,18 @@ import type { ModuleDef } from './modules/registry'
 const modulePages: Record<string, ComponentType> = {
   tutors: Tutors,
   pricing: Pricing,
+  'package-pricing': PackagePricing,
   vouchers: Vouchers,
   packages: Packages,
   rooms: Rooms,
   'group-classes': GroupClasses,
   'question-cms': QuestionCms,
+  moderation: Moderation,
   disputes: Disputes,
   payroll: Payroll,
   monitoring: Monitoring,
   finance: Finance,
+  'payment-reviews': PaymentReviews,
   'audit-log': AuditLog,
 }
 

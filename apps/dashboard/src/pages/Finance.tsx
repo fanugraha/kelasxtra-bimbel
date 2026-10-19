@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDateTime, isoDate, rupiah } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface Metrics {
@@ -34,12 +35,6 @@ interface EarningRow {
   tutors: { full_name: string } | null
 }
 
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-    d.getDate(),
-  ).padStart(2, '0')}`
-
 const PAYMENT_META: Record<string, { label: string; tone: string }> = {
   settlement: { label: 'Berhasil', tone: 'success' },
   capture: { label: 'Berhasil', tone: 'success' },
@@ -65,8 +60,8 @@ const TYPE_LABEL: Record<string, string> = {
 
 export function Finance() {
   const now = new Date()
-  const [from, setFrom] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1)))
-  const [to, setTo] = useState(iso(now))
+  const [from, setFrom] = useState(isoDate(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [to, setTo] = useState(isoDate(now))
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [earnings, setEarnings] = useState<EarningRow[]>([])
@@ -214,15 +209,7 @@ export function Finance() {
                         <td className="num">{rupiah(p.gateway_fee ?? 0)}</td>
                         <td><span className={`badge ${meta.tone}`}>{meta.label}</span></td>
                         <td className="num">
-                          {p.paid_at
-                            ? new Intl.DateTimeFormat('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: 'Asia/Jakarta',
-                              }).format(new Date(p.paid_at))
-                            : '—'}
+                          {p.paid_at ? formatDateTime(p.paid_at) : '—'}
                         </td>
                       </tr>
                     )
@@ -260,13 +247,7 @@ export function Finance() {
                     return (
                       <tr key={e.id}>
                         <td className="num">
-                          {new Intl.DateTimeFormat('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'Asia/Jakarta',
-                          }).format(new Date(e.session_at))}
+                          {formatDateTime(e.session_at)}
                         </td>
                         <td>{e.tutors?.full_name ?? '—'}</td>
                         <td>{e.source === 'group' ? 'Kelas grup' : e.source === 'package' ? 'Paket' : 'Privat'}</td>

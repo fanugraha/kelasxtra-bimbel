@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatDate, rupiah } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface PriceRow {
@@ -12,18 +13,9 @@ interface PriceRow {
   effective_from: string
 }
 
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 const JENJANG = ['SD', 'SMP', 'SMA']
 const DURATIONS = [60, 90, 120]
 const MODES = ['online', 'offline']
-
-const tanggal = (value: string) =>
-  new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta',
-  }).format(new Date(value))
 
 export function Pricing() {
   const [rows, setRows] = useState<PriceRow[]>([])
@@ -240,7 +232,7 @@ export function Pricing() {
             <tbody>
               {history.map((row) => (
                 <tr key={row.id}>
-                  <td className="num">{tanggal(row.effective_from)}</td>
+                  <td className="num">{formatDate(row.effective_from)}</td>
                   <td>
                     {row.jenjang} · {row.duration_minutes} menit · {row.mode === 'online' ? 'Online' : 'Offline'}
                   </td>

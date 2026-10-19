@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDateTime } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface AuditRow {
@@ -145,13 +146,7 @@ export function AuditLog() {
                 rows.map((r) => (
                   <tr key={r.id}>
                     <td className="num">
-                      {new Intl.DateTimeFormat('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Jakarta',
-                      }).format(new Date(r.created_at))}
+                      {formatDateTime(r.created_at)}
                     </td>
                     <td>{r.profiles?.full_name ?? r.profiles?.email ?? r.actor_id ?? 'sistem'}</td>
                     <td className="strong">{r.action}</td>

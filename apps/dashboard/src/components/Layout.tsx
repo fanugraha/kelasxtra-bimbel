@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { groupLabels, modules } from '../modules/registry'
 import type { ModuleGroup } from '../modules/registry'
 import { useAuth } from '../lib/auth-context'
+import { initials } from '../lib/text'
 
 const icons: Record<string, ReactNode> = {
   overview: (
@@ -60,6 +61,12 @@ const icons: Record<string, ReactNode> = {
       <path d="M14 5v14" strokeDasharray="2 2.5" />
     </>
   ),
+  moderation: (
+    <>
+      <path d="M12 3.2 5 6v6c0 4.2 2.9 7.4 7 8.8 4.1-1.4 7-4.6 7-8.8V6l-7-2.8Z" />
+      <path d="M12 9v4M12 15.6h.01" />
+    </>
+  ),
   disputes: (
     <>
       <path d="M21 12a8.5 8.5 0 0 1-8.5 8.5H4l2-3.2A8.5 8.5 0 1 1 21 12Z" />
@@ -89,11 +96,6 @@ function NavIcon({ name }: { name: string }) {
 }
 
 const groups: ModuleGroup[] = ['operasional', 'bisnis', 'layanan']
-
-function initials(value: string) {
-  const parts = value.replace(/@.*/, '').split(/[.\s_-]+/).filter(Boolean)
-  return (parts[0]?.[0] ?? 'A').concat(parts[1]?.[0] ?? '').toUpperCase()
-}
 
 export function Layout() {
   const { session, signOut } = useAuth()

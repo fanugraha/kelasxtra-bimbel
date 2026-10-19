@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { formatTime, rupiah, rupiahCompact } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface Metrics {
@@ -28,9 +29,6 @@ interface BookingRow {
   subjectName: string
 }
 
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-const compact = (n: number) =>
-  n >= 1_000_000 ? `Rp${(n / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} jt` : rupiah(n)
 const dateKey = (value: string | Date) =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Jakarta',
@@ -242,7 +240,7 @@ export function Overview() {
           <div className="ov-revenue-head">
             <div>
               <p className="ov-label">Pendapatan 7 hari</p>
-              <p className="ov-value">{compact(revenue7)}</p>
+              <p className="ov-value">{rupiahCompact(revenue7)}</p>
               <p className="ov-note">Pembayaran berhasil · WIB</p>
             </div>
             <span className="ov-range">7 hari terakhir</span>
@@ -357,12 +355,7 @@ export function Overview() {
                   return (
                     <div className={`ov-slot${b.status === 'in_progress' ? ' is-live' : ''}`} key={b.id}>
                       <span className="ov-time">
-                        {new Intl.DateTimeFormat('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false,
-                          timeZone: 'Asia/Jakarta',
-                        }).format(new Date(b.scheduled_at))}
+                        {formatTime(b.scheduled_at)}
                       </span>
                       <span className={`ov-dot ${status.tone}`} aria-hidden="true" />
                       <div>

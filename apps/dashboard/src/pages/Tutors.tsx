@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { formatDate } from '../lib/format'
+import { invokeFn } from '../lib/functions'
 import { supabase } from '../lib/supabase'
+import { initials } from '../lib/text'
 
 interface TutorRow {
   id: string
@@ -16,34 +19,6 @@ const STATUS_LABEL: Record<TutorRow['status'], { label: string; tone: string }> 
   diundang: { label: 'Diundang', tone: 'warning' },
   aktif: { label: 'Aktif', tone: 'success' },
   suspend: { label: 'Nonaktif', tone: 'neutral' },
-}
-
-const tanggal = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Asia/Jakarta',
-      }).format(new Date(value))
-    : '—'
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
-}
-
-async function invokeFn<T>(name: string, body: Record<string, unknown>): Promise<{ data: T | null; error: string | null }> {
-  const { data, error } = await supabase.functions.invoke(name, { body })
-  if (error) {
-    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null)
-    return { data: null, error: detail?.error ?? error.message }
-  }
-  return { data: data as T, error: null }
 }
 
 export function Tutors() {
@@ -291,7 +266,7 @@ export function Tutors() {
                           <span className="avatar">{initials(t.full_name)}</span>
                           <span>
                             <span className="strong">{t.full_name}</span>
-                            <span className="sub">Bergabung {tanggal(t.created_at)}</span>
+                            <span className="sub">Bergabung {formatDate(t.created_at)}</span>
                           </span>
                         </div>
                       </td>
@@ -306,7 +281,7 @@ export function Tutors() {
                         <span className="sub">
                           {t.status === 'diundang'
                             ? t.invite_expires_at
-                              ? `Berlaku sampai ${tanggal(t.invite_expires_at)}`
+                              ? `Berlaku sampai ${formatDate(t.invite_expires_at)}`
                               : 'Belum ada tautan'
                             : '—'}
                         </span>

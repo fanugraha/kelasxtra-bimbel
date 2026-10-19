@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { formatDate, rupiah } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface Voucher {
@@ -28,17 +29,6 @@ interface VoucherReport {
   locked: number
   discount: number
 }
-
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-const tanggal = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Asia/Jakarta',
-      }).format(new Date(value))
-    : '—'
 
 export function Vouchers() {
   const [rows, setRows] = useState<Voucher[]>([])
@@ -300,7 +290,7 @@ export function Vouchers() {
                           <span className="num">{totalUsed}</span>
                         </div>
                       </td>
-                      <td className="num">{tanggal(v.expires_at)}</td>
+                      <td className="num">{formatDate(v.expires_at)}</td>
                       <td>
                         <button
                           className="switch"

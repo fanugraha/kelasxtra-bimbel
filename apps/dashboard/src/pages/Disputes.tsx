@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatDateShort, rupiah } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface ComplaintRow {
@@ -7,7 +8,7 @@ interface ComplaintRow {
   body: string
   status: string
   decision: string | null
-  refund_nominal: number
+  credit_nominal: number
   created_at: string
   bookings: {
     id: string
@@ -42,8 +43,6 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'rejected', label: 'Ditolak' },
 ]
 
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-
 export function Disputes() {
   const [rows, setRows] = useState<ComplaintRow[]>([])
   const [filter, setFilter] = useState('open')
@@ -55,7 +54,7 @@ export function Disputes() {
     setLoading(true)
     let q = supabase
       .from('complaints')
-      .select('id, booking_id, category, body, status, decision, refund_nominal, created_at')
+      .select('id, booking_id, category, body, status, decision, credit_nominal, created_at')
       .order('created_at', { ascending: false })
     if (filter !== 'all') q = q.eq('status', filter)
     const { data, error } = await q
@@ -71,7 +70,7 @@ export function Disputes() {
       body: string
       status: string
       decision: string | null
-      refund_nominal: number
+      credit_nominal: number
       created_at: string
     }[]
     const bookingIds = [...new Set(complaints.map((c) => c.booking_id))]
@@ -125,19 +124,19 @@ export function Disputes() {
     const decision = prompt('Keputusan admin (terlihat oleh pelapor):')
     if (!decision) return
     const raw = prompt(
-      `Nominal refund untuk siswa (0 = tanpa refund, maks ${rupiah(row.bookings?.price ?? 0)}):`,
+      `Poin kompensasi untuk siswa (1 poin = Rp1, 0 = tanpa poin, maks ${rupiah(row.bookings?.price ?? 0)}):`,
       '0',
     )
     if (raw === null) return
-    const refund = Number(raw)
-    if (!Number.isFinite(refund) || refund < 0) {
-      setNotice('Nominal refund tidak valid.')
+    const credit = Number(raw)
+    if (!Number.isFinite(credit) || credit < 0) {
+      setNotice('Nominal poin tidak valid.')
       return
     }
     if (
       !confirm(
-        `Tandai komplain selesai dengan refund ${rupiah(refund)}?\n\n` +
-          'Dana tetap dikembalikan manual lewat dashboard Midtrans.',
+        `Tandai komplain selesai dengan ${rupiah(credit)} poin untuk siswa?\n\n` +
+          'Tidak ada pengembalian uang. Poin dipakai memotong pembayaran berikutnya.',
       )
     )
       return
@@ -148,14 +147,14 @@ export function Disputes() {
       p_complaint: row.id,
       p_status: 'resolved',
       p_decision: decision,
-      p_refund: refund,
+      p_credit: credit,
     })
     setBusy(null)
     if (error) {
       setNotice(`Gagal: ${error.message}`)
       return
     }
-    setNotice(`Komplain ditutup. Refund tercatat: ${rupiah(refund)}.`)
+    setNotice(`Komplain ditutup. Poin siswa: ${rupiah(credit)}.`)
     load()
   }
 
@@ -168,7 +167,7 @@ export function Disputes() {
       p_complaint: row.id,
       p_status: 'rejected',
       p_decision: decision,
-      p_refund: 0,
+      p_credit: 0,
     })
     setBusy(null)
     if (error) {
@@ -186,7 +185,7 @@ export function Disputes() {
           <p className="eyebrow">Layanan · Komplain</p>
           <h1 className="page-title">Komplain</h1>
           <p className="page-sub">
-            Selama komplain terbuka, gaji tutor ditahan. Keputusan pengembalian dana dicatat; dana dikirim manual via Midtrans.
+            Selama komplain terbuka, gaji tutor ditahan. Tidak ada pengembalian uang: kompensasi diberikan sebagai POIN siswa (1 poin = Rp1) untuk potongan pembayaran berikutnya.
           </p>
         </div>
       </div>
@@ -228,7 +227,7 @@ export function Disputes() {
                 <th>Kategori</th>
                 <th>Ringkasan</th>
                 <th>Status</th>
-                <th className="num">Dana kembali</th>
+                <th className="num">Poin siswa</th>
                 <th />
               </tr>
             </thead>
@@ -256,11 +255,7 @@ export function Disputes() {
                   return (
                     <tr key={c.id}>
                       <td className="num">
-                        {new Intl.DateTimeFormat('id-ID', {
-                          day: '2-digit',
-                          month: 'short',
-                          timeZone: 'Asia/Jakarta',
-                        }).format(new Date(c.created_at))}
+                        {formatDateShort(c.created_at)}
                       </td>
                       <td>{c.bookings?.students?.full_name ?? '—'}</td>
                       <td>{c.bookings?.tutors?.full_name ?? '—'}</td>
@@ -272,7 +267,7 @@ export function Disputes() {
                       <td>
                         <span className={`badge ${meta.tone}`}>{meta.label}</span>
                       </td>
-                      <td className="num">{c.refund_nominal > 0 ? rupiah(c.refund_nominal) : '—'}</td>
+                      <td className="num">{c.credit_nominal > 0 ? rupiah(c.credit_nominal) : '—'}</td>
                       <td>
                         <div className="row-actions">
                           {c.status === 'open' || c.status === 'in_review' ? (

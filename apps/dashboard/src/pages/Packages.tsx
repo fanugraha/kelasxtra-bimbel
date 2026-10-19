@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatDate, rupiah } from '../lib/format'
 import { supabase } from '../lib/supabase'
+import { initials } from '../lib/text'
 
 interface PackageRow {
   id: string
@@ -21,28 +23,8 @@ const STATUS_META: Record<string, { label: string; tone: string }> = {
   active: { label: 'Aktif', tone: 'success' },
   pending_payment: { label: 'Menunggu bayar', tone: 'warning' },
   expired: { label: 'Kedaluwarsa', tone: 'neutral' },
-  refunded: { label: 'Direfund', tone: 'neutral' },
+  refunded: { label: 'Dibatalkan (poin)', tone: 'neutral' },
   cancelled: { label: 'Dibatalkan', tone: 'danger' },
-}
-
-const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID')
-const tanggal = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'Asia/Jakarta',
-      }).format(new Date(value))
-    : '—'
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
 }
 
 export function Packages() {
@@ -77,28 +59,29 @@ export function Packages() {
   }, [])
 
   const sisa = (p: PackageRow) => p.total_sesi - p.sesi_terpakai
-  const refundPreview = (p: PackageRow) =>
+  const creditPreview = (p: PackageRow) =>
     Math.floor((p.price_total * sisa(p)) / p.total_sesi)
 
-  async function onRefund(p: PackageRow) {
-    const amount = refundPreview(p)
+  async function onCancelToCredit(p: PackageRow) {
+    const amount = creditPreview(p)
     const ok = confirm(
-      `Refund paket ${p.tutors?.full_name ?? '-'} (${p.students?.full_name ?? '-'})?\n` +
-        `Sisa ${sisa(p)}/${p.total_sesi} sesi → ${rupiah(amount)}.\n\n` +
-        'Ini hanya MENGHITUNG & MENCATAT. Pengembalian uang dilakukan manual di dashboard Midtrans.',
+      `Batalkan paket ${p.tutors?.full_name ?? '-'} (${p.students?.full_name ?? '-'})?\n` +
+        `Sisa ${sisa(p)}/${p.total_sesi} sesi → ${rupiah(amount)} poin.\n\n` +
+        'Tidak ada pengembalian uang. Nilai sisa kuota masuk sebagai POIN siswa (1 poin = Rp1) untuk potongan pembayaran berikutnya.',
     )
     if (!ok) return
     setBusy(p.id)
     setNotice(null)
-    const { data, error } = await supabase.rpc('refund_package', { p_package_id: p.id })
+    const { data, error } = await supabase.rpc('cancel_package_with_credit', {
+      p_package_id: p.id,
+      p_note: 'Pembatalan oleh admin',
+    })
     setBusy(null)
     if (error) {
       setNotice(`Gagal: ${error.message}`)
       return
     }
-    setNotice(
-      `Refund tercatat: ${rupiah(Number(data))}. Kembalikan dana secara manual via Midtrans.`,
-    )
+    setNotice(`Paket dibatalkan. Poin siswa: ${rupiah(Number(data))}.`)
     load()
   }
 
@@ -150,7 +133,7 @@ export function Packages() {
           <p className="eyebrow">Bisnis · Paket sesi</p>
           <h1 className="page-title">Paket sesi</h1>
           <p className="page-sub">
-            Paket 4/8/12 sesi (diskon 0/5/10%), berlaku 90 hari, kuota hangus bila lewat. Refund hanya dihitung &amp; dicatat — dana dikembalikan manual via Midtrans.
+            Paket 4/8/12 sesi (diskon 0/5/10%), berlaku 90 hari, kuota hangus bila lewat. Tidak ada pengembalian uang: pembatalan mengubah sisa kuota menjadi POIN siswa (1 poin = Rp1) untuk potongan pembayaran berikutnya.
           </p>
         </div>
         <div className="head-actions">
@@ -249,7 +232,7 @@ export function Packages() {
                         </div>
                       </td>
                       <td className="num">{rupiah(p.price_total)}</td>
-                      <td className="num">{tanggal(p.expires_at)}</td>
+                      <td className="num">{formatDate(p.expires_at)}</td>
                       <td>
                         <span className={`badge ${meta.tone}`}>{meta.label}</span>
                       </td>
@@ -260,9 +243,9 @@ export function Packages() {
                               <button
                                 className="btn btn-secondary btn-sm"
                                 disabled={busy === p.id}
-                                onClick={() => onRefund(p)}
+                                onClick={() => onCancelToCredit(p)}
                               >
-                                Refund {rupiah(refundPreview(p))}
+                                Batalkan → poin {rupiah(creditPreview(p))}
                               </button>
                               <button
                                 className="btn btn-ghost btn-sm"

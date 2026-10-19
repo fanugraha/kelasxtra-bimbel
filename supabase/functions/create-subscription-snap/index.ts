@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { cors, createSnap, json } from '../_shared/midtrans.ts'
+import { cachedQris, cors, createQris, json, type Qris, qrisFields } from '../_shared/midtrans.ts'
 
 /// Beli / perpanjang langganan bank soal (bulanan manual via Snap).
 Deno.serve(async (req) => {
@@ -67,13 +67,14 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle()
 
-  const cached = pending?.raw as { snap_token?: string; snap_redirect_url?: string } | null
-  if (pending && cached?.snap_redirect_url) {
+  // order_id langganan unik per percobaan, jadi QR yang hampir habis tidak perlu
+  // dipakai ulang — terbitkan order baru saja.
+  const cached = cachedQris(pending?.raw)
+  if (pending && cached && Date.parse(cached.expires_at) - Date.now() > 60_000) {
     return json({
       order_id: pending.order_id,
       subscription_id: sub.id,
-      snap_token: cached.snap_token,
-      redirect_url: cached.snap_redirect_url,
+      ...qrisFields(cached),
       amount: plan.price,
       reused: true,
     })
@@ -87,9 +88,9 @@ Deno.serve(async (req) => {
     .eq('id', uid)
     .maybeSingle()
 
-  let snap: { token: string; redirect_url: string }
+  let qris: Qris
   try {
-    snap = await createSnap(orderId, plan.price, `Langganan ${plan.name} (30 hari)`, {
+    qris = await createQris(orderId, plan.price, `Langganan ${plan.name} (30 hari)`, {
       first_name: student?.full_name ?? 'Siswa',
       email: userData.user.email ?? undefined,
     })
@@ -103,15 +104,14 @@ Deno.serve(async (req) => {
     subscription_id: sub.id,
     amount: plan.price,
     status: 'pending',
-    raw: { snap_token: snap.token, snap_redirect_url: snap.redirect_url },
+    raw: qris,
   })
   if (payErr) return json({ error: payErr.message }, 400)
 
   return json({
     order_id: orderId,
     subscription_id: sub.id,
-    snap_token: snap.token,
-    redirect_url: snap.redirect_url,
+    ...qrisFields(qris),
     amount: plan.price,
     reused: false,
   })

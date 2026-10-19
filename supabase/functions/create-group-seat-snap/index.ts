@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { cors, createSnap, json } from '../_shared/midtrans.ts'
+import { cachedQris, cors, createQris, json, type Qris, qrisFields } from '../_shared/midtrans.ts'
+import { CREDIT_METHOD, creditPlan, readCreditBalance } from '../_shared/credits.ts'
+import { applyPaymentOutcome } from '../_shared/paymentApply.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -22,7 +24,7 @@ Deno.serve(async (req) => {
   const { data: profile } = await admin.from('profiles').select('role').eq('id', uid).single()
   if (profile?.role !== 'student') return json({ error: 'Hanya siswa yang bisa ambil kursi' }, 403)
 
-  let body: { group_class_id?: string }
+  let body: { group_class_id?: string; use_credits?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -49,30 +51,12 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   let seatId: string
-  let amount: number
+  let base: number
   let createdNow = false
 
   if (existingSeat) {
     seatId = existingSeat.id as string
-    amount = existingSeat.price_paid as number
-    const orderId = `GS-${seatId}`
-    const { data: pay } = await admin
-      .from('payments')
-      .select('raw')
-      .eq('order_id', orderId)
-      .eq('status', 'pending')
-      .maybeSingle()
-    const cached = pay?.raw as { snap_token?: string; snap_redirect_url?: string } | null
-    if (cached?.snap_redirect_url) {
-      return json({
-        order_id: orderId,
-        seat_id: seatId,
-        snap_token: cached.snap_token,
-        redirect_url: cached.snap_redirect_url,
-        amount,
-        reused: true,
-      })
-    }
+    base = Number(existingSeat.price_paid ?? 0)
   } else {
     if (cls.status !== 'open' || cls.seats_taken >= cls.max_seats) {
       return json({ error: 'Kursi tidak tersedia' }, 400)
@@ -89,10 +73,18 @@ Deno.serve(async (req) => {
       .select('price_paid')
       .eq('id', seatId)
       .single()
-    amount = seatRow?.price_paid as number
+    base = Number(seatRow?.price_paid ?? 0)
   }
 
   const orderId = `GS-${seatId}`
+
+  // Poin siswa (bila diminta): potong sebanyak mungkin, maksimal sebesar harga.
+  // Poin baru dibukukan saat pembayaran lunas (lihat paymentApply).
+  let creditApplied = 0
+  if (body.use_credits) {
+    creditApplied = creditPlan(await readCreditBalance(admin, uid), base)
+  }
+  const amount = base - creditApplied
 
   const { data: student } = await admin
     .from('students')
@@ -100,9 +92,104 @@ Deno.serve(async (req) => {
     .eq('id', uid)
     .maybeSingle()
 
-  let snap: { token: string; redirect_url: string }
+  // QRIS sudah terbit untuk order ini → tagihan terkunci; pakai ulang apa adanya
+  // (Midtrans menolak charge kedua dengan order_id yang sama).
+  const { data: pay } = await admin
+    .from('payments')
+    .select('amount, credit_amount, raw')
+    .eq('order_id', orderId)
+    .eq('status', 'pending')
+    .maybeSingle()
+  const cached = cachedQris(pay?.raw)
+  if (pay && cached) {
+    return json({
+      order_id: orderId,
+      seat_id: seatId,
+      ...qrisFields(cached),
+      amount: Number(pay.amount),
+      credit_applied: Math.floor(Number(pay.credit_amount ?? 0)),
+      paid: false,
+      reused: true,
+    })
+  }
+
+  // Poin menutup seluruh harga → lunas tanpa Midtrans.
+  if (amount === 0 && creditApplied > 0) {
+    const { data: existing } = await admin
+      .from('payments')
+      .select('id, status')
+      .eq('order_id', orderId)
+      .maybeSingle()
+    if (existing?.status === 'settlement') {
+      return json({
+        order_id: orderId,
+        seat_id: seatId,
+        amount: 0,
+        credit_applied: creditApplied,
+        paid: true,
+        reused: true,
+      })
+    }
+    let paymentId = existing?.id as string | undefined
+    if (paymentId) {
+      const { error } = await admin
+        .from('payments')
+        .update({
+          amount: 0,
+          credit_amount: creditApplied,
+          raw: { method: CREDIT_METHOD },
+        })
+        .eq('id', paymentId)
+      if (error) return json({ error: error.message }, 400)
+    } else {
+      const { data: ins, error } = await admin
+        .from('payments')
+        .insert({
+          order_id: orderId,
+          type: 'group_seat',
+          group_seat_id: seatId,
+          amount: 0,
+          credit_amount: creditApplied,
+          status: 'pending',
+          raw: { method: CREDIT_METHOD },
+        })
+        .select('id')
+        .single()
+      if (error || !ins) return json({ error: error?.message ?? 'Gagal membuat pembayaran' }, 400)
+      paymentId = ins.id as string
+    }
+
+    const applied = await applyPaymentOutcome(
+      admin,
+      {
+        id: paymentId,
+        order_id: orderId,
+        status: 'pending',
+        booking_id: null,
+        package_purchase_id: null,
+        group_seat_id: seatId,
+        subscription_id: null,
+        credit_amount: creditApplied,
+      },
+      { paid: true, newStatus: 'settlement', bookingStatus: null },
+      { method: CREDIT_METHOD },
+    )
+    if (!applied.ok) {
+      return json({ error: 'Gagal menyelesaikan kursi dengan poin' }, 502)
+    }
+    return json({
+      order_id: orderId,
+      seat_id: seatId,
+      amount: 0,
+      credit_applied: creditApplied,
+      paid: true,
+      reused: false,
+    })
+  }
+
+  let qris: Qris
   try {
-    snap = await createSnap(
+    qris = await createQris(
       orderId,
       amount,
       `Kursi kelas grup · ${cls.jenjang} · ${cls.duration_minutes} menit`,
@@ -127,7 +214,8 @@ Deno.serve(async (req) => {
       .from('payments')
       .update({
         amount,
-        raw: { snap_token: snap.token, snap_redirect_url: snap.redirect_url },
+        credit_amount: creditApplied,
+        raw: qris,
       })
       .eq('order_id', orderId)
   } else {
@@ -136,8 +224,9 @@ Deno.serve(async (req) => {
       type: 'group_seat',
       group_seat_id: seatId,
       amount,
+      credit_amount: creditApplied,
       status: 'pending',
-      raw: { snap_token: snap.token, snap_redirect_url: snap.redirect_url },
+      raw: qris,
     })
     if (pErr) return json({ error: pErr.message }, 400)
   }
@@ -145,9 +234,10 @@ Deno.serve(async (req) => {
   return json({
     order_id: orderId,
     seat_id: seatId,
-    snap_token: snap.token,
-    redirect_url: snap.redirect_url,
+    ...qrisFields(qris),
     amount,
+    credit_applied: creditApplied,
+    paid: false,
     reused: false,
   })
 })

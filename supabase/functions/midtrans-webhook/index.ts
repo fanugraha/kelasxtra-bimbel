@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { applyPaymentOutcome, outcomeFromMidtrans } from '../_shared/paymentApply.ts'
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -46,122 +47,13 @@ Deno.serve(async (req) => {
   // Idempoten by order_id.
   const { data: payment } = await admin
     .from('payments')
-    .select('id, status, booking_id, package_purchase_id, group_seat_id, subscription_id')
+    .select('id, order_id, status, booking_id, package_purchase_id, group_seat_id, subscription_id, credit_amount')
     .eq('order_id', orderId)
     .maybeSingle()
   if (!payment) return json({ ok: false, reason: 'order_id tidak dikenal' })
 
-  const paid =
-    transaction_status === 'settlement' ||
-    (transaction_status === 'capture' && p.fraud_status === 'accept')
+  const outcome = outcomeFromMidtrans(transaction_status, p.fraud_status)
+  const result = await applyPaymentOutcome(admin, payment, outcome, p)
 
-  let newStatus: string
-  let bookingStatus: string | null = null
-  if (paid) {
-    newStatus = 'settlement'
-    bookingStatus = 'confirmed'
-  } else if (transaction_status === 'deny' || transaction_status === 'cancel') {
-    newStatus = transaction_status
-    bookingStatus = 'cancelled'
-  } else if (transaction_status === 'expire') {
-    newStatus = 'expire'
-    bookingStatus = 'expired'
-  } else if (transaction_status === 'refund' || transaction_status === 'partial_refund') {
-    newStatus = transaction_status
-    bookingStatus = 'refunded'
-  } else {
-    // pending / challenge / capture non-accept → tetap menunggu.
-    newStatus = 'pending'
-  }
-
-  if (payment.status === newStatus) return json({ ok: true, unchanged: true })
-
-  await admin
-    .from('payments')
-    .update({
-      status: newStatus,
-      paid_at: paid ? new Date().toISOString() : null,
-      raw: p,
-    })
-    .eq('id', payment.id)
-
-  if (payment.booking_id && bookingStatus) {
-    // Hanya ubah booking yang masih menunggu bayar (kecuali refund).
-    const fromStatuses = newStatus === 'refund' || newStatus === 'partial_refund'
-      ? ['confirmed', 'in_progress', 'completed']
-      : ['pending_payment']
-    await admin
-      .from('bookings')
-      .update({ status: bookingStatus, lock_expires_at: null })
-      .eq('id', payment.booking_id)
-      .in('status', fromStatuses)
-  }
-
-  // Voucher: tandai terpakai saat berhasil, lepas kuota saat gagal/kedaluwarsa/refund.
-  if (payment.booking_id) {
-    if (paid) {
-      await admin.rpc('consume_voucher_for_booking', { p_booking_id: payment.booking_id })
-    } else if (
-      newStatus === 'deny' || newStatus === 'cancel' || newStatus === 'expire' ||
-      newStatus === 'refund' || newStatus === 'partial_refund'
-    ) {
-      await admin.rpc('release_voucher_for_booking', { p_booking_id: payment.booking_id })
-    }
-  }
-
-  // Paket sesi: aktifkan (masa berlaku 90 hari) atau tandai gagal.
-  if (payment.package_purchase_id) {
-    if (paid) {
-      const now = new Date()
-      const expires = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
-      await admin
-        .from('package_purchases')
-        .update({
-          status: 'active',
-          purchased_at: now.toISOString(),
-          expires_at: expires.toISOString(),
-          lock_expires_at: null,
-        })
-        .eq('id', payment.package_purchase_id)
-        .eq('status', 'pending_payment')
-    } else if (newStatus === 'deny' || newStatus === 'cancel') {
-      await admin
-        .from('package_purchases')
-        .update({ status: 'cancelled', lock_expires_at: null })
-        .eq('id', payment.package_purchase_id)
-        .eq('status', 'pending_payment')
-    } else if (newStatus === 'expire') {
-      await admin
-        .from('package_purchases')
-        .update({ status: 'expired', lock_expires_at: null })
-        .eq('id', payment.package_purchase_id)
-        .eq('status', 'pending_payment')
-    } else if (newStatus === 'refund' || newStatus === 'partial_refund') {
-      await admin
-        .from('package_purchases')
-        .update({ status: 'refunded' })
-        .eq('id', payment.package_purchase_id)
-        .eq('status', 'active')
-    }
-  }
-
-  // Kursi kelas grup: aktifkan saat berhasil, lepas saat gagal/kedaluwarsa.
-  if (payment.group_seat_id) {
-    if (paid) {
-      await admin.rpc('activate_group_seat', { p_seat_id: payment.group_seat_id })
-    } else if (
-      newStatus === 'deny' || newStatus === 'cancel' || newStatus === 'expire' ||
-      newStatus === 'refund' || newStatus === 'partial_refund'
-    ) {
-      await admin.rpc('release_group_seat', { p_seat_id: payment.group_seat_id })
-    }
-  }
-
-  // Langganan bank soal: aktifkan/perpanjang saat berhasil.
-  // Gagal bayar tidak mengubah status (perpanjangan gagal -> langganan lama tetap berlaku).
-  if (payment.subscription_id && paid) {
-    await admin.rpc('activate_subscription', { p_subscription_id: payment.subscription_id })
-  }
-
-  return json({ ok: true, order_id: orderId, status: newStatus })
+  return json({ ok: true, order_id: orderId, status: result.status, unchanged: result.unchanged ?? false })
 })

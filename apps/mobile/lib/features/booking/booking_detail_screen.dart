@@ -17,6 +17,7 @@ import 'booking_providers.dart';
 import 'booking_repository.dart';
 import 'widgets/booking_summary.dart';
 import 'widgets/reschedule_card.dart';
+import 'widgets/reschedule_sheet.dart';
 import 'widgets/session_note_card.dart';
 import 'widgets/zoom_join_button.dart';
 
@@ -350,31 +351,17 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   }
 
   Future<void> _requestRescheduleDialog(BookingDetail b) async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
+    final at = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now.add(const Duration(days: 1)),
-      lastDate: now.add(const Duration(days: 14)),
+      isScrollControlled: true,
+      builder: (_) => RescheduleSheet(booking: b),
     );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(b.scheduledAt),
-    );
-    if (time == null || !mounted) return;
+    if (at == null || !mounted) return;
     final reason = await _textDialog(
       'Alasan ganti hari',
       'Contoh: ada acara keluarga (min. 5 huruf)',
     );
     if (reason == null) return;
-    final at = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
     await _run(
       () => ref
           .read(bookingRepositoryProvider)

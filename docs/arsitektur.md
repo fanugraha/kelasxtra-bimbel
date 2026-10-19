@@ -73,24 +73,79 @@ untuk proyek solo itu menambah kode tanpa manfaat; tambahkan hanya bila benar-be
 apps/mobile/lib/
   core/                    infrastruktur bersama (dipakai semua fitur)
     theme/                 warna, tipografi, spacing, ThemeData (light+dark)
+    widgets/               komponen UI pakai-ulang lintas fitur
+    app_shell.dart         kerangka bottom-nav (di dalam core)
     format.dart            pemformatan uang / tanggal / jam (satu sumber)
+    dates.dart             perbandingan tanggal (mis. isSameDay)
+    errors.dart            pembersih pesan galat server (cleanError)
     constants.dart         nilai tetap lintas fitur (jenjang, durasi)
     router.dart            rute + redirect auth + bottom-nav shell
     nav_destinations.dart  tab bottom-nav per flavor
     supabase_client.dart · env.dart · app_flavor.dart · providers.dart · bootstrap.dart
-  widgets/                 komponen UI pakai-ulang lintas fitur
   features/<fitur>/        satu fitur = data + state + tampilan
     <x>_repository.dart    satu-satunya yang bicara ke Supabase / Edge Function
     <x>_providers.dart     state Riverpod
     <x>_screen.dart        layar
-    widgets/               (bila perlu) komponen lokal fitur
+    widgets/               komponen lokal fitur (dipakai beberapa layar di fitur itu)
+    <layar>/               (bila layar besar) pecahan satu layar:
+      <layar>_screen.dart    kerangka layar (Scaffold + state)
+      <layar>_controller.dart   logika murni bila ada (mis. langkah/wizard)
+      steps/ · widgets/      potongan tampilan layar itu
 ```
 
 Aturan yang dipakai:
 
 - **Layar tidak memanggil Supabase langsung** — selalu lewat `*_repository.dart`.
-- Widget dipakai **≥2 fitur** → pindah ke `widgets/`; hanya 1 fitur → taruh di fitur.
+- Widget dipakai **≥2 fitur** → pindah ke `core/widgets/`; hanya 1 fitur → taruh di
+  `features/<fitur>/widgets/`; hanya 1 layar → boleh di `features/<fitur>/<layar>/widgets/`.
+- **Jangan menaruh satu folder `widgets/` global untuk semua hal** — hanya komponen lintas fitur.
+- Layar yang membengkak (> ~300 baris) dipecah: kerangka tetap di `<x>_screen.dart`,
+  potongan tampilan jadi widget bernama di `widgets/` (tetap dalam fitur yang sama).
 - Format uang/tanggal/jam **selalu** lewat `AppFormat`; jarak & sudut lewat `AppSpacing` / `AppRadius`.
 - Keadaan async lewat `AsyncView` (memuat / gagal + "Coba lagi" / data) agar seragam.
 - Galat inline lewat `AppErrorText`; tombol lewat `AppButton` (punya state loading).
+
+## Struktur kode dashboard
+
+Dashboard admin lebih sederhana: satu komponen per modul, tanpa lapisan data
+terpisah. Yang dibagi hanya **utilitas murni** dan **komponen render bersama**.
+
+```
+apps/dashboard/src/
+  lib/
+    supabase.ts    klien Supabase + isSupabaseConfigured
+    auth.tsx       AuthProvider (session)
+    auth-context.ts  context + useAuth (dipisah agar fast-refresh aman)
+    format.ts      uang & tanggal (rupiah, formatDate*, formatTime, isoDate) — satu sumber
+    text.ts        initials()
+    functions.ts   invokeFn() untuk Edge Function + pembacaan pesan galat
+    mathText.ts    pengubah notasi matematika → potongan TeX
+  components/
+    Layout.tsx     kerangka nav (sidebar/topbar)
+    MathText.tsx   render teks/rumus (KaTeX)
+    ModulePlaceholder.tsx  cadangan bila modul belum punya layar
+  modules/registry.ts  daftar modul (path, label, grup) — sumber navigasi
+  pages/<Modul>.tsx    satu layar per modul (layar kecil/sederhana)
+  pages/<Modul>/       layar besar yang dipecah (lihat aturan di bawah)
+```
+
+Aturan yang dipakai:
+
+- Format uang **selalu** `rupiah` dari `lib/format.ts`; format tanggal memakai
+  `formatDate` (timestamp), `formatDateOnly` (tanggal polos `YYYY-MM-DD`),
+  `formatDateShort`, `formatDateTime`, `formatTime`. Semua berzona `Asia/Jakarta`.
+- Panggilan Edge Function **selalu** lewat `invokeFn` (`lib/functions.ts`) agar
+  pesan galat server seragam.
+- Halaman boleh memanggil `supabase.from(...)` langsung — Query-nya spesifik per
+  modul, jadi tidak dibungkus lapisan repository (bukan duplikasi).
+- Label/tone status (`STATUS_META`) tetap di halamannya masing-masing: tiap modul
+  punya daftar status sendiri; hanya `badge <tone>` (CSS di `index.css`) yang dipakai bareng.
+- Layar yang membengkak (>±400 baris) dipecah jadi folder bernama sama dengan
+  halamannya: `pages/<Modul>/index.tsx` (state + handler + penyusunan bagian) dan
+  komponen bagian bergaya PascalCase (`<Modul>/FlagsTable.tsx`,
+  `<Modul>/types.ts` untuk tipe + label). Impor `'./pages/<Modul>'` di `App.tsx`
+  otomatis menunjuk `index.tsx`, jadi file lama `pages/<Modul>.tsx` **dihapus**
+  setelah dipindah. Contoh: `GroupClasses/`, `Monitoring/`, `QuestionCms/`,
+  `Payroll/`, `Moderation/`.
+
 

@@ -68,8 +68,8 @@ Yang dibuat:
 
 - MCP supabase sudah terhubung (project `kelasxtra-bimbel`, ref `xbsiapwmhfcdenyeufhl`).
 - 6 migrasi terverifikasi terpasang di cloud.
-- **Akun admin pertama dibuat** langsung lewat SQL (MCP `execute_sql`), bukan UI:
-  email `admin@kelasxtra.id`. Uji login lewat `auth/v1/token` → berhasil.
+- **Akun admin pertama dibuat** langsung lewat SQL (MCP `execute_sql`), bukan UI.
+  Uji login lewat `auth/v1/token` → berhasil.
 - **Model admin**: super admin = `role='admin'` + `admin_role` **NULL**.
   `admin_role` hanya untuk pembatasan sub-peran: `verifikator | finance | konten | cs`.
   `admin_role='super_admin'` DITOLAK constraint — jangan pakai nilai itu.

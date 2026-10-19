@@ -9,7 +9,7 @@ dipakai untuk migrasi, deploy Edge Function, dan uji.
 
 ## Keputusan atau temuan
 
-- **Tutup Fase 0**: akun admin pertama dibuat via SQL MCP (`admin@kelasxtra.id`,
+- **Tutup Fase 0**: akun admin pertama dibuat via SQL MCP (akun super admin,
   `role=admin`, `admin_role=NULL`). Uji login lolos. `flutter analyze` bersih.
 - **Model admin**: super admin = `role='admin'` + `admin_role` NULL.
   `admin_role` hanya `verifikator|finance|konten|cs` (bukan `super_admin`).
@@ -54,13 +54,13 @@ dipakai untuk migrasi, deploy Edge Function, dan uji.
 - **Keputusan: undangan lewat link manual**. Admin daftarkan tutor → salin link →
   kirim WhatsApp. Email otomatis **ditunda** sampai DNS domain beres.
 - **Resend**: akun + API key dibuat, secret Supabase diset
-  (`RESEND_API_KEY`, `EMAIL_FROM=Kelasxtra <noreply@kelasxtra.my.id>`, `ACTIVATION_BASE_URL`).
+  (`RESEND_API_KEY`, `EMAIL_FROM` = alamat pengirim di domain resmi, `ACTIVATION_BASE_URL`).
   Domain `kelasxtra.my.id` dikelola di **Cloudflare**; record Resend (DKIM `resend._domainkey`,
   CNAME `rsend`+`send` ke `*.forge.rmta.net`, DMARC `_dmarc`) **belum ditambahkan** →
   status belum Verified → kirim email ditolak (`domain is not verified`).
 - **API key Resend terpapar**: key pernah ditempel ke chat (send-only). **Perlu di-rotate**
   di Resend sebelum dipakai produksi.
-- **Bersih-bersih**: semua akun uji dihapus (tinggal `admin@kelasxtra.id`), `audit_logs`
+- **Bersih-bersih**: semua akun uji dihapus (tinggal akun admin pertama), `audit_logs`
   dikosongkan, image+volume Docker sisa deploy Edge Function dihapus, artefak Playwright
   dibuang + masuk `.gitignore`. `.env.example` sudah bersih (placeholder saja).
 - **Catatan**: `.env` & `.env.example` tak bisa dibaca agent (aturan izin) — bersihkan manual bila perlu.

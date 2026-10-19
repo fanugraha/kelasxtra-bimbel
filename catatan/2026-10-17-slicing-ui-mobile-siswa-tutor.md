@@ -24,7 +24,28 @@ Backend dan provider lama dipertahankan; pekerjaan fokus pada tampilan dan navig
 Desain mobile menekankan navigasi jempol dan kartu ringkas. Tab bar kustom + header tanpa AppBar
 memberi ruang lebih besar dan terasa sama dengan prototipe, tanpa mengubah alur data.
 
+## Uji di HP (17 Okt, flavor siswa)
+APK rilis dibangun lewat `build-apk.sh` dan dipasang di HP uji (Redmi Note 9). Sebelumnya
+`flutter analyze` bersih dan `flutter test` 12/12 lolos.
+- Lolos: Beranda (promo, jadwal berikutnya, tutor pilihan), Katalog + filter mapel, Detail tutor,
+  form Booking (pilih mapel/mode/durasi → slot muncul → harga Rp85.000 utk Matematika SMA online
+  60 mnt), tab Jadwal (Akan datang/Selesai), Profil, toggle tema gelap ↔ terang.
+- **Bug diperbaiki (belum di-build ulang/commit):** "Tutor pilihan" di Beranda ikut filter Katalog
+  (pilih Matematika → Beranda hanya tampil 1 tutor). Penyebab: Beranda memakai `tutorListProvider`
+  yang membaca `katalogFilterProvider`. Perbaikan: `featuredTutorsProvider` baru tanpa filter di
+  `katalog_providers.dart`, dipakai di `home_screen.dart`. Analyze bersih.
+- Sempat terlihat tab terbuka dalam posisi ter-scroll ke bawah dan satu tap tab tidak berpindah;
+  **tidak bisa diulang** setelah aplikasi dibuka ulang dan beberapa kali pindah tab → dianggap
+  bukan bug (kemungkinan gangguan input).
+- Catatan UI kecil: chip terpilih di mode gelap kontrasnya rendah (teks abu di latar abu).
+- Tidak diuji: pembayaran (dihentikan sebelum Snap agar tak membuat booking pending), Detail sesi,
+  Bank Soal, Paket, Kelas Grup, Notifikasi, dan seluruh flavor tutor.
+
 ## Langkah berikutnya
-- Uji di HP untuk kedua flavor (login tutor/siswa, jadwal, absensi, bayar).
+- Build ulang APK siswa untuk memastikan perbaikan "Tutor pilihan", lalu commit.
+- Lanjut uji: Detail sesi, Bank Soal, Paket, Kelas Grup, Notifikasi.
+- Uji flavor tutor (`ENTRY=lib/main_tutor.dart ./build-apk.sh`; applicationId sama → menimpa APK
+  siswa): Beranda tutor, Jadwal, Absensi grup, Gaji/slip, Profil.
+- Naikkan kontras chip terpilih di mode gelap.
 - Pertimbangkan penyimpanan preferensi tema (mis. `shared_preferences`) bila toggle perlu persisten.
 - Rapikan sisa layar kuis/hasil agar identik dengan prototipe bila dibutuhkan.

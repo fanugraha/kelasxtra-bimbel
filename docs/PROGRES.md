@@ -661,9 +661,10 @@ live; penyesuaian dashboard & mobile sesi dilakukan di sesi ini.
 1. Uji pemakaian poin end-to-end dengan akun siswa berpoin: (a) potong sebagian
    (bayar sisa via Midtrans), (b) potong penuh → lunas tanpa Midtrans. Beri poin uji
    lewat komplain (`resolve_complaint`) atau `grant_student_credit` sebagai admin.
-1. Uji di HP: Detail Sesi (tanpa harga, catatan tentor, tambah tautan Zoom, tombol
-   "Gabung Zoom" saat waktunya) dan Jadwal dua lapis per tentor. HP belum terdeteksi
-   (`flutter devices` kosong) — sambungkan ulang lalu `./run-dev.sh e68890180406`.
+1. Uji manual di HP `e68890180406`: Detail Sesi (tanpa harga, catatan tentor, tambah
+   tautan Zoom, tombol "Gabung Zoom" saat waktunya) dan Jadwal dua lapis per tentor.
+   APK release siswa/tutor baru sudah terpasang; lanjutkan uji alur login, profil,
+   notifikasi, dan kelas grup.
 2. Set `FIREBASE_SERVICE_ACCOUNT` + `PUSH_CRON_SECRET`, pasang config Firebase Android, uji push.
 3. Jadwalkan pemanggilan `send-push` **dan** `reconcile-payments` tiap 1–5 menit
    (header `x-cron-secret`).

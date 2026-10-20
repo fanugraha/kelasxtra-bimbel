@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { cors, json } from '../_shared/midtrans.ts'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
 
 /// Membuat booking yang dibayar dengan kuota paket (tanpa pembayaran per sesi).
 Deno.serve(async (req) => {
@@ -7,10 +8,10 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const serviceKey = secretKey()
   const admin = createClient(supabaseUrl, serviceKey)
 
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()

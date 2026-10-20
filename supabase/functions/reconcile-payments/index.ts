@@ -15,6 +15,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { transactionStatus } from '../_shared/midtrans.ts'
 import { applyPaymentOutcome, flagReview, outcomeFromMidtrans } from '../_shared/paymentApply.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
     return json({ error: 'MIDTRANS_SERVER_KEY belum diset' }, 500)
   }
 
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, secretKey())
 
   const staleBefore = new Date(Date.now() - STALE_MINUTES * 60_000).toISOString()
   const reviewBefore = new Date(Date.now() - REVIEW_AFTER_HOURS * 3_600_000).toISOString()

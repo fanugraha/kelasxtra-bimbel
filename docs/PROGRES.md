@@ -38,7 +38,7 @@ Rencana lengkap: [RENCANA-DEV.md](RENCANA-DEV.md).
 - [x] RLS diuji tolak akses silang user (cloud, 15 Okt 2026) — lihat catatan
 - [x] Akun admin pertama dibuat (`admin@kelasxtra.id`, `role=admin`, `admin_role=null`; via MCP supabase 15 Okt 2026). Password awal harus diganti.
 - [x] `flutter analyze` bersih setelah kredensial mobile (15 Okt 2026)
-- [ ] **Utang keamanan**: rotate secret key lama (sempat salah taruh di `.env.example`) — manual di dashboard
+- [x] **Keamanan kredensial**: legacy `anon`/`service_role` dimatikan dan legacy JWT signing key HS256 dicabut (20 Okt 2026). Edge Functions memakai `SUPABASE_SECRET_KEYS`/`SUPABASE_PUBLISHABLE_KEYS`; client wajib memakai publishable key `sb_publishable_...`.
 - [ ] Validasi `supabase db reset` lokal (opsional; cloud sudah jadi acuan uji)
 
 ## Fase 1 — Akun & Profil (🟡)
@@ -624,6 +624,30 @@ live; penyesuaian dashboard & mobile sesi dilakukan di sesi ini.
       Migrasi `20261019000047_my_payment_status.sql` (diterapkan 19 Okt 2026 lewat
       MCP): RPC definer yang hanya mengembalikan status payment milik `auth.uid()`.
       `flutter analyze` bersih; 36 tes lulus; typecheck Edge (harness tsc, 7 fungsi) bersih.
+
+## 20 Oktober 2026 — hardening, rotasi kredensial, dan penyempurnaan UI
+
+- [x] Temuan Strix ditutup: signup selalu `student`, guard kolom sensitif profil/tutor,
+      grant `anon`/PUBLIC dicabut dari 9 RPC, helper internal dicabut dari `authenticated`,
+      dan `admin_role` tidak bisa diubah lewat self-update.
+- [x] Pembayaran idempoten: update status bersyarat, status lunas tidak bisa turun,
+      `activate_subscription(uuid, uuid)` memakai `last_payment_id`, dan webhook
+      membandingkan nominal.
+- [x] Aktivasi tutor memakai OTP 6 digit (hash, 10 menit, 5 percobaan, cooldown 60 detik);
+      dashboard punya alur minta dan verifikasi OTP.
+- [x] **Rotasi kredensial selesai**: legacy `anon`/`service_role` dimatikan, HS256 dicabut,
+      Edge Functions memakai `SUPABASE_SECRET_KEYS`/`SUPABASE_PUBLISHABLE_KEYS`.
+      Dua belas fungsi dideploy ulang; legacy key ditolak 401; login + `create-snap` diuji.
+- [x] Kelas grup: tahanan kursi 5 menit, kursi lunas vs tahanan, kursi visual, QRIS 5 menit,
+      dan pembayaran terlambat yang tidak dapat kursi ditandai untuk refund.
+- [x] UI mobile (sesi Claude): login hero + karusel, profil dengan avatar/edit biodata/ubah
+      password/riwayat poin, notifikasi berkelompok + tandai semua, katalog mode Privat/Grup,
+      detail kelas grup satu halaman, dan pintu kelas grup di beranda.
+- [x] `flutter analyze` bersih; `flutter test` 64 lulus; dashboard lint hanya peringatan lama
+      dan build sukses; APK release siswa + tutor dibangun, dipindai, dan dipasang di HP uji.
+- [ ] Sisa risiko: `submit_attempt` masih bisa membocorkan kunci jawaban, leaked-password
+      protection Supabase belum aktif, 6 view `SECURITY DEFINER` masih dilaporkan, dan APK
+      release masih memakai debug signing key.
 
 ## Langkah berikutnya
 

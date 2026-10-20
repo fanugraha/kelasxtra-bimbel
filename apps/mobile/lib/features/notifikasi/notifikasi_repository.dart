@@ -9,6 +9,7 @@ class AppNotification {
     required this.createdAt,
     required this.read,
     this.conversationId,
+    this.bookingId,
   });
 
   final String id;
@@ -18,6 +19,7 @@ class AppNotification {
   final DateTime createdAt;
   final bool read;
   final String? conversationId;
+  final String? bookingId;
 
   /// Notifikasi pesan chat bisa dibuka langsung ke ruang obrolan.
   bool get isChat => type == 'chat.message' && conversationId != null;
@@ -32,6 +34,7 @@ class AppNotification {
       createdAt: DateTime.parse(m['created_at'] as String).toLocal(),
       read: m['read_at'] != null,
       conversationId: data['conversation_id'] as String?,
+      bookingId: data['booking_id'] as String?,
     );
   }
 }
@@ -51,5 +54,12 @@ class NotificationRepository {
         .from('notifications')
         .update({'read_at': DateTime.now().toUtc().toIso8601String()})
         .eq('id', id);
+  }
+
+  Future<void> markAllRead() async {
+    await supabase
+        .from('notifications')
+        .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+        .isFilter('read_at', null);
   }
 }

@@ -2,19 +2,24 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { cachedQris, cors, createQris, json, type Qris, qrisFields } from '../_shared/midtrans.ts'
 import { CREDIT_METHOD, creditPlan, readCreditBalance } from '../_shared/credits.ts'
 import { applyPaymentOutcome } from '../_shared/paymentApply.ts'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
+
+/// Kursi ditahan 5 menit (lihat reserve_group_seat); QR ikut kedaluwarsa 5 menit
+/// supaya praktis tidak bisa dibayar setelah tahanan dilepas.
+const SEAT_HOLD_MINUTES = 5
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const serviceKey = secretKey()
   if (!Deno.env.get('MIDTRANS_SERVER_KEY')) {
     return json({ error: 'MIDTRANS_SERVER_KEY belum diset' }, 500)
   }
   const admin = createClient(supabaseUrl, serviceKey)
 
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()
@@ -58,9 +63,12 @@ Deno.serve(async (req) => {
     seatId = existingSeat.id as string
     base = Number(existingSeat.price_paid ?? 0)
   } else {
-    if (cls.status !== 'open' || cls.seats_taken >= cls.max_seats) {
-      return json({ error: 'Kursi tidak tersedia' }, 400)
+    if (cls.status !== 'open') {
+      return json({ error: 'Kelas ini sudah tidak menerima pendaftaran' }, 400)
     }
+    // Cek kapasitas dilakukan di reserve_group_seat (di bawah kunci baris kelas,
+    // setelah tahanan kedaluwarsa dibersihkan) — jangan menolak lebih awal dari
+    // seats_taken yang mungkin masih berisi tahanan kedaluwarsa.
     const { data: seat, error: sErr } = await admin.rpc('reserve_group_seat', {
       p_group_class_id: groupClassId,
       p_student: uid,
@@ -194,6 +202,7 @@ Deno.serve(async (req) => {
       amount,
       `Kursi kelas grup · ${cls.jenjang} · ${cls.duration_minutes} menit`,
       { first_name: student?.full_name ?? 'Siswa', email: userData.user.email ?? undefined },
+      SEAT_HOLD_MINUTES,
     )
   } catch (e) {
     if (createdNow) {

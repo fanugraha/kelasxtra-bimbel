@@ -21,6 +21,13 @@ class GroupClassItem {
     this.subjectName,
     this.firstSession,
     this.lastSession,
+    this.tutorId,
+    this.seatsPaid,
+    this.seatsHeld = 0,
+    this.tutorPhotoUrl,
+    this.tutorEducation,
+    this.tutorRating,
+    this.tutorBio,
   });
 
   final String id;
@@ -40,10 +47,30 @@ class GroupClassItem {
   final String? subjectName;
   final DateTime? firstSession;
   final DateTime? lastSession;
+  final String? tutorId;
+
+  /// Kursi LUNAS (yang tampil sebagai "terisi"). Null pada data lama →
+  /// jatuh ke [seatsTaken].
+  final int? seatsPaid;
+
+  /// Kursi yang sedang ditahan siswa lain (≤ 5 menit, belum bayar).
+  final int seatsHeld;
+  final String? tutorPhotoUrl;
+  final String? tutorEducation;
+  final double? tutorRating;
+  final String? tutorBio;
 
   bool get dibuka => status == 'open';
+
+  /// Kursi yang bisa diambil sekarang (kapasitas − lunas − ditahan).
   int get sisaKursi => maxSeats - seatsTaken;
   bool get penuh => seatsTaken >= maxSeats;
+
+  /// Terisi = sudah lunas saja.
+  int get terisi => seatsPaid ?? seatsTaken;
+
+  /// Semua sisa kursi sedang ditahan orang lain (bisa kosong lagi ≤ 5 menit).
+  bool get tertahanSemua => penuh && terisi < maxSeats;
 
   factory GroupClassItem.fromMap(Map<String, dynamic> m) => GroupClassItem(
     id: m['id'] as String,
@@ -69,6 +96,13 @@ class GroupClassItem {
     lastSession: m['last_session'] == null
         ? null
         : DateTime.parse(m['last_session'] as String).toLocal(),
+    tutorId: m['tutor_id'] as String?,
+    seatsPaid: (m['seats_paid'] as num?)?.toInt(),
+    seatsHeld: (m['seats_held'] as num?)?.toInt() ?? 0,
+    tutorPhotoUrl: m['tutor_photo_url'] as String?,
+    tutorEducation: m['tutor_education'] as String?,
+    tutorRating: (m['tutor_rating'] as num?)?.toDouble(),
+    tutorBio: m['tutor_bio'] as String?,
   );
 }
 
@@ -91,6 +125,7 @@ class GroupSeatItem {
     required this.pricePaid,
     required this.status,
     this.refundAmount,
+    this.lockExpiresAt,
   });
 
   final String id;
@@ -98,6 +133,15 @@ class GroupSeatItem {
   final int pricePaid;
   final String status;
   final int? refundAmount;
+
+  /// Batas tahanan kursi (hanya untuk `pending_payment`).
+  final DateTime? lockExpiresAt;
+
+  /// Masih ditahan untuk siswa ini dan belum lewat 5 menit.
+  bool get holdAlive =>
+      status == 'pending_payment' &&
+      lockExpiresAt != null &&
+      lockExpiresAt!.isAfter(DateTime.now());
 
   String get statusLabel => switch (status) {
     'pending_payment' => 'Menunggu bayar',
@@ -114,6 +158,9 @@ class GroupSeatItem {
     pricePaid: (m['price_paid'] as num).toInt(),
     status: (m['status'] ?? '-') as String,
     refundAmount: (m['refund_amount'] as num?)?.toInt(),
+    lockExpiresAt: m['lock_expires_at'] == null
+        ? null
+        : DateTime.parse(m['lock_expires_at'] as String).toLocal(),
   );
 }
 
@@ -122,7 +169,8 @@ class KelasGrupRepository {
       'id, jenjang, mode, duration_minutes, total_sesi, discount_percent, '
       'price_per_session, price_total, min_seats, max_seats, seats_taken, '
       'status, min_confirm_deadline, tutor_name, subject_name, '
-      'first_session, last_session';
+      'first_session, last_session, tutor_id, seats_paid, seats_held, '
+      'tutor_photo_url, tutor_education, tutor_rating, tutor_bio';
 
   Future<List<GroupClassItem>> fetchClasses() async {
     final rows = await supabase
@@ -153,7 +201,9 @@ class KelasGrupRepository {
   Future<List<GroupSeatItem>> fetchMySeats() async {
     final rows = await supabase
         .from('group_seats')
-        .select('id, group_class_id, price_paid, status, refund_amount')
+        .select(
+          'id, group_class_id, price_paid, status, refund_amount, lock_expires_at',
+        )
         .order('created_at', ascending: false);
     return rows.map(GroupSeatItem.fromMap).toList();
   }
@@ -161,7 +211,9 @@ class KelasGrupRepository {
   Future<GroupSeatItem?> fetchMySeat(String classId) async {
     final row = await supabase
         .from('group_seats')
-        .select('id, group_class_id, price_paid, status, refund_amount')
+        .select(
+          'id, group_class_id, price_paid, status, refund_amount, lock_expires_at',
+        )
         .eq('group_class_id', classId)
         .neq('status', 'cancelled')
         .maybeSingle();

@@ -119,7 +119,7 @@ export function Tutors() {
           <p className="eyebrow">Operasional · Tutor</p>
           <h1 className="page-title">Tutor &amp; undangan</h1>
           <p className="page-sub">
-            Undangan aktivasi berlaku 7 hari. Pengiriman email masih manual, salin tautan lalu kirim lewat WhatsApp.
+            Undangan berlaku 7 hari. Tutor membuktikan kepemilikan email dengan kode verifikasi saat aktivasi.
           </p>
         </div>
         <div className="head-actions">

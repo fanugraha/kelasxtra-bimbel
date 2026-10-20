@@ -100,8 +100,18 @@ export async function applyPaymentOutcome(
 ): Promise<{ ok: true; unchanged?: true; status: string }> {
   const { paid, newStatus } = outcome
 
+  // Jangan turunkan pembayaran yang sudah lunas/refund karena event terlambat.
+  if (payment.status === 'settlement' &&
+      !['settlement', 'refund', 'partial_refund'].includes(newStatus)) {
+    return { ok: true, unchanged: true, status: payment.status }
+  }
+  if (['refund', 'partial_refund'].includes(payment.status)) {
+    return { ok: true, unchanged: true, status: payment.status }
+  }
+
   if (payment.status !== newStatus) {
-    await admin
+    // Kunci transisi: hanya satu pemanggil yang boleh menjalankan efek samping.
+    const { data, error } = await admin
       .from('payments')
       .update({
         status: newStatus,
@@ -109,6 +119,12 @@ export async function applyPaymentOutcome(
         raw,
       })
       .eq('id', payment.id)
+      .eq('status', payment.status)
+      .select('id')
+    if (error) throw error
+    if (!data || data.length === 0) {
+      return { ok: true, unchanged: true, status: newStatus }
+    }
   } else if (!opts.force) {
     return { ok: true, unchanged: true, status: newStatus }
   }
@@ -218,6 +234,7 @@ async function runSideEffects(admin: Admin, payment: PaymentRow, outcome: Outcom
   if (payment.subscription_id && paid) {
     const { error } = await admin.rpc('activate_subscription', {
       p_subscription_id: payment.subscription_id,
+      p_payment_id: payment.id,
     })
     if (error) {
       await flagReview(

@@ -29,9 +29,9 @@ List<NavDest> navDestinationsFor(AppFlavor flavor) => switch (flavor) {
     ),
     NavDest(
       path: '/katalog',
-      label: 'Cari',
-      icon: Icons.search_outlined,
-      activeIcon: Icons.search_rounded,
+      label: 'Bimbel',
+      icon: Icons.school_outlined,
+      activeIcon: Icons.school_rounded,
     ),
     NavDest(
       path: '/jadwal',

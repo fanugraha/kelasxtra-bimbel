@@ -95,19 +95,21 @@ export async function createQris(
   amount: number,
   itemName: string,
   customer: { first_name: string; email?: string },
+  /** Masa berlaku QR (menit). Bawaan = kunci tagihan; kursi grup memakai 5. */
+  expiryMinutes: number = LOCK_MINUTES,
 ): Promise<Qris> {
   const base = {
     transaction_details: { order_id: orderId, gross_amount: amount },
     item_details: [{ id: orderId, price: amount, quantity: 1, name: itemName.slice(0, 50) }],
     customer_details: customer,
-    custom_expiry: { expiry_duration: LOCK_MINUTES, unit: 'minute' },
+    custom_expiry: { expiry_duration: expiryMinutes, unit: 'minute' },
   }
   let r = await charge({ ...base, payment_type: 'qris', qris: { acquirer: 'gopay' } })
   if (!r.ok && /not activated/i.test(r.message)) {
     r = await charge({ ...base, payment_type: 'gopay' })
   }
   if (!r.ok && /not activated/i.test(r.message)) {
-    return await createQrisSnap(orderId, amount, itemName, customer)
+    return await createQrisSnap(orderId, amount, itemName, customer, expiryMinutes)
   }
   if (!r.ok) {
     console.error('createQris gagal', orderId, r.message)
@@ -121,7 +123,7 @@ export async function createQris(
   // expiry_time dari Midtrans dalam WIB tanpa zona: "2026-10-19 13:30:00".
   const expiresAt = data.expiry_time
     ? new Date(`${String(data.expiry_time).replace(' ', 'T')}+07:00`).toISOString()
-    : new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
+    : new Date(Date.now() + expiryMinutes * 60_000).toISOString()
   return { qr_string: data.qr_string ?? '', qr_url: qrUrl, expires_at: expiresAt }
 }
 
@@ -154,6 +156,7 @@ async function createQrisSnap(
   amount: number,
   itemName: string,
   customer: { first_name: string; email?: string },
+  expiryMinutes: number = LOCK_MINUTES,
 ): Promise<Qris> {
   const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY')!
   const res = await fetch(`${snapBase()}/snap/v1/transactions`, {
@@ -169,7 +172,7 @@ async function createQrisSnap(
       customer_details: customer,
       // Satu metode saja → Snap langsung membuka halaman QR tanpa menu pilihan.
       enabled_payments: ['other_qris'],
-      expiry: { unit: 'minutes', duration: LOCK_MINUTES },
+      expiry: { unit: 'minutes', duration: expiryMinutes },
     }),
   })
   const data = await res.json().catch(() => null)
@@ -182,6 +185,6 @@ async function createQrisSnap(
     qr_string: '',
     qr_url: '',
     snap_url: data.redirect_url,
-    expires_at: new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString(),
+    expires_at: new Date(Date.now() + expiryMinutes * 60_000).toISOString(),
   }
 }

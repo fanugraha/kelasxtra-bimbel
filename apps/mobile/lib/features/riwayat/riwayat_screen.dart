@@ -32,7 +32,6 @@ class RiwayatScreen extends ConsumerWidget {
               children: [
                 const ScreenHead(
                   showBack: true,
-                  eyebrow: 'Keuangan',
                   title: 'Riwayat transaksi',
                   subtitle:
                       'Semua pembayaran paket, sesi, langganan, dan kelas grup.',

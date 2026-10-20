@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { cachedQris, cors, createQris, json, type Qris, qrisFields } from '../_shared/midtrans.ts'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
 
 /// Beli / perpanjang langganan bank soal (bulanan manual via Snap).
 Deno.serve(async (req) => {
@@ -7,13 +8,13 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const serviceKey = secretKey()
   if (!Deno.env.get('MIDTRANS_SERVER_KEY')) {
     return json({ error: 'MIDTRANS_SERVER_KEY belum diset' }, 500)
   }
   const admin = createClient(supabaseUrl, serviceKey)
 
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()

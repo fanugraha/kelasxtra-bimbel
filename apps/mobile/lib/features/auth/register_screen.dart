@@ -75,7 +75,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 const ScreenHead(
                   showBack: true,
-                  eyebrow: 'Akun baru',
                   title: 'Daftar Siswa',
                   subtitle:
                       'Data dipakai untuk keselamatan dan penjadwalan sesi.',

@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import '../features/absensi_grup/absensi_grup_screen.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/edit_biodata_screen.dart';
 import '../features/auth/profil_screen.dart';
+import '../features/auth/riwayat_poin_screen.dart';
+import '../features/auth/ubah_password_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/bank_soal/bank_soal_screen.dart';
 import '../features/bank_soal/latihan_screen.dart';
@@ -114,6 +117,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(path: '/notifikasi', builder: (c, s) => const NotifikasiScreen()),
+      // Sub-halaman Profil (edit biodata, ubah password, riwayat poin).
+      GoRoute(
+        path: '/profil/edit',
+        builder: (c, s) => const EditBiodataScreen(),
+      ),
+      GoRoute(
+        path: '/profil/password',
+        builder: (c, s) => const UbahPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/profil/poin',
+        builder: (c, s) => const RiwayatPoinScreen(),
+      ),
       GoRoute(
         path: '/chat/room/:peerId',
         builder: (c, s) {

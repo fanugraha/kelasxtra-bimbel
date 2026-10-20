@@ -76,7 +76,7 @@ Yang dibuat:
 - **Pelajaran buat user auth via SQL**: `auth.identities.email` adalah *generated column*
   (jangan diisi); butuh baris di `auth.identities` + `auth.users` agar login jalan.
 - `flutter analyze` mobile bersih.
-- **Sisa Fase 0**: rotate secret key lama (manual di dashboard, tak ada tool MCP).
+- **Sisa Fase 0**: rotate secret key lama — selesai 20 Okt 2026: legacy keys dimatikan dan legacy JWT signing key dicabut.
 - **Aturan kerja**: JANGAN `flutter run` / pasang emulator. Uji mobile di HP Android
   milik pemilik. `flutter analyze` (cek statis) tetap boleh.
 

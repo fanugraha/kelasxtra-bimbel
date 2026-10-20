@@ -31,7 +31,7 @@ Status berjalan: [PROGRES.md](PROGRES.md). Arsitektur: [arsitektur.md](arsitektu
 
 ```bash
 # Client/build
-SUPABASE_URL, SUPABASE_ANON_KEY         # mobile --dart-define, dashboard .env
+SUPABASE_URL, SUPABASE_ANON_KEY         # mobile --dart-define, dashboard .env (isi publishable key sb_publishable_...)
 # Edge Functions (server-only)
 supabase secrets set MIDTRANS_SERVER_KEY=... MIDTRANS_CLIENT_KEY=... MIDTRANS_IS_SANDBOX=true
 supabase secrets set FCM_SERVICE_ACCOUNT=...   # atau kredensial FCM

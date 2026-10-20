@@ -46,7 +46,7 @@ dipakai untuk migrasi, deploy Edge Function, dan uji.
 
 - Set `RESEND_API_KEY`, `EMAIL_FROM`, `ACTIVATION_BASE_URL` (pemilik, manual di dashboard).
 - Konfigurasi SMTP Resend di Supabase (Bagian B setup).
-- Ganti password admin + rotate secret key lama.
+- Ganti password admin (belum diverifikasi); rotate secret key lama selesai 20 Okt 2026.
 - Sebelum Fase 2: buat VIEW katalog publik tutor tanpa kolom bank.
 
 ## Update (15 Okt 2026) — keputusan email + bersih-bersih

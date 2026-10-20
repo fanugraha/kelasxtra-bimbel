@@ -26,7 +26,6 @@ class PaketScreen extends ConsumerWidget {
             children: [
               const ScreenHead(
                 showBack: true,
-                eyebrow: 'Paket belajar',
                 title: 'Paket Saya',
                 subtitle: 'Satu paket berisi 4–12 pertemuan, seminggu sekali.',
               ),

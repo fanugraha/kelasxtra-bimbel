@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -19,10 +20,10 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const admin = createClient(supabaseUrl, secretKey())
   const authHeader = req.headers.get('Authorization') ?? ''
 
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: authHeader } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()
@@ -69,6 +70,10 @@ Deno.serve(async (req) => {
       invite_token: token,
       invite_expires_at: new Date(Date.now() + INVITE_TTL_DAYS * 86_400_000).toISOString(),
       invited_at: now,
+      invite_otp_hash: null,
+      invite_otp_expires_at: null,
+      invite_otp_attempts: 0,
+      invite_otp_sent_at: null,
     }
   } else {
     return json({ error: 'action tidak dikenal' }, 400)

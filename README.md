@@ -43,7 +43,7 @@ cd apps/mobile
 flutter pub get
 flutter run -t lib/main_siswa.dart \
   --dart-define=SUPABASE_URL=<url> \
-  --dart-define=SUPABASE_ANON_KEY=<anon-key>
+  --dart-define=SUPABASE_ANON_KEY=<publishable-key>  # sb_publishable_...
 # flavor tutor:
 flutter run -t lib/main_tutor.dart --dart-define=...
 ```
@@ -52,7 +52,7 @@ flutter run -t lib/main_tutor.dart --dart-define=...
 
 ```bash
 cd apps/dashboard
-cp .env.example .env           # isi VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+cp .env.example .env           # isi VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (publishable key)
 npm install
 npm run dev
 ```

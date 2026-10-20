@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -19,13 +20,13 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const serviceKey = secretKey()
   const authHeader = req.headers.get('Authorization') ?? ''
 
   const admin = createClient(supabaseUrl, serviceKey)
 
   // Identifikasi pemanggil dari JWT-nya.
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: authHeader } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()
@@ -56,14 +57,27 @@ Deno.serve(async (req) => {
     email,
     password: crypto.randomUUID() + 'Aa1!',
     email_confirm: true,
-    user_metadata: { role: 'tutor', full_name: fullName, phone: payload.phone ?? null },
+    user_metadata: { full_name: fullName, phone: payload.phone ?? null },
   })
   if (createErr || !created.user) {
     return json({ error: createErr?.message ?? 'Gagal membuat akun' }, 400)
   }
   const tutorId = created.user.id
 
-  // 2) Baris tutors (status diundang + token).
+  // 2) Trigger signup membuat profil siswa; alur server ini menaikkannya ke tutor.
+  const { error: profileErr } = await admin.from('profiles').upsert({
+    id: tutorId,
+    role: 'tutor',
+    admin_role: null,
+    full_name: fullName,
+    phone: payload.phone ?? null,
+  })
+  if (profileErr) {
+    await admin.auth.admin.deleteUser(tutorId)
+    return json({ error: profileErr.message }, 400)
+  }
+
+  // 3) Baris tutors (status diundang + token).
   const { error: upsertErr } = await admin.from('tutors').upsert({
     id: tutorId,
     status: 'diundang',
@@ -77,11 +91,11 @@ Deno.serve(async (req) => {
     return json({ error: upsertErr.message }, 400)
   }
 
-  // 3) Link aktivasi (bisa deep link app atau halaman web).
+  // 4) Link aktivasi (bisa deep link app atau halaman web).
   const base = Deno.env.get('ACTIVATION_BASE_URL') ?? 'http://localhost:5173/activate'
   const activationLink = `${base}${base.includes('?') ? '&' : '?'}token=${token}`
 
-  // 4) Kirim email bila Resend dikonfigurasi.
+  // 5) Kirim email bila Resend dikonfigurasi.
   let emailSent = false
   let emailError: string | null = null
   const resendKey = Deno.env.get('RESEND_API_KEY')
@@ -100,16 +114,17 @@ Deno.serve(async (req) => {
         to: email,
         subject: 'Undangan menjadi tutor Kelasxtra',
         html: `<p>Halo ${fullName},</p>
-<p>Kamu diundang bergabung sebagai tutor Kelasxtra. Klik tautan berikut untuk mengaktifkan akun (berlaku ${INVITE_TTL_DAYS} hari):</p>
+<p>Kamu diundang bergabung sebagai tutor Kelasxtra. Buka tautan berikut (berlaku ${INVITE_TTL_DAYS} hari), lalu minta kode verifikasi yang akan dikirim ke email ini:</p>
 <p><a href="${activationLink}">Aktifkan akun tutor</a></p>
-<p>Atau salin tautan ini: ${activationLink}</p>`,
+<p>Atau salin tautan ini: ${activationLink}</p>
+<p>Jangan teruskan tautan ini ke orang lain.</p>`,
       }),
     })
     emailSent = res.ok
     if (!res.ok) emailError = (await res.text()).slice(0, 300)
   }
 
-  // 5) Audit log.
+  // 6) Audit log.
   await admin.from('audit_logs').insert({
     actor_id: userData.user.id,
     action: 'tutor.invite',

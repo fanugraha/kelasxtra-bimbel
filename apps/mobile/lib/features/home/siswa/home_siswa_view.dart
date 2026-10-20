@@ -10,6 +10,7 @@ import '../../booking/booking_repository.dart';
 import '../../katalog/katalog_providers.dart';
 import '../widgets/section_head.dart';
 import 'widgets/featured_tutors.dart';
+import 'widgets/group_class_section.dart';
 import 'widgets/promo_carousel.dart';
 import 'widgets/student_focus.dart';
 import 'widgets/student_session_card.dart';
@@ -55,6 +56,8 @@ class HomeSiswaView extends ConsumerWidget {
                 )
               : StudentSessionCard(booking: upcoming.first),
         ),
+        const SizedBox(height: AppSpacing.xl),
+        sidePad(const GroupClassSection()),
         const SizedBox(height: AppSpacing.xl),
         sidePad(
           StudentFocus(stats: ref.watch(myStatsProvider).value ?? const []),

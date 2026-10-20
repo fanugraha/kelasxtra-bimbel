@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../core/format.dart';
-import '../../core/theme/app_palette.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_view.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/screen_head.dart';
-import '../../core/widgets/status_badge.dart';
 import 'kelas_grup_providers.dart';
 import 'kelas_grup_repository.dart';
+import 'widgets/group_class_card.dart';
 
 class KelasGrupScreen extends ConsumerWidget {
   const KelasGrupScreen({super.key});
@@ -28,10 +24,11 @@ class KelasGrupScreen extends ConsumerWidget {
             children: [
               const ScreenHead(
                 showBack: true,
-                eyebrow: 'Kelas grup',
                 title: 'Belajar bareng',
                 subtitle:
-                    'Kuota 3–5 siswa. Program batal otomatis jika kuota minimum tidak terpenuhi.',
+                    'Belajar 3–5 siswa dengan satu tutor, jadwal tetap, harga '
+                    'lebih ringan. Bila kuota minimum tidak terpenuhi, dana '
+                    'kembali penuh.',
               ),
               const SizedBox(height: 18),
               AsyncView<List<GroupClassItem>>(
@@ -48,7 +45,7 @@ class KelasGrupScreen extends ConsumerWidget {
                     : Column(
                         children: [
                           for (final item in list) ...[
-                            _ClassCard(item: item),
+                            GroupClassCard(item: item),
                             const SizedBox(height: 9),
                           ],
                         ],
@@ -58,154 +55,6 @@ class KelasGrupScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ClassCard extends StatelessWidget {
-  const _ClassCard({required this.item});
-
-  final GroupClassItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final jadwal = (item.firstSession != null && item.lastSession != null)
-        ? '${AppFormat.dateShort(item.firstSession!)} – ${AppFormat.dateShort(item.lastSession!)}'
-        : '—';
-    final full = item.maxSeats == 0 ? 0.0 : item.seatsTaken / item.maxSeats;
-    final badge = item.seatsTaken >= item.maxSeats
-        ? const StatusBadge(label: 'Penuh', tone: StatusTone.neutral)
-        : item.seatsTaken / item.maxSeats >= 0.7
-        ? const StatusBadge(label: 'Hampir penuh', tone: StatusTone.warning)
-        : StatusBadge(
-            label: item.dibuka ? 'Dibuka' : 'Terkonfirmasi',
-            tone: item.dibuka ? StatusTone.info : StatusTone.success,
-          );
-
-    return AppCard(
-      onTap: () => context.push('/kelas-grup/${item.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.subjectName ?? 'Kelas grup',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${item.tutorName ?? 'Tutor'} · ${item.jenjang} · ${item.mode == 'online' ? 'Online' : 'Offline'}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              badge,
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            children: [
-              _Meta(icon: Icons.calendar_today_outlined, label: jadwal),
-              _Meta(
-                icon: Icons.schedule_rounded,
-                label:
-                    '${item.totalSesi} pertemuan · ${item.durationMinutes} menit',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: full,
-                    minHeight: 6,
-                    backgroundColor: theme.colorScheme.outline,
-                    valueColor: AlwaysStoppedAnimation(
-                      full >= 1
-                          ? context.palette.success
-                          : full < item.minSeats / item.maxSeats
-                          ? context.palette.warning
-                          : context.palette.brand,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${item.seatsTaken} / ${item.maxSeats} kursi',
-                style: theme.textTheme.labelSmall,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${AppFormat.rupiah(item.pricePerSession)} / sesi',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall,
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () => context.push('/kelas-grup/${item.id}'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-                child: const Text('Lihat detail'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-      ],
     );
   }
 }

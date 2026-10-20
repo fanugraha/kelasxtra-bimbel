@@ -29,3 +29,6 @@ supabase/.branches/
 
 # Artefak uji browser (Playwright MCP)
 .playwright-mcp/
+
+# Hasil pemindaian Strix (laporan diarsipkan terpisah bila perlu)
+strix_runs/

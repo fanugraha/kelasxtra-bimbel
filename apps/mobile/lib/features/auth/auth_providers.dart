@@ -13,6 +13,12 @@ final myProfileProvider = FutureProvider<MyProfile>((ref) {
   return ref.read(authRepositoryProvider).fetchMyProfile();
 });
 
+/// Riwayat poin siswa (masuk & terpakai).
+final creditHistoryProvider = FutureProvider<List<CreditEntry>>((ref) {
+  ref.watch(authStateProvider);
+  return ref.read(authRepositoryProvider).fetchCreditHistory();
+});
+
 /// Sesi auth berubah (login/logout). Dipakai router untuk redirect.
 final authStateProvider = StreamProvider<AuthState>(
   (ref) => supabase.auth.onAuthStateChange,

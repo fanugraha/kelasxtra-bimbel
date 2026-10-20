@@ -16,6 +16,7 @@ import {
   outcomeFromMidtrans,
   outcomeFromPaymentStatus,
 } from '../_shared/paymentApply.ts'
+import { publishableKey, secretKey } from '../_shared/keys.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -34,10 +35,10 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Metode tidak diizinkan' }, 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const admin = createClient(supabaseUrl, secretKey())
 
   // Identifikasi admin dari JWT pemanggil.
-  const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  const caller = createClient(supabaseUrl, publishableKey(), {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   })
   const { data: userData, error: userErr } = await caller.auth.getUser()

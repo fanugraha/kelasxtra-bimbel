@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { applyPaymentOutcome, outcomeFromMidtrans } from '../_shared/paymentApply.ts'
+import { applyPaymentOutcome, flagReview, outcomeFromMidtrans } from '../_shared/paymentApply.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -42,15 +43,21 @@ Deno.serve(async (req) => {
   const expected = await sha512Hex(`${orderId}${status_code}${gross_amount}${serverKey}`)
   if (expected !== signature_key) return json({ error: 'Signature tidak sah' }, 401)
 
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, secretKey())
 
   // Idempoten by order_id.
   const { data: payment } = await admin
     .from('payments')
-    .select('id, order_id, status, booking_id, package_purchase_id, group_seat_id, subscription_id, credit_amount')
+    .select('id, order_id, status, amount, booking_id, package_purchase_id, group_seat_id, subscription_id, credit_amount')
     .eq('order_id', orderId)
     .maybeSingle()
   if (!payment) return json({ ok: false, reason: 'order_id tidak dikenal' })
+
+  // Signature sah saja belum cukup: nominal harus sama dengan tagihan tersimpan.
+  if (Math.round(Number(gross_amount)) !== Math.round(Number(payment.amount))) {
+    await flagReview(admin, payment.id, `Nominal webhook ${gross_amount} != ${payment.amount}`)
+    return json({ error: 'Nominal tidak cocok' }, 400)
+  }
 
   const outcome = outcomeFromMidtrans(transaction_status, p.fraud_status)
   const result = await applyPaymentOutcome(admin, payment, outcome, p)

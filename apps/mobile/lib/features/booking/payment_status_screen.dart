@@ -195,7 +195,6 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
           children: [
             ScreenHead(
               showBack: true,
-              eyebrow: 'Pembayaran',
               title: _title(phase),
               subtitle: _subtitle(phase),
             ),

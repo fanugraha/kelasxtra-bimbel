@@ -54,7 +54,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    final now = DateTime.now();
+    final now = DateTime(2026, 10, 20, 12);
     DateTime d(int days, int h) =>
         DateTime(now.year, now.month, now.day + days, h);
     final all = [

@@ -6,6 +6,7 @@
 // Panggil berkala (pg_cron + pg_net atau scheduler eksternal):
 //   curl -X POST .../functions/v1/send-push -H "x-cron-secret: ..."
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { secretKey } from '../_shared/keys.ts'
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -89,10 +90,7 @@ Deno.serve(async (req) => {
     return json({ error: 'FIREBASE_SERVICE_ACCOUNT bukan JSON valid' }, 500)
   }
 
-  const admin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, secretKey())
 
   const { data: pending, error } = await admin
     .from('notifications')
